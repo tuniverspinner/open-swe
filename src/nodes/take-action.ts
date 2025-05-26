@@ -5,7 +5,6 @@ import { GraphState, GraphConfig, GraphUpdate } from "../types.js";
 import {
   checkoutBranchAndCommit,
   getChangedFilesStatus,
-  getRepoAbsolutePath,
 } from "../utils/git/index.js";
 import { Sandbox } from "@e2b/code-interpreter";
 
@@ -63,11 +62,17 @@ export async function takeAction(
     name: toolCall.name,
   });
 
+  if (!state.repoDirectory) {
+    throw new Error(
+      "Failed to take action: No repository directory found in state.",
+    );
+  }
+
   // Always check if there are changed files after running a tool.
   // If there are, commit them.
   const sandbox = await Sandbox.connect(state.sandboxSessionId);
   const changedFiles = await getChangedFilesStatus(
-    getRepoAbsolutePath(config),
+    state.repoDirectory,
     sandbox,
   );
 
@@ -86,3 +91,4 @@ export async function takeAction(
     ...(branchName && { branchName }),
   };
 }
+
