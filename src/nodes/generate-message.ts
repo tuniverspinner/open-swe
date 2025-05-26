@@ -89,7 +89,7 @@ export async function generateAction(
   const response = await modelWithTools.invoke([
     {
       role: "system",
-      content: formatPrompt(state.plan),
+      content: formatPrompt(state.plan, config),
     },
     ...state.messages,
   ]);
@@ -111,5 +111,6 @@ export async function generateAction(
     ...(newSandboxSessionId && { sandboxSessionId: newSandboxSessionId }),
   };
 }
+
 
 
