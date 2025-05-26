@@ -73,8 +73,9 @@ You MUST adhere to the following criteria when executing the task:
   - Always use glob patterns when searching with \`rg\` for specific file types. For example, to search for all TSX files, use \`rg -i star -g **/*.tsx project-directory/\`. This is because \`rg\` does not have built in file types for every language.
 `;
 
-const formatPrompt = (plan: PlanItem[]): string => {
-  return systemPrompt.replace("{PLAN_PROMPT}", formatPlanPrompt(plan));
+const formatPrompt = (plan: PlanItem[], config: GraphConfig): string => {
+  const repoDirectory = getRepoAbsolutePath(config);
+  return systemPrompt.replace("{PLAN_PROMPT}", formatPlanPrompt(plan)).replace("{REPO_DIRECTORY}", repoDirectory);
 };
 
 export async function generateAction(
@@ -110,4 +111,5 @@ export async function generateAction(
     ...(newSandboxSessionId && { sandboxSessionId: newSandboxSessionId }),
   };
 }
+
 
