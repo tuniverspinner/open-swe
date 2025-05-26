@@ -125,5 +125,7 @@ export async function initialize(
 
   return {
     sandboxSessionId: sandbox.sandboxId,
+    repoDirectory: absoluteRepoDir,
   };
 }
+
