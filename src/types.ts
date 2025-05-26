@@ -61,6 +61,13 @@ export const GraphAnnotation = z.object({
     .string()
     .optional()
     .langgraph.reducer((_state, update) => update),
+  /**
+   * The absolute path to the repository directory
+   */
+  repoDirectory: z
+    .string()
+    .optional()
+    .langgraph.reducer((_state, update) => update),
 });
 
 export type GraphState = z.infer<typeof GraphAnnotation>;
@@ -332,3 +339,4 @@ export type GraphConfig = LangGraphRunnableConfig<
     assistant_id: string;
   }
 >;
+
