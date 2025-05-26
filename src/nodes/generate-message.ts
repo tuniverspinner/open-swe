@@ -3,6 +3,7 @@ import { loadModel, Task } from "../utils/load-model.js";
 import { shellTool, applyPatchTool } from "../tools/index.js";
 import { formatPlanPrompt } from "../utils/plan-prompt.js";
 import { pauseSandbox } from "../utils/sandbox.js";
+import { getRepoAbsolutePath } from "../utils/git/index.js";
 import { createLogger, LogLevel } from "../utils/logger.js";
 
 const logger = createLogger(LogLevel.INFO, "GenerateMessageNode");
@@ -109,3 +110,4 @@ export async function generateAction(
     ...(newSandboxSessionId && { sandboxSessionId: newSandboxSessionId }),
   };
 }
+
