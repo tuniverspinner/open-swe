@@ -11,6 +11,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "dev": "nodemon --exec \"node --loader ts-node/esm\" src/index.ts",
+    "start": "node dist/index.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -50,4 +52,5 @@
   },
   "packageManager": "yarn@3.5.1"
 }
+
 
