@@ -43,4 +43,31 @@ async function startServer() {
     configurePassport();
     app.use(passport.initialize());
     app.use(passport.session());
+    
+    // Middleware for parsing JSON
+    app.use(express.json());
+    
+    // Routes
+    app.use('/auth', authRoutes);
+    app.use('/api', apiRoutes);
+    
+    // Health check endpoint
+    app.get('/health', (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+    
+    // Start server
+    const port = config.PORT;
+    app.listen(port, () => {
+      logger.info(`Auth server running on port ${port}`);
+    });
+    
+  } catch (error) {
+    logger.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
 
