@@ -2,27 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import axios from 'axios';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
+import { config } from './config/index.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-
-// GitHub OAuth configuration
-const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID;
-const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET;
-const GITHUB_REDIRECT_URI = process.env.GITHUB_REDIRECT_URI || `http://localhost:${PORT}/auth/github/callback`;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
 
 // Security middleware
 app.use(helmet());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: config.server.frontendUrl,
   credentials: true,
 }));
 
@@ -42,10 +31,10 @@ app.get('/health', (req, res) => {
 // GitHub OAuth endpoints
 app.get('/auth/github', (req, res) => {
   // Validate required environment variables
-  if (!GITHUB_CLIENT_ID) {
+  if (!config.github.clientId) {
     return res.status(500).json({
       error: 'Server configuration error',
-      message: 'GITHUB_CLIENT_ID is not configured',
+      message: 'GitHub Client ID is not configured',
     });
   }
 
@@ -64,8 +53,8 @@ app.get('/auth/github', (req, res) => {
 
   // Build GitHub OAuth authorization URL
   const githubAuthUrl = new URL('https://github.com/login/oauth/authorize');
-  githubAuthUrl.searchParams.append('client_id', GITHUB_CLIENT_ID);
-  githubAuthUrl.searchParams.append('redirect_uri', GITHUB_REDIRECT_URI);
+  githubAuthUrl.searchParams.append('client_id', config.github.clientId);
+  githubAuthUrl.searchParams.append('redirect_uri', config.github.redirectUri);
   githubAuthUrl.searchParams.append('scope', scopes);
   githubAuthUrl.searchParams.append('state', state);
   githubAuthUrl.searchParams.append('allow_signup', 'true');
@@ -80,27 +69,27 @@ app.get('/auth/github/callback', async (req, res) => {
   // Handle OAuth errors
   if (error) {
     console.error('GitHub OAuth error:', error, error_description);
-    return res.redirect(`${FRONTEND_URL}/auth/error?error=${encodeURIComponent(error as string)}&description=${encodeURIComponent(error_description as string || '')}`);
+    return res.redirect(`${config.server.frontendUrl}/auth/error?error=${encodeURIComponent(error as string)}&description=${encodeURIComponent(error_description as string || '')}`);
   }
 
   // Validate required parameters
   if (!code) {
-    return res.redirect(`${FRONTEND_URL}/auth/error?error=missing_code&description=Authorization code not provided`);
+    return res.redirect(`${config.server.frontendUrl}/auth/error?error=missing_code&description=Authorization code not provided`);
   }
 
   // Validate required environment variables
-  if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+  if (!config.github.clientId || !config.github.clientSecret) {
     console.error('Missing GitHub OAuth configuration');
-    return res.redirect(`${FRONTEND_URL}/auth/error?error=server_config&description=Server configuration error`);
+    return res.redirect(`${config.server.frontendUrl}/auth/error?error=server_config&description=Server configuration error`);
   }
 
   try {
     // Exchange authorization code for access token
     const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
-      client_id: GITHUB_CLIENT_ID,
-      client_secret: GITHUB_CLIENT_SECRET,
+      client_id: config.github.clientId,
+      client_secret: config.github.clientSecret,
       code: code as string,
-      redirect_uri: GITHUB_REDIRECT_URI,
+      redirect_uri: config.github.redirectUri,
     }, {
       headers: {
         'Accept': 'application/json',
@@ -126,7 +115,7 @@ app.get('/auth/github/callback', async (req, res) => {
 
     // For now, redirect to frontend with success
     // In the next task, we'll implement JWT token generation
-    const successUrl = new URL(`${FRONTEND_URL}/auth/success`);
+    const successUrl = new URL(`${config.server.frontendUrl}/auth/success`);
     successUrl.searchParams.append('user', userData.login);
     successUrl.searchParams.append('id', userData.id.toString());
     
@@ -135,7 +124,7 @@ app.get('/auth/github/callback', async (req, res) => {
   } catch (error) {
     console.error('Error during GitHub OAuth callback:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    res.redirect(`${FRONTEND_URL}/auth/error?error=oauth_exchange&description=${encodeURIComponent(errorMessage)}`);
+    res.redirect(`${config.server.frontendUrl}/auth/error?error=oauth_exchange&description=${encodeURIComponent(errorMessage)}`);
   }
 });
 
@@ -153,8 +142,9 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Auth server running on port ${PORT}`);
+app.listen(config.server.port, () => {
+  console.log(`Auth server running on port ${config.server.port} in ${config.server.environment} mode`);
 });
+
 
 
