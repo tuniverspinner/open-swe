@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
+import { config } from '../config/index.js';
 
 // Interface for JWT payload
 export interface JWTPayload {
@@ -16,10 +17,6 @@ export interface AuthenticatedRequest extends Request {
   user?: JWTPayload;
 }
 
-// JWT configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'your-jwt-secret-key';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
-
 /**
  * Generate a JWT token for an authenticated user
  * @param payload - User data to include in the token
@@ -27,10 +24,10 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
  */
 export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string {
   try {
-    return jwt.sign(payload, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-      issuer: 'open-swe-auth',
-      audience: 'open-swe-client',
+    return jwt.sign(payload, config.jwt.secret, {
+      expiresIn: config.jwt.expiresIn,
+      issuer: config.jwt.issuer,
+      audience: config.jwt.audience,
     });
   } catch (error) {
     console.error('Error generating JWT token:', error);
@@ -45,9 +42,9 @@ export function generateToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): string 
  */
 export function verifyToken(token: string): JWTPayload {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, {
-      issuer: 'open-swe-auth',
-      audience: 'open-swe-client',
+    const decoded = jwt.verify(token, config.jwt.secret, {
+      issuer: config.jwt.issuer,
+      audience: config.jwt.audience,
     }) as JWTPayload;
     
     return decoded;
@@ -107,4 +104,5 @@ export function validateToken(req: AuthenticatedRequest, res: Response, next: Ne
     });
   }
 }
+
 
