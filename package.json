@@ -16,11 +16,9 @@
     "lint:fix": "turbo lint:fix"
   },
   "devDependencies": {
+    "husky": "^9.0.0",
     "turbo": "^2.5.0",
-    "typescript": "^5",
-    "husky": "^9.0.0"
+    "typescript": "^5"
   },
   "packageManager": "yarn@3.5.1"
 }
-
-
