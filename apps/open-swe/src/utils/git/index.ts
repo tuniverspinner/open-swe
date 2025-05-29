@@ -145,7 +145,7 @@ interface GitHubUserResponse {
   email: string | null;
 }
 
-async function getGitUserDetailsFromGitHub(): Promise<{
+export async function getGitUserDetailsFromGitHub(): Promise<{
   userName?: string;
   userEmail?: string;
 }> {

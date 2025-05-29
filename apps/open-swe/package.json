@@ -22,6 +22,7 @@
     "run:from-plan": "npx tsx scripts/run-from-plan.ts"
   },
   "dependencies": {
+    "@daytonaio/sdk": "^0.18.1",
     "@e2b/code-interpreter": "1.2.0-beta.4",
     "@langchain/anthropic": "^0.3.20",
     "@langchain/core": "^0.3.56",

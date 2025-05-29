@@ -1,4 +1,4 @@
-import { Sandbox } from "@e2b/code-interpreter";
+import { Daytona, Sandbox } from '@daytonaio/sdk'
 import { createLogger, LogLevel } from "../utils/logger.js";
 import {
   GraphState,
@@ -11,37 +11,30 @@ import {
   checkoutBranch,
   configureGitUserInRepo,
   getBranchName,
+  getGitUserDetailsFromGitHub,
   getRepoAbsolutePath,
 } from "../utils/git/index.js";
 import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
 
 const logger = createLogger(LogLevel.INFO, "Initialize");
 
-const SANDBOX_TEMPLATE_ID = "eh0860emqx28qyxmbctu";
+// const SANDBOX_TEMPLATE_ID = "eh0860emqx28qyxmbctu";
+const SANDBOX_USER = "agent";
 
 async function cloneRepo(sandbox: Sandbox, targetRepository: TargetRepository) {
   if (!process.env.GITHUB_PAT) {
     throw new Error("GITHUB_PAT environment variable not set.");
   }
 
-  try {
-    const gitCloneCommand = ["git", "clone"];
+  const userDetails = await getGitUserDetailsFromGitHub();
 
+  try {
     const repoUrlWithToken = `https://${process.env.GITHUB_PAT}@github.com/${targetRepository.owner}/${targetRepository.repo}.git`;
 
-    if (targetRepository.branch) {
-      gitCloneCommand.push("-b", targetRepository.branch, repoUrlWithToken);
-    } else {
-      gitCloneCommand.push(repoUrlWithToken);
-    }
-
     logger.info("Cloning repository", {
-      command: gitCloneCommand.join(" "),
+      repo: `${targetRepository.owner}/${targetRepository.repo}`,
     });
-    return await sandbox.commands.run(
-      gitCloneCommand.join(" "),
-      TIMEOUT_EXTENSION_OPT,
-    );
+    await sandbox.git.clone(repoUrlWithToken, `${SANDBOX_USER}/${targetRepository.repo}`, targetRepository.branch, userDetails.userName, process.env.GITHUB_PAT);
   } catch (e) {
     const errorFields = getSandboxErrorFields(e);
     logger.error("Failed to clone repository", errorFields ?? e);
@@ -62,7 +55,13 @@ export async function initialize(
   if (!config.configurable) {
     throw new Error("Configuration object not found.");
   }
+  if (!process.env.DAYTONA_API_KEY) {
+    throw new Error("DAYTONA_API_KEY environment variable not set.");
+  }
   const { sandboxSessionId } = state;
+  const daytona = new Daytona({
+    apiKey: process.env.DAYTONA_API_KEY,
+  })
 
   if (sandboxSessionId) {
     try {
@@ -92,10 +91,16 @@ export async function initialize(
   }
 
   logger.info("Creating sandbox...");
-  const sandbox = await Sandbox.create(
-    SANDBOX_TEMPLATE_ID,
-    TIMEOUT_EXTENSION_OPT,
+  await daytona.start
+  const sandbox = await daytona.create(
+    {
+      user: "agent"
+    }
+    // SANDBOX_TEMPLATE_ID,
+    // TIMEOUT_EXTENSION_OPT,
   );
+
+  const res = await sandbox.process.executeCommand
 
   const res = await cloneRepo(sandbox, target_repository);
   if (res.error) {
