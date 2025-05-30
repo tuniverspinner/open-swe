@@ -46,7 +46,8 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
-import { RepositorySelector, TargetRepository } from "../repository-selector";
+import { RepositorySelector } from "../repository-selector";
+import { TargetRepository } from "@/providers/Stream";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -139,7 +140,8 @@ export function Thread() {
   } = useFileUpload();
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
-  const [selectedRepository, setSelectedRepository] = useState<TargetRepository | null>(null);
+  const [selectedRepository, setSelectedRepository] =
+    useState<TargetRepository>();
 
   const stream = useStreamContext();
   const messages = stream.messages;
@@ -218,7 +220,7 @@ export function Thread() {
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
     const targetRepository = selectedRepository || {
-      owner: "langchain-ai", 
+      owner: "langchain-ai",
       repo: "open-swe",
     };
 
@@ -499,9 +501,6 @@ export function Thread() {
 
                       <div className="flex items-center gap-6 p-2 pt-4">
                         <div className="flex items-center space-x-2">
-                          <Label className="text-sm text-gray-600">
-                            Repository:
-                          </Label>
                           <RepositorySelector
                             value={selectedRepository}
                             onValueChange={setSelectedRepository}
@@ -587,8 +586,3 @@ export function Thread() {
     </div>
   );
 }
-
-
-
-
-

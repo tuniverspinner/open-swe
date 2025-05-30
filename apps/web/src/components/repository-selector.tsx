@@ -6,11 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export type TargetRepository = {
-  owner: string;
-  repo: string;
-};
+import { TargetRepository } from "@/providers/Stream";
 
 const DUMMY_REPOSITORIES: TargetRepository[] = [
   { owner: "facebook", repo: "react" },
@@ -35,7 +31,7 @@ export function RepositorySelector({
 }: RepositorySelectorProps) {
   const handleValueChange = (repositoryKey: string) => {
     const repository = DUMMY_REPOSITORIES.find(
-      (repo) => `${repo.owner}/${repo.repo}` === repositoryKey
+      (repo) => `${repo.owner}/${repo.repo}` === repositoryKey,
     );
     if (repository) {
       onValueChange(repository);
@@ -57,7 +53,10 @@ export function RepositorySelector({
         {DUMMY_REPOSITORIES.map((repo) => {
           const key = `${repo.owner}/${repo.repo}`;
           return (
-            <SelectItem key={key} value={key}>
+            <SelectItem
+              key={key}
+              value={key}
+            >
               {key}
             </SelectItem>
           );
