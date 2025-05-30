@@ -505,6 +505,7 @@ export function Thread() {
                           <RepositorySelector
                             value={selectedRepository}
                             onValueChange={setSelectedRepository}
+                            disabled={messages.length > 0}
                           />
                         </div>
                         <div>
@@ -586,6 +587,7 @@ export function Thread() {
     </div>
   );
 }
+
 
 
 
