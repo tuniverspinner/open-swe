@@ -139,6 +139,7 @@ export function Thread() {
   } = useFileUpload();
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
+  const [selectedRepository, setSelectedRepository] = useState<TargetRepository | null>(null);
 
   const stream = useStreamContext();
   const messages = stream.messages;
@@ -575,4 +576,5 @@ export function Thread() {
     </div>
   );
 }
+
 
