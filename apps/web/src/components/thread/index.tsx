@@ -46,6 +46,7 @@ import {
   ArtifactTitle,
   useArtifactContext,
 } from "./artifact";
+import { RepositorySelector, TargetRepository } from "../repository-selector";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -574,3 +575,4 @@ export function Thread() {
     </div>
   );
 }
+
