@@ -22,7 +22,6 @@ import {
   SquarePen,
   XIcon,
   Plus,
-  CircleX,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -48,6 +47,8 @@ import {
 } from "./artifact";
 import { RepositorySelector } from "../repository-selector";
 import { TargetRepository } from "@/providers/Stream";
+import { ConfigurationSidebar } from "../configuration-sidebar";
+import { SidebarButtons } from "../sidebar-buttons";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -157,6 +158,43 @@ export function Thread() {
     setArtifactContext({});
   };
 
+  const configRef = useRef<HTMLDivElement>(null);
+  const [configOpen, setConfigOpen] = useState(false);
+  const buttonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as Node;
+
+      // Check if click is on portal elements (dropdowns, dialogs, etc.)
+      const isPortalElement =
+        document.querySelector('[role="dialog"]')?.contains(target) ||
+        document.querySelector('[role="listbox"]')?.contains(target) ||
+        document.querySelector(".popover")?.contains(target) ||
+        document.querySelector(".dropdown")?.contains(target) ||
+        document
+          .querySelector("[data-radix-popper-content-wrapper]")
+          ?.contains(target) ||
+        document.querySelector('[role="alertdialog"]')?.contains(target);
+
+      // Don't close if clicking on portal elements
+      if (isPortalElement) return;
+
+      // Close config sidebar if clicking outside
+      if (
+        configOpen &&
+        configRef.current &&
+        !configRef.current.contains(target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(target)
+      ) {
+        setConfigOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [configOpen]);
   useEffect(() => {
     if (!stream.error) {
       lastError.current = undefined;
@@ -274,6 +312,16 @@ export function Thread() {
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <div className="relative hidden lg:flex">
+        <SidebarButtons
+          ref={buttonRef}
+          configOpen={configOpen}
+          setConfigOpen={setConfigOpen}
+          // Remove history-related props if you don't need them
+        />
+        <ConfigurationSidebar
+          ref={configRef}
+          open={configOpen}
+        />
         <motion.div
           className="absolute z-20 h-full overflow-hidden border-r bg-white"
           style={{ width: 300 }}
