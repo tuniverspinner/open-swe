@@ -217,10 +217,11 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
-    const targetRepository = {
-      owner: "langchain-ai",
+    const targetRepository = selectedRepository || {
+      owner: "langchain-ai", 
       repo: "open-swe",
     };
+
     stream.submit(
       {
         messages: [...toolMessages, newHumanMessage],
@@ -576,5 +577,6 @@ export function Thread() {
     </div>
   );
 }
+
 
 
