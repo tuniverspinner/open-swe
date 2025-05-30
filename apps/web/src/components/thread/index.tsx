@@ -498,6 +498,15 @@ export function Thread() {
                       />
 
                       <div className="flex items-center gap-6 p-2 pt-4">
+                        <div className="flex items-center space-x-2">
+                          <Label className="text-sm text-gray-600">
+                            Repository:
+                          </Label>
+                          <RepositorySelector
+                            value={selectedRepository}
+                            onValueChange={setSelectedRepository}
+                          />
+                        </div>
                         <div>
                           <div className="flex items-center space-x-2">
                             <Switch
@@ -577,6 +586,7 @@ export function Thread() {
     </div>
   );
 }
+
 
 
 
