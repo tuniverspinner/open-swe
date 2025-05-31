@@ -1,6 +1,6 @@
 "use client";
 import { forwardRef, ForwardedRef, useState, useEffect } from "react";
-import { Save, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfigField } from "@/components/configuration-sidebar/config-field";
@@ -16,14 +16,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { toast } from "sonner";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -103,7 +99,6 @@ function NameAndDescriptionAlertDialog({
   setDescription,
   open,
   setOpen,
-  handleSave,
 }: {
   name: string;
   setName: (name: string) => void;
@@ -111,12 +106,7 @@ function NameAndDescriptionAlertDialog({
   setDescription: (description: string) => void;
   open: boolean;
   setOpen: (open: boolean) => void;
-  handleSave: () => void;
 }) {
-  const handleSaveAgent = () => {
-    setOpen(false);
-    handleSave();
-  };
   return (
     <AlertDialog
       open={open}
@@ -150,12 +140,6 @@ function NameAndDescriptionAlertDialog({
             />
           </div>
         </div>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleSaveAgent}>
-            Submit
-          </AlertDialogAction>
-        </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
@@ -302,18 +286,6 @@ export const ConfigurationSidebar = forwardRef<
     setLoading(false);
   }, [configs, updateConfig]);
 
-  const handleSave = async () => {
-    if (!newName) {
-      setOpenNameAndDescriptionAlertDialog(true);
-      return;
-    }
-
-    // TODO: Implement save functionality based on your requirements
-    console.log("Saving config:", configs);
-
-    toast.success("Agent configuration saved successfully");
-  };
-
   return (
     <div
       ref={ref}
@@ -349,15 +321,7 @@ export const ConfigurationSidebar = forwardRef<
                 </Tooltip>
 
                 <Tooltip delayDuration={200}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      onClick={handleSave}
-                    >
-                      <Save className="mr-1 h-4 w-4" />
-                      Save
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger asChild></TooltipTrigger>
                   <TooltipContent>
                     <p>Save your changes to the agent</p>
                   </TooltipContent>
@@ -419,7 +383,6 @@ export const ConfigurationSidebar = forwardRef<
         setDescription={setNewDescription}
         open={openNameAndDescriptionAlertDialog}
         setOpen={setOpenNameAndDescriptionAlertDialog}
-        handleSave={handleSave}
       />
     </div>
   );
