@@ -1,30 +1,12 @@
 "use client";
 import { forwardRef, ForwardedRef, useState, useEffect } from "react";
-import { Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfigField } from "@/components/configuration-sidebar/config-field";
 import { ConfigSection } from "@/components/configuration-sidebar/config-section";
 import { useConfigStore } from "@/hooks/use-config-store";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { useQueryState } from "nuqs";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ConfigurableFieldUIMetadata } from "@/types/configurable";
 
 // Import the actual model options from the open-swe types
@@ -92,59 +74,6 @@ const MODEL_OPTIONS_NO_THINKING = MODEL_OPTIONS.filter(
     !value.includes("extended-thinking") && !value.startsWith("openai:o"),
 );
 
-function NameAndDescriptionAlertDialog({
-  name,
-  setName,
-  description,
-  setDescription,
-  open,
-  setOpen,
-}: {
-  name: string;
-  setName: (name: string) => void;
-  description: string;
-  setDescription: (description: string) => void;
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}) {
-  return (
-    <AlertDialog
-      open={open}
-      onOpenChange={setOpen}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Agent Name and Description</AlertDialogTitle>
-          <AlertDialogDescription>
-            Please give your new agent a name and optional description.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <div className="flex flex-col gap-4 p-4">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              placeholder="Agent Name"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              placeholder="Agent Description"
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-        </div>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
-
 export interface AIConfigPanelProps {
   className?: string;
   open: boolean;
@@ -154,8 +83,7 @@ export const ConfigurationSidebar = forwardRef<
   HTMLDivElement,
   AIConfigPanelProps
 >(({ className, open }, ref: ForwardedRef<HTMLDivElement>) => {
-  const { configs, resetConfig, updateConfig } = useConfigStore();
-  const [graphId] = useQueryState("graphId");
+  const { configs, updateConfig } = useConfigStore();
 
   // Local state for configurations and loading
   const [configurations, setConfigurations] = useState<
@@ -163,18 +91,6 @@ export const ConfigurationSidebar = forwardRef<
   >([]);
   const [loading, setLoading] = useState(false);
 
-  const [newName, setNewName] = useState("");
-  const [newDescription, setNewDescription] = useState("");
-  const [
-    openNameAndDescriptionAlertDialog,
-    setOpenNameAndDescriptionAlertDialog,
-  ] = useState(false);
-
-  /* TODO: Update Configuration to:
-  // Replace these types with shared types from open-swe
-  // Use shared config store from open-swe
-
-  */
   useEffect(() => {
     setLoading(true);
 
@@ -299,35 +215,6 @@ export const ConfigurationSidebar = forwardRef<
         <div className="flex h-full flex-col">
           <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-200 p-4">
             <h2 className="text-lg font-semibold">Agent Configuration</h2>
-            <div className="flex gap-2">
-              <TooltipProvider>
-                <Tooltip delayDuration={200}>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (!graphId) return;
-                        resetConfig(graphId);
-                      }}
-                    >
-                      <Trash2 className="mr-1 h-4 w-4" />
-                      Reset
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Reset the configuration to the last saved state</p>
-                  </TooltipContent>
-                </Tooltip>
-
-                <Tooltip delayDuration={200}>
-                  <TooltipTrigger asChild></TooltipTrigger>
-                  <TooltipContent>
-                    <p>Save your changes to the agent</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
           </div>
 
           <Tabs
@@ -376,14 +263,6 @@ export const ConfigurationSidebar = forwardRef<
           </Tabs>
         </div>
       )}
-      <NameAndDescriptionAlertDialog
-        name={newName}
-        setName={setNewName}
-        description={newDescription}
-        setDescription={setNewDescription}
-        open={openNameAndDescriptionAlertDialog}
-        setOpen={setOpenNameAndDescriptionAlertDialog}
-      />
     </div>
   );
 });
