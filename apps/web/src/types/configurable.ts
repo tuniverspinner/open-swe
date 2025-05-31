@@ -67,35 +67,3 @@ export type ConfigurableFieldUIMetadata = {
    */
   step?: number;
 };
-
-export type ConfigurableFieldMCPMetadata = {
-  label: string;
-  type: "mcp";
-  default?: {
-    tools?: string[];
-    url?: string;
-    auth_required?: boolean;
-  };
-};
-
-export type ConfigurableFieldRAGMetadata = {
-  /**
-   * The key in the graph's config schema for the RAG field.
-   */
-  label: string;
-  type: "rag";
-  default?: {
-    rag_url?: string;
-    collections?: string[];
-  };
-};
-
-export type ConfigurableFieldAgentsMetadata = {
-  label: string;
-  type: "agents";
-  default?: {
-    agent_id?: string;
-    deployment_url?: string;
-    name?: string;
-  }[];
-};

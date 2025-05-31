@@ -45,7 +45,6 @@ interface ConfigFieldProps {
   // Optional props for external state management
   value?: any;
   setValue?: (value: any) => void;
-  agentId: string;
 }
 
 export function ConfigField({
@@ -61,7 +60,6 @@ export function ConfigField({
   className,
   value: externalValue, // Rename to avoid conflict
   setValue: externalSetValue, // Rename to avoid conflict
-  agentId,
 }: ConfigFieldProps) {
   const store = useConfigStore();
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -71,14 +69,14 @@ export function ConfigField({
 
   const currentValue = isExternallyManaged
     ? externalValue
-    : store.configsByAgentId[agentId][id];
+    : store.configs[id]?.[id]; // Access nested value: configs[key][key]
 
   const handleChange = (newValue: any) => {
     setJsonError(null); // Clear JSON error on any change
     if (isExternallyManaged && externalSetValue) {
       externalSetValue(newValue); // Use non-null assertion as we checked existence
     } else {
-      store.updateConfig(agentId, id, newValue);
+      store.updateConfig(id, newValue);
     }
   };
 
@@ -101,7 +99,7 @@ export function ConfigField({
       if (isExternallyManaged && externalSetValue) {
         externalSetValue(jsonString);
       } else {
-        store.updateConfig(agentId, id, jsonString);
+        store.updateConfig(id, jsonString);
       }
       setJsonError("Invalid JSON format");
     }

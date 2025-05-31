@@ -2,81 +2,73 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import {
-  ConfigurableFieldUIMetadata,
-  ConfigurableFieldMCPMetadata,
-  ConfigurableFieldRAGMetadata,
-  ConfigurableFieldAgentsMetadata,
-} from "@/types/configurable";
+import { ConfigurableFieldUIMetadata } from "@/types/configurable";
+
+// TODO: Update ConfigState to:
+// Replace these types with shared types from open-swe
+// Use shared config store from open-swe, instead of previous Open Agent Config Interface
 
 interface ConfigState {
-  configsByAgentId: Record<string, Record<string, any>>;
-  getAgentConfig: (agentId: string) => Record<string, any>;
-  updateConfig: (agentId: string, key: string, value: any) => void;
-  resetConfig: (agentId: string) => void;
+  configs: Record<string, any>;
+  getConfig: (key: string) => Record<string, any>;
+  updateConfig: (key: string, value: any) => void;
+  resetConfig: (key: string) => void;
   setDefaultConfig: (
-    agentId: string,
-    configurations:
-      | ConfigurableFieldMCPMetadata[]
-      | ConfigurableFieldUIMetadata[]
-      | ConfigurableFieldRAGMetadata[]
-      | ConfigurableFieldAgentsMetadata[],
+    key: string,
+    configurations: ConfigurableFieldUIMetadata[],
   ) => void;
-  resetStore: () => void;
+  resetStore: (key: string) => void;
 }
 
 export const useConfigStore = create<ConfigState>()(
   persist(
     (set, get) => ({
-      configsByAgentId: {},
+      configs: {},
 
-      getAgentConfig: (agentId: string) => {
+      getConfig: (key: string) => {
         const state = get();
-        const baseConfig = state.configsByAgentId[agentId];
-        const toolsConfig = state.configsByAgentId[`${agentId}:selected-tools`];
-        const ragConfig = state.configsByAgentId[`${agentId}:rag`];
-        const agentsConfig = state.configsByAgentId[`${agentId}:agents`];
+        const baseConfig = state.configs[key];
         const configObj = {
           ...baseConfig,
-          ...toolsConfig,
-          ...ragConfig,
-          ...agentsConfig,
         };
         delete configObj.__defaultValues;
         return configObj;
       },
 
-      updateConfig: (agentId, key, value) =>
+      updateConfig: (key, value) =>
         set((state) => ({
-          configsByAgentId: {
-            ...state.configsByAgentId,
-            [agentId]: {
-              ...(state.configsByAgentId[agentId] || {}),
+          configs: {
+            ...state.configs,
+            [key]: {
+              ...(state.configs[key] || {}),
               [key]: value,
             },
           },
         })),
 
-      resetConfig: (agentId) => {
+      resetConfig: (key: string) => {
         set((state) => {
-          const agentConfig = state.configsByAgentId[agentId];
-          if (!agentConfig || !agentConfig.__defaultValues) {
+          const config = state.configs[key];
+          if (!config || !config.__defaultValues) {
             // If no config or default values exist for this agent, do nothing or set to empty
             return state;
           }
-          const defaultsToUse = { ...agentConfig.__defaultValues };
+          const defaultsToUse = { ...config.__defaultValues };
           return {
-            configsByAgentId: {
-              ...state.configsByAgentId,
-              [agentId]: defaultsToUse,
+            configs: {
+              ...state.configs,
+              [key]: defaultsToUse,
             },
           };
         });
       },
 
-      setDefaultConfig: (agentId, configurations) => {
+      setDefaultConfig: (
+        key: string,
+        configurations: ConfigurableFieldUIMetadata[],
+      ) => {
         const defaultConfig: Record<string, any> = {};
-        configurations.forEach((config) => {
+        configurations.forEach((config: ConfigurableFieldUIMetadata) => {
           if (config.default !== undefined) {
             defaultConfig[config.label] = config.default;
           }
@@ -85,15 +77,15 @@ export const useConfigStore = create<ConfigState>()(
         defaultConfig.__defaultValues = { ...defaultConfig };
 
         set((currentState) => ({
-          configsByAgentId: {
-            ...currentState.configsByAgentId,
-            [agentId]: defaultConfig,
+          configs: {
+            ...currentState.configs,
+            [key]: defaultConfig,
           },
         }));
       },
 
       // Clear everything from the store
-      resetStore: () => set({ configsByAgentId: {} }),
+      resetStore: () => set({ configs: {} }),
     }),
     {
       name: "ai-config-storage", // Keep the same storage key, but manage agents inside

@@ -1,6 +1,6 @@
 "use client";
 import { forwardRef, ForwardedRef, useState, useEffect } from "react";
-import { Lightbulb, Save, Trash2, X } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfigField } from "@/components/configuration-sidebar/config-field";
@@ -29,8 +29,72 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ConfigurableFieldUIMetadata } from "@/types/configurable";
+
+// Import the actual model options from the open-swe types
+const MODEL_OPTIONS = [
+  {
+    label: "Claude Sonnet 4 (Extended Thinking)",
+    value: "anthropic:extended-thinking:claude-sonnet-4-0",
+  },
+  {
+    label: "Claude Opus 4 (Extended Thinking)",
+    value: "anthropic:extended-thinking:claude-opus-4-0",
+  },
+  {
+    label: "Claude Sonnet 4",
+    value: "anthropic:claude-sonnet-4-0",
+  },
+  {
+    label: "Claude Opus 4",
+    value: "anthropic:claude-opus-4-0",
+  },
+  {
+    label: "Claude 3.7 Sonnet",
+    value: "anthropic:claude-3-7-sonnet-latest",
+  },
+  {
+    label: "Claude 3.5 Sonnet",
+    value: "anthropic:claude-3-5-sonnet-latest",
+  },
+  {
+    label: "o4",
+    value: "openai:o4",
+  },
+  {
+    label: "o4 mini",
+    value: "openai:o4-mini",
+  },
+  {
+    label: "o3",
+    value: "openai:o3",
+  },
+  {
+    label: "o3 mini",
+    value: "openai:o3-mini",
+  },
+  {
+    label: "GPT 4o",
+    value: "openai:gpt-4o",
+  },
+  {
+    label: "GPT 4.1",
+    value: "openai:gpt-4.1",
+  },
+  {
+    label: "Gemini 2.5 Pro Preview",
+    value: "google-genai:gemini-2.5-pro-preview-05-06",
+  },
+  {
+    label: "Gemini 2.5 Flash Preview",
+    value: "google-genai:gemini-2.5-flash-preview-05-20",
+  },
+];
+
+const MODEL_OPTIONS_NO_THINKING = MODEL_OPTIONS.filter(
+  ({ value }) =>
+    !value.includes("extended-thinking") && !value.startsWith("openai:o"),
+);
 
 function NameAndDescriptionAlertDialog({
   name,
@@ -106,16 +170,8 @@ export const ConfigurationSidebar = forwardRef<
   HTMLDivElement,
   AIConfigPanelProps
 >(({ className, open }, ref: ForwardedRef<HTMLDivElement>) => {
-  const {
-    configsByAgentId,
-    resetConfig,
-    getAgentConfig,
-    updateConfig,
-    setDefaultConfig,
-  } = useConfigStore();
-  const [agentId] = useQueryState("agentId");
-  const [deploymentId] = useQueryState("deploymentId");
-  const [threadId] = useQueryState("threadId");
+  const { configs, resetConfig, updateConfig } = useConfigStore();
+  const [graphId] = useQueryState("graphId");
 
   // Local state for configurations and loading
   const [configurations, setConfigurations] = useState<
@@ -130,67 +186,130 @@ export const ConfigurationSidebar = forwardRef<
     setOpenNameAndDescriptionAlertDialog,
   ] = useState(false);
 
-  // TODO: Add useEffect to load configurations based on your requirements
+  /* TODO: Update Configuration to:
+  // Replace these types with shared types from open-swe
+  // Use shared config store from open-swe
+
+  */
   useEffect(() => {
     setLoading(true);
 
-    // Use the actual graph name from langgraph.json
-    const graphId = agentId || "open-swe";
-
-    // Example placeholder configurations for repo and LLM model
+    // Use actual GraphConfiguration from open-swe types
     const placeholderConfigs: ConfigurableFieldUIMetadata[] = [
       {
-        label: "model",
+        label: "plannerModelName",
         type: "select",
-        description: "Select the LLM model to use",
-        options: [
-          { label: "GPT-4", value: "gpt-4" },
-          { label: "GPT-3.5 Turbo", value: "gpt-3.5-turbo" },
-          { label: "Claude-3", value: "claude-3" },
-        ],
-        default: "gpt-4",
+        description: "The model to use for planning",
+        options: MODEL_OPTIONS_NO_THINKING,
+        default: "anthropic:claude-sonnet-4-0",
       },
       {
-        label: "repository",
-        type: "text",
-        description: "Repository URL or path",
-        placeholder: "Enter repository URL",
-        default: "",
-      },
-      {
-        label: "temperature",
-        type: "number",
-        description: "Model temperature (0.0 - 1.0)",
+        label: "plannerTemperature",
+        type: "slider",
+        description: "Controls randomness (0 = deterministic, 2 = creative)",
         min: 0,
-        max: 1,
+        max: 2,
         step: 0.1,
-        default: 0.7,
+        default: 0,
+      },
+      {
+        label: "plannerContextModelName",
+        type: "select",
+        description: "The model to use for planning context gathering",
+        options: MODEL_OPTIONS,
+        default: "anthropic:claude-sonnet-4-0",
+      },
+      {
+        label: "plannerContextTemperature",
+        type: "slider",
+        description:
+          "Controls randomness for context gathering (0 = deterministic, 2 = creative)",
+        min: 0,
+        max: 2,
+        step: 0.1,
+        default: 0,
+      },
+      {
+        label: "actionGeneratorModelName",
+        type: "select",
+        description: "The model to use for action generation",
+        options: MODEL_OPTIONS,
+        default: "anthropic:claude-sonnet-4-0",
+      },
+      {
+        label: "actionGeneratorTemperature",
+        type: "slider",
+        description:
+          "Controls randomness for action generation (0 = deterministic, 2 = creative)",
+        min: 0,
+        max: 2,
+        step: 0.1,
+        default: 0,
+      },
+      {
+        label: "progressPlanCheckerModelName",
+        type: "select",
+        description: "The model to use for progress plan checking",
+        options: MODEL_OPTIONS_NO_THINKING,
+        default: "anthropic:claude-sonnet-4-0",
+      },
+      {
+        label: "progressPlanCheckerTemperature",
+        type: "slider",
+        description:
+          "Controls randomness for progress checking (0 = deterministic, 2 = creative)",
+        min: 0,
+        max: 2,
+        step: 0.1,
+        default: 0,
+      },
+      {
+        label: "summarizerModelName",
+        type: "select",
+        description: "The model to use for summarizing conversation history",
+        options: MODEL_OPTIONS_NO_THINKING,
+        default: "anthropic:claude-sonnet-4-0",
+      },
+      {
+        label: "summarizerTemperature",
+        type: "slider",
+        description:
+          "Controls randomness for summarization (0 = deterministic, 2 = creative)",
+        min: 0,
+        max: 2,
+        step: 0.1,
+        default: 0,
+      },
+      {
+        label: "maxContextActions",
+        type: "number",
+        description:
+          "Maximum number of context gathering actions during planning",
+        min: 1,
+        max: 20,
+        default: 6,
       },
     ];
 
-    // Initialize the store manually if not exists to avoid type issues
-    if (!configsByAgentId[graphId]) {
-      // Use the existing setDefaultConfig method - this is the proper Zustand way
-      setDefaultConfig(graphId, placeholderConfigs as any);
-    }
+    // Initialize configs with defaults if they don't exist
+    placeholderConfigs.forEach((config) => {
+      if (configs[config.label] === undefined && config.default !== undefined) {
+        updateConfig(config.label, config.default);
+      }
+    });
 
     setConfigurations(placeholderConfigs);
     setLoading(false);
-  }, [agentId, updateConfig, configsByAgentId, setDefaultConfig]);
+  }, [configs, updateConfig]);
 
   const handleSave = async () => {
-    // Use the actual graph name from langgraph.json
-    const defaultAgentId = agentId || "open-swe";
-
     if (!newName) {
       setOpenNameAndDescriptionAlertDialog(true);
       return;
     }
 
     // TODO: Implement save functionality based on your requirements
-    // You can use getAgentConfig(defaultAgentId) to get current config values
-    const currentConfig = getAgentConfig(defaultAgentId);
-    console.log("Saving config:", currentConfig);
+    console.log("Saving config:", configs);
 
     toast.success("Agent configuration saved successfully");
   };
@@ -216,8 +335,8 @@ export const ConfigurationSidebar = forwardRef<
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        if (!agentId) return;
-                        resetConfig(agentId);
+                        if (!graphId) return;
+                        resetConfig(graphId);
                       }}
                     >
                       <Trash2 className="mr-1 h-4 w-4" />
@@ -246,28 +365,7 @@ export const ConfigurationSidebar = forwardRef<
               </TooltipProvider>
             </div>
           </div>
-          {
-            <div className="p-4">
-              <Alert variant="info">
-                <Lightbulb className="size-4" />
-                <AlertTitle>
-                  Pro Tip
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="absolute top-1 right-2 hover:bg-transparent"
-                    onClick={() => {}}
-                  >
-                    <X className="size-4" />
-                  </Button>
-                </AlertTitle>
-                <AlertDescription>
-                  Changes made to the configuration will be saved automatically,
-                  but will only persist across sessions if you click "Save".
-                </AlertDescription>
-              </Alert>
-            </div>
-          }
+
           <Tabs
             defaultValue="general"
             className="flex flex-1 flex-col overflow-y-auto"
@@ -304,7 +402,6 @@ export const ConfigurationSidebar = forwardRef<
                           min={c.min}
                           max={c.max}
                           step={c.step}
-                          agentId={agentId || "open-swe"}
                         />
                       ),
                     )
