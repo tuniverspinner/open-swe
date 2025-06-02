@@ -26,7 +26,7 @@ export function getBranchName(
   if (!targetRepository) {
     throw new Error("No target repository provided");
   }
-  
+
   if (!targetRepository.repo) {
     throw new Error("No repository name provided in target repository");
   }
