@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { useQueryState } from "nuqs";
 import { Repository } from "@/utils/github";
+import type { TargetRepository } from "../../../open-swe/src/types";
 
 interface UseGitHubAppReturn {
   isInstalled: boolean | null;
@@ -7,6 +9,8 @@ interface UseGitHubAppReturn {
   error: string | null;
   repositories: Repository[];
   refreshRepositories: () => Promise<void>;
+  selectedRepository: TargetRepository | null;
+  setSelectedRepository: (repo: TargetRepository | null) => void;
 }
 
 export function useGitHubApp(): UseGitHubAppReturn {
@@ -14,6 +18,26 @@ export function useGitHubApp(): UseGitHubAppReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [selectedRepositoryParam, setSelectedRepositoryParam] =
+    useQueryState("repo");
+
+  const selectedRepository = selectedRepositoryParam
+    ? (() => {
+        try {
+          const parts = selectedRepositoryParam.split("/");
+          if (parts.length === 2) {
+            return { owner: parts[0], repo: parts[1] } as TargetRepository;
+          }
+          return null;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  const setSelectedRepository = (repo: TargetRepository | null) => {
+    setSelectedRepositoryParam(repo ? `${repo.owner}/${repo.repo}` : null);
+  };
 
   const checkInstallation = async () => {
     setIsLoading(true);
@@ -57,5 +81,7 @@ export function useGitHubApp(): UseGitHubAppReturn {
     error,
     repositories,
     refreshRepositories,
+    selectedRepository,
+    setSelectedRepository,
   };
 }

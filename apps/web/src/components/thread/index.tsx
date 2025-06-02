@@ -29,7 +29,6 @@ import ThreadHistory from "./history";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
-import { Switch } from "../ui/switch";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
 import {
@@ -39,6 +38,8 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { GitHubOAuthButton } from "../github-oauth-button";
+import { RepositorySelector } from "../repository-selector";
+import { useGitHubApp } from "@/hooks/useGitHubApp";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -84,6 +85,7 @@ function ScrollToBottom(props: { className?: string }) {
 export function Thread() {
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
+  const { selectedRepository } = useGitHubApp();
 
   const [threadId, _setThreadId] = useQueryState("threadId");
   const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
@@ -168,6 +170,22 @@ export function Thread() {
     e.preventDefault();
     if ((input.trim().length === 0 && contentBlocks.length === 0) || isLoading)
       return;
+
+    // Debug logging
+    console.log("selectedRepository:", selectedRepository);
+    console.log("selectedRepository type:", typeof selectedRepository);
+
+    // Check if a repository is selected
+    if (!selectedRepository) {
+      toast.error("Please select a repository first", {
+        description:
+          "You need to select a repository before sending a message.",
+        richColors: true,
+        closeButton: true,
+      });
+      return;
+    }
+
     setFirstTokenReceived(false);
 
     const newHumanMessage: Message = {
@@ -184,15 +202,13 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
-    const targetRepository = {
-      owner: "langchain-ai",
-      repo: "open-swe",
-    };
+    console.log("About to submit with targetRepository:", selectedRepository);
+
     stream.submit(
       {
         messages: [...toolMessages, newHumanMessage],
         context,
-        targetRepository,
+        targetRepository: selectedRepository,
       },
       {
         streamMode: ["values"],
@@ -463,30 +479,13 @@ export function Thread() {
                         className="field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
                       />
 
-                      <div className="flex items-center gap-6 p-2 pt-4">
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              id="render-tool-calls"
-                              checked={hideToolCalls ?? false}
-                              onCheckedChange={setHideToolCalls}
-                            />
-                            <Label
-                              htmlFor="render-tool-calls"
-                              className="text-sm text-gray-600"
-                            >
-                              Hide Tool Calls
-                            </Label>
-                          </div>
-                        </div>
+                      <div className="flex items-center gap-2 p-2 pt-4">
                         <Label
                           htmlFor="file-input"
-                          className="flex cursor-pointer items-center gap-2"
+                          className="mr-1 ml-2 flex cursor-pointer items-center gap-2"
                         >
                           <Plus className="size-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">
-                            Upload PDF or Image
-                          </span>
+                          <span className="text-sm text-gray-600"></span>
                         </Label>
                         <input
                           id="file-input"
@@ -496,6 +495,8 @@ export function Thread() {
                           accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
                           className="hidden"
                         />
+                        <RepositorySelector />
+
                         {stream.isLoading ? (
                           <Button
                             key="stop"
