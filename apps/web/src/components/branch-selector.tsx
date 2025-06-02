@@ -1,10 +1,20 @@
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 import { useGitHubApp } from "@/hooks/useGitHubApp";
 import { GitBranch, Shield } from "lucide-react";
 
@@ -17,6 +27,7 @@ export function BranchSelector({
   disabled = false,
   placeholder = "Select a branch...",
 }: BranchSelectorProps) {
+  const [open, setOpen] = useState(false);
   const {
     branches,
     branchesLoading,
@@ -26,78 +37,128 @@ export function BranchSelector({
     selectedRepository,
   } = useGitHubApp();
 
-  const handleValueChange = (branchName: string) => {
+  const handleSelect = (branchName: string) => {
     setSelectedBranch(branchName);
+    setOpen(false);
   };
 
   // Handle different states
   if (!selectedRepository) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Select a repository first" />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4" />
+          <span>Select a branch</span>
+        </div>
+      </Button>
     );
   }
 
   if (branchesLoading) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Loading branches..." />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4" />
+          <span>Loading branches...</span>
+        </div>
+      </Button>
     );
   }
 
   if (branchesError) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Error loading branches" />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4" />
+          <span>Error loading branches</span>
+        </div>
+      </Button>
     );
   }
 
   if (branches.length === 0) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="No branches available" />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4" />
+          <span>No branches available</span>
+        </div>
+      </Button>
     );
   }
 
   return (
-    <Select
-      value={selectedBranch || ""}
-      onValueChange={handleValueChange}
-      disabled={disabled}
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
     >
-      <SelectTrigger className="max-w-[340px]">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {branches.map((branch) => (
-          <SelectItem
-            key={branch.name}
-            value={branch.name}
-          >
-            <div className="flex items-center gap-2">
-              <GitBranch className="h-3 w-3" />
-              <span className="font-medium">{branch.name}</span>
-              {branch.protected && (
-                <div title="Protected branch">
-                  <Shield className="h-3 w-3 text-amber-500" />
-                </div>
-              )}
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="max-w-[340px] justify-between"
+          disabled={disabled}
+        >
+          <div className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" />
+            <span className="truncate">{selectedBranch || placeholder}</span>
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[340px] p-0">
+        <Command>
+          <CommandInput placeholder="Search branches..." />
+          <CommandList>
+            <CommandEmpty>No branches found.</CommandEmpty>
+            <CommandGroup>
+              {branches.map((branch) => {
+                const isSelected = selectedBranch === branch.name;
+                return (
+                  <CommandItem
+                    key={branch.name}
+                    value={branch.name}
+                    onSelect={() => handleSelect(branch.name)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        isSelected ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    <div className="flex items-center gap-2">
+                      <GitBranch className="h-3 w-3" />
+                      <span className="font-medium">{branch.name}</span>
+                      {branch.protected && (
+                        <div title="Protected branch">
+                          <Shield className="h-3 w-3 text-amber-500" />
+                        </div>
+                      )}
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

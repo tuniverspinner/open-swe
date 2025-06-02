@@ -1,10 +1,20 @@
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState } from "react";
 import type { TargetRepository } from "../../../open-swe/src/types";
 import { useGitHubApp } from "@/hooks/useGitHubApp";
 import type { Repository } from "@/utils/github";
@@ -29,6 +39,7 @@ export function RepositorySelector({
   disabled = false,
   placeholder = "Select a repository...",
 }: RepositorySelectorProps) {
+  const [open, setOpen] = useState(false);
   const {
     repositories,
     selectedRepository,
@@ -38,12 +49,13 @@ export function RepositorySelector({
     isInstalled,
   } = useGitHubApp();
 
-  const handleValueChange = (repositoryKey: string) => {
+  const handleSelect = (repositoryKey: string) => {
     const repository = repositories.find(
       (repo) => repo.full_name === repositoryKey,
     );
     if (repository) {
       setSelectedRepository(repositoryToTarget(repository));
+      setOpen(false);
     }
   };
 
@@ -54,72 +66,130 @@ export function RepositorySelector({
   // Handle different states
   if (isLoading) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Loading repositories..." />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitHubSVG
+            width="16"
+            height="16"
+          />
+          <span>Loading repositories...</span>
+        </div>
+      </Button>
     );
   }
 
   if (error) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="Error loading repositories" />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitHubSVG
+            width="16"
+            height="16"
+          />
+          <span>Error loading repositories</span>
+        </div>
+      </Button>
     );
   }
 
   if (isInstalled === false) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="GitHub App not installed" />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitHubSVG
+            width="16"
+            height="16"
+          />
+          <span>GitHub App not installed</span>
+        </div>
+      </Button>
     );
   }
 
   if (repositories.length === 0) {
     return (
-      <Select disabled>
-        <SelectTrigger className="w-[200px]">
-          <SelectValue placeholder="No repositories available" />
-        </SelectTrigger>
-      </Select>
+      <Button
+        variant="outline"
+        disabled
+        className="max-w-[340px] justify-between"
+      >
+        <div className="flex items-center gap-2">
+          <GitHubSVG
+            width="16"
+            height="16"
+          />
+          <span>No repositories available</span>
+        </div>
+      </Button>
     );
   }
 
   return (
-    <Select
-      value={selectedValue}
-      onValueChange={handleValueChange}
-      disabled={disabled}
+    <Popover
+      open={open}
+      onOpenChange={setOpen}
     >
-      <SelectTrigger className="max-w-[340px]">
-        <GitHubSVG
-          width="16"
-          height="16"
-        />
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {repositories.map((repo) => {
-          const key = repo.full_name;
-          return (
-            <SelectItem
-              key={repo.id}
-              value={key}
-            >
-              <div className="flex flex-col">
-                <span className="font-medium">{repo.full_name}</span>
-              </div>
-            </SelectItem>
-          );
-        })}
-      </SelectContent>
-    </Select>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="max-w-[340px] justify-between"
+          disabled={disabled}
+        >
+          <div className="flex items-center gap-2">
+            <GitHubSVG
+              width="16"
+              height="16"
+            />
+            <span className="truncate">{selectedValue || placeholder}</span>
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[340px] p-0">
+        <Command>
+          <CommandInput placeholder="Search repositories..." />
+          <CommandList>
+            <CommandEmpty>No repositories found.</CommandEmpty>
+            <CommandGroup>
+              {repositories.map((repo) => {
+                const key = repo.full_name;
+                const isSelected = selectedValue === key;
+                return (
+                  <CommandItem
+                    key={repo.id}
+                    value={key}
+                    onSelect={() => handleSelect(key)}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        isSelected ? "opacity-100" : "opacity-0",
+                      )}
+                    />
+                    <div className="flex flex-col">
+                      <span className="font-medium">{repo.full_name}</span>
+                    </div>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

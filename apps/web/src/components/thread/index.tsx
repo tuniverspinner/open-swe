@@ -93,10 +93,7 @@ export function Thread() {
     "chatHistoryOpen",
     parseAsBoolean.withDefault(false),
   );
-  const [hideToolCalls, setHideToolCalls] = useQueryState(
-    "hideToolCalls",
-    parseAsBoolean.withDefault(false),
-  );
+
   const [input, setInput] = useState("");
   const {
     contentBlocks,
@@ -104,7 +101,6 @@ export function Thread() {
     handleFileUpload,
     dropRef,
     removeBlock,
-    resetBlocks,
     dragOver,
     handlePaste,
   } = useFileUpload();
