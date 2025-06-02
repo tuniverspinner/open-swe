@@ -97,7 +97,7 @@ export function RepositorySelector({
       onValueChange={handleValueChange}
       disabled={disabled}
     >
-      <SelectTrigger className="w-[200px]">
+      <SelectTrigger className="max-w-[240px]">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -110,11 +110,6 @@ export function RepositorySelector({
             >
               <div className="flex flex-col">
                 <span className="font-medium">{repo.full_name}</span>
-                {repo.description && (
-                  <span className="text-muted-foreground max-w-[160px] truncate text-xs">
-                    {repo.description}
-                  </span>
-                )}
               </div>
             </SelectItem>
           );
