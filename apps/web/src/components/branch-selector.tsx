@@ -77,7 +77,7 @@ export function BranchSelector({
       onValueChange={handleValueChange}
       disabled={disabled}
     >
-      <SelectTrigger className="w-[200px]">
+      <SelectTrigger className="max-w-[340px]">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

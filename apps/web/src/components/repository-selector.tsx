@@ -8,6 +8,7 @@ import {
 import type { TargetRepository } from "../../../open-swe/src/types";
 import { useGitHubApp } from "@/hooks/useGitHubApp";
 import type { Repository } from "@/utils/github";
+import { GitHubSVG } from "@/components/icons/github";
 
 interface RepositorySelectorProps {
   disabled?: boolean;
@@ -97,7 +98,11 @@ export function RepositorySelector({
       onValueChange={handleValueChange}
       disabled={disabled}
     >
-      <SelectTrigger className="max-w-[240px]">
+      <SelectTrigger className="max-w-[340px]">
+        <GitHubSVG
+          width="16"
+          height="16"
+        />
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
