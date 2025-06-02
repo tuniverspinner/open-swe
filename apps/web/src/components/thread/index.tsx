@@ -40,6 +40,7 @@ import {
 import { GitHubOAuthButton } from "../github-oauth-button";
 import { RepositorySelector } from "../repository-selector";
 import { useGitHubApp } from "@/hooks/useGitHubApp";
+import { BranchSelector } from "../branch-selector";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -496,6 +497,7 @@ export function Thread() {
                           className="hidden"
                         />
                         <RepositorySelector />
+                        <BranchSelector />
 
                         {stream.isLoading ? (
                           <Button
