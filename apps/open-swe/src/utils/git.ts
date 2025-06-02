@@ -23,6 +23,14 @@ export function getBranchName(
   config: GraphConfig,
   targetRepository: TargetRepository,
 ): string {
+  if (!targetRepository) {
+    throw new Error("No target repository provided");
+  }
+  
+  if (!targetRepository.repo) {
+    throw new Error("No repository name provided in target repository");
+  }
+
   const threadId = config.configurable?.thread_id;
   if (!threadId) {
     throw new Error("No thread ID provided");
