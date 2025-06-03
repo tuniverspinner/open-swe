@@ -8,6 +8,7 @@ import { fixGitPatch } from "../utils/diff.js";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { daytonaClient } from "../utils/sandbox.js";
 import { SANDBOX_ROOT_DIR } from "../constants.js";
+import { getRepoAbsolutePath } from "../utils/git.js";
 
 const logger = createLogger(LogLevel.INFO, "ApplyPatchTool");
 
@@ -136,3 +137,4 @@ export const applyPatchTool = tool(
     schema: applyPatchToolSchema,
   },
 );
+
