@@ -315,6 +315,18 @@ export function Thread() {
                 )}
               </div>
               <div className="absolute top-2 right-4 flex items-center gap-2">
+              <Link href="/github">
+                  <TooltipIconButton
+                    tooltip="github settings"
+                    variant="outline"
+                    className="py-4 w-18"
+                    size="lg"
+                  >
+                    <p className="text-sm"> Tasks </p>
+                   
+                   
+                  </TooltipIconButton>
+                </Link>
                 <Link href="/github">
                   <TooltipIconButton
                     tooltip="github settings"
