@@ -170,11 +170,6 @@ export function Thread() {
     if ((input.trim().length === 0 && contentBlocks.length === 0) || isLoading)
       return;
 
-    // Debug logging
-    console.log("selectedRepository:", selectedRepository);
-    console.log("selectedRepository type:", typeof selectedRepository);
-
-    // Check if a repository is selected
     if (!selectedRepository) {
       toast.error("Please select a repository first", {
         description:
@@ -200,8 +195,6 @@ export function Thread() {
 
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
-
-    console.log("About to submit with targetRepository:", selectedRepository);
 
     stream.submit(
       {

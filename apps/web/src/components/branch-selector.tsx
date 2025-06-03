@@ -78,7 +78,6 @@ export function BranchSelector({
     setOpen(false);
   };
 
-  // Handle different states
   if (!selectedRepository) {
     return (
       <Button

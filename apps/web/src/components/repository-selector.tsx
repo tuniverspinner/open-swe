@@ -25,15 +25,11 @@ interface RepositorySelectorProps {
   placeholder?: string;
 }
 
-// Convert GitHub Repository to TargetRepository
+// Convert GitHub Repository to TargetRepository format
 const repositoryToTarget = (repo: Repository): TargetRepository => {
   const [owner, repoName] = repo.full_name.split("/");
   return { owner, repo: repoName };
 };
-
-// Convert TargetRepository to Repository key
-const targetToKey = (target: TargetRepository): string =>
-  `${target.owner}/${target.repo}`;
 
 export function RepositorySelector({
   disabled = false,
@@ -63,7 +59,6 @@ export function RepositorySelector({
     ? `${selectedRepository.owner}/${selectedRepository.repo}`
     : undefined;
 
-  // Handle different states
   if (isLoading) {
     return (
       <Button
