@@ -4,17 +4,17 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
+  CommandList
 } from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
+  PopoverTrigger
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useGitHubApp } from "@/hooks/useGitHubApp";
 import { GitBranch, Shield } from "lucide-react";
 
@@ -36,6 +36,27 @@ export function BranchSelector({
     setSelectedBranch,
     selectedRepository,
   } = useGitHubApp();
+  
+  // Auto-select main or master branch when repository changes and branches are loaded
+  useEffect(() => {
+    if (selectedRepository && !branchesLoading && !branchesError && branches.length > 0) {
+      // Only auto-select if no branch is currently selected or if the selected branch doesn't exist in the new repo
+      const currentBranchExists = selectedBranch && branches.some(branch => branch.name === selectedBranch);
+      
+      if (!currentBranchExists) {
+        // Try to find main or master branch in order of preference
+        const defaultBranch = branches.find(branch => branch.name === 'main') || 
+                            branches.find(branch => branch.name === 'master');
+        
+        if (defaultBranch) {
+          setSelectedBranch(defaultBranch.name);
+        } else if (branches.length > 0) {
+          // If neither main nor master exists, select the first available branch
+          setSelectedBranch(branches[0].name);
+        }
+      }
+    }
+  }, [selectedRepository, branchesLoading, branchesError, branches, selectedBranch, setSelectedBranch]);
 
   const handleSelect = (branchName: string) => {
     setSelectedBranch(branchName);
