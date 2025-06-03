@@ -43,6 +43,7 @@ import { RepositorySelector } from "../repository-selector";
 import { useGitHubApp } from "@/hooks/useGitHubApp";
 import { BranchSelector } from "../branch-selector";
 import Link from "next/link";
+import TaskList from "../task-list";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -400,7 +401,7 @@ export function Thread() {
             <StickyToBottomContent
               className={cn(
                 "absolute inset-0 overflow-y-scroll px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent",
-                !chatStarted && "mt-[25vh] flex flex-col items-stretch",
+                !chatStarted && "mt-[10vh] flex flex-col items-stretch",
                 chatStarted && "grid grid-rows-[1fr_auto]",
               )}
               contentClassName="pt-8 pb-16  max-w-3xl mx-auto flex flex-col gap-4 w-full"
@@ -533,6 +534,7 @@ export function Thread() {
                       </div>
                     </form>
                   </div>
+                  <TaskList />
                 </div>
               }
             />
