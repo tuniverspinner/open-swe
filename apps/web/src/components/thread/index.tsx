@@ -315,16 +315,14 @@ export function Thread() {
                 )}
               </div>
               <div className="absolute top-2 right-4 flex items-center gap-2">
-              <Link href="/github">
+                <Link href="/github">
                   <TooltipIconButton
                     tooltip="github settings"
                     variant="outline"
-                    className="py-4 w-18"
+                    className="w-18 py-4"
                     size="lg"
                   >
                     <p className="text-sm"> Tasks </p>
-                   
-                   
                   </TooltipIconButton>
                 </Link>
                 <Link href="/github">
@@ -546,7 +544,10 @@ export function Thread() {
                       </div>
                     </form>
                   </div>
-                  <TaskList />
+
+                  <div className="w-full max-w-3xl rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <TaskList />
+                  </div>
                 </div>
               }
             />
