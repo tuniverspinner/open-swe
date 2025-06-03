@@ -22,6 +22,7 @@ import {
   SquarePen,
   XIcon,
   Plus,
+  Settings,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -41,6 +42,7 @@ import { GitHubOAuthButton } from "../github-oauth-button";
 import { RepositorySelector } from "../repository-selector";
 import { useGitHubApp } from "@/hooks/useGitHubApp";
 import { BranchSelector } from "../branch-selector";
+import Link from "next/link";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -318,7 +320,17 @@ export function Thread() {
                   </Button>
                 )}
               </div>
-              <div className="absolute top-2 right-4 flex items-center">
+              <div className="absolute top-2 right-4 flex items-center gap-2">
+                <Link href="/github">
+                  <TooltipIconButton
+                    tooltip="github settings"
+                    variant="outline"
+                    className="py-4"
+                    size="lg"
+                  >
+                    <Settings className="h-8 w-8" />
+                  </TooltipIconButton>
+                </Link>
                 <GitHubOAuthButton />
               </div>
             </div>
@@ -364,7 +376,16 @@ export function Thread() {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="flex items-center">
+                <div className="flex items-center gap-2">
+                  <Link href="/github">
+                    <TooltipIconButton
+                      tooltip="Settings"
+                      variant="ghost"
+                      size="sm"
+                    >
+                      <Settings className="h-4 w-4" />
+                    </TooltipIconButton>
+                  </Link>
                   <GitHubOAuthButton />
                 </div>
                 <TooltipIconButton
