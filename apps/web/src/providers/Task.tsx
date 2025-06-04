@@ -1,5 +1,4 @@
 import { getApiKey } from "@/lib/api-key";
-import { v4 as uuidv4 } from "uuid";
 import {
   createContext,
   useContext,
@@ -54,6 +53,20 @@ export interface TaskWithContext extends PlanItem {
   status: "running" | "interrupted" | "done" | "error";
 }
 
+// Thread summary for grouping tasks
+export interface ThreadSummary {
+  threadId: string;
+  threadTitle: string;
+  repository: string;
+  branch: string;
+  date: string;
+  createdAt: string;
+  tasks: TaskWithContext[];
+  completedTasksCount: number;
+  totalTasksCount: number;
+  status: "running" | "interrupted" | "done" | "error";
+}
+
 interface TaskContextType {
   getTasks: (threadId: string) => Promise<PlanItem[]>;
   getAllTasks: () => Promise<TaskWithContext[]>;
@@ -94,16 +107,19 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
   const getAllTasks = useCallback(async (): Promise<TaskWithContext[]> => {
     if (!apiUrl || !assistantId) return [];
+
     const client = createClient(apiUrl, getApiKey() ?? undefined);
 
     try {
       // Search for all threads
-      const threadsResponse = await client.threads.search({
+      const searchParams = {
         limit: 50, // Adjust as needed
         metadata: assistantId.includes("-")
           ? { graph_id: assistantId }
           : { assistant_id: assistantId },
-      });
+      };
+
+      const threadsResponse = await client.threads.search(searchParams);
 
       const allTasksWithContext: TaskWithContext[] = [];
 
@@ -112,7 +128,13 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         try {
           const thread = await client.threads.get(threadSummary.thread_id);
           const threadValues = thread.values as any;
+          // Check both plan and proposedPlan fields
           const plan: PlanItem[] = threadValues?.plan || [];
+          const proposedPlan: PlanItem[] = threadValues?.proposedPlan || [];
+
+          // Use proposedPlan if plan is empty, otherwise use plan
+          const tasksToUse = plan.length > 0 ? plan : proposedPlan;
+
           const targetRepository = threadValues?.targetRepository;
 
           // Extract thread title from first human message or fallback
@@ -122,12 +144,12 @@ export function TaskProvider({ children }: { children: ReactNode }) {
             `Thread ${threadSummary.thread_id.substring(0, 8)}`;
 
           // Convert each task to TaskWithContext
-          plan.forEach((planItem) => {
+          tasksToUse.forEach((planItem) => {
             allTasksWithContext.push({
               ...planItem,
               taskId: createTaskId(
                 threadSummary.thread_id,
-                plan.indexOf(planItem),
+                tasksToUse.indexOf(planItem),
                 planItem.plan,
               ),
               threadId: threadSummary.thread_id,
