@@ -85,12 +85,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const assistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "";
 
-  console.log("🔧 TaskProvider setup:", {
-    apiUrl,
-    assistantId,
-    hasApiKey: !!getApiKey(),
-  });
-
   const [tasks, setTasks] = useState<PlanItem[]>([]);
   const [allTasks, setAllTasks] = useState<TaskWithContext[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
@@ -112,9 +106,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   );
 
   const getAllTasks = useCallback(async (): Promise<TaskWithContext[]> => {
-    console.log("🔍 getAllTasks called");
     if (!apiUrl || !assistantId) {
-      console.log("❌ Missing apiUrl or assistantId:", { apiUrl, assistantId });
       return [];
     }
 
@@ -129,28 +121,22 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           : { assistant_id: assistantId },
       };
 
-      console.log("🔍 Searching threads with params:", searchParams);
       const threadsResponse = await client.threads.search(searchParams);
-      console.log("📋 Found threads:", threadsResponse.length, threadsResponse);
 
       const allTasksWithContext: TaskWithContext[] = [];
 
       // Process each thread to extract tasks
       for (const threadSummary of threadsResponse) {
         try {
-          console.log("🧵 Processing thread:", threadSummary.thread_id);
           const thread = await client.threads.get(threadSummary.thread_id);
           const threadValues = thread.values as any;
-          console.log("📊 Thread values:", threadValues);
 
           // Check both plan and proposedPlan fields
           const plan: PlanItem[] = threadValues?.plan || [];
           const proposedPlan: PlanItem[] = threadValues?.proposedPlan || [];
-          console.log("📋 Plan:", plan, "ProposedPlan:", proposedPlan);
 
           // Use proposedPlan if plan is empty, otherwise use plan
           const tasksToUse = plan.length > 0 ? plan : proposedPlan;
-          console.log("✅ Tasks to use:", tasksToUse);
 
           const targetRepository = threadValues?.targetRepository;
 
@@ -177,8 +163,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
                     summary: undefined,
                   }
                 : planItem;
-
-            console.log("🔨 Creating task:", { taskDescription, taskData });
 
             allTasksWithContext.push({
               ...taskData,
@@ -207,13 +191,11 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           });
         } catch (error) {
           console.error(
-            `❌ Failed to fetch thread ${threadSummary.thread_id}:`,
+            `Failed to fetch thread ${threadSummary.thread_id}:`,
             error,
           );
         }
       }
-
-      console.log("🎯 Final allTasksWithContext:", allTasksWithContext);
 
       // Sort by repository, then by creation date (newest first)
       return allTasksWithContext.sort((a, b) => {
@@ -224,7 +206,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         );
       });
     } catch (error) {
-      console.error("❌ Failed to fetch all tasks:", error);
+      console.error("Failed to fetch all tasks:", error);
       return [];
     }
   }, [apiUrl, assistantId]);

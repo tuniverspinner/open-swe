@@ -140,27 +140,46 @@ interface ThreadSummary {
 
 ## Current Issues & Problems
 
+### ✅ Recently Fixed
+
+#### 1. GitHub Modal Persistence ✅ 
+**Fixed**: Added localStorage caching for GitHub app installation status
+**Solution**: Installation status is now cached and only checked once per session
+**Impact**: Modal no longer appears on every page refresh
+
+#### 2. Sidebar Collapse Button ✅
+**Fixed**: Added collapse button in sidebar header with persistent state
+**Solution**: Uses existing `chatHistoryOpen` querystate for persistence  
+**Impact**: Users can now collapse the sidebar and state persists across reloads
+
+#### 3. Thread Navigation ✅
+**Fixed**: Clicking thread header now navigates to chat mode with thread loaded
+**Solution**: Separate click handlers for thread navigation vs expand/collapse
+**Impact**: Users can now directly access threads from the task list/sidebar
+
+#### 4. Data Type Consistency ✅
+**Fixed**: Proper handling of both string tasks and PlanItem objects
+**Solution**: Robust type checking and data transformation in TaskProvider
+**Impact**: Task descriptions now display correctly instead of "No task description"
+
 ### 🔴 Critical Issues
 
 #### 1. Data Persistence Loss
 **Problem**: Tasks/threads disappearing on server restart
-**Root Cause**: Likely using client-side state without proper API persistence
-**Impact**: Loss of work progress and context
+**Root Cause**: May be related to LangGraph API data retention or client-side caching
+**Status**: Needs investigation - TaskProvider does persist via API
 
 #### 2. Unused Task Component
 **Problem**: `Task` component exists but isn't used in TaskList/TaskListSidebar
 **Issue**: Direct `task.plan` rendering instead of using proper component
 **Impact**: Inconsistent UI, lost formatting, missing functionality
+**Status**: Pending implementation
 
-#### 3. Inconsistent Data Types
-**Problem**: TaskList expects `task.plan` but logs show task as string-like object
-**Symptoms**: Console shows task as indexed string, `task.plan` is undefined
-**Impact**: "No task description" display issues
-
-#### 4. Complex ID Generation
+#### 3. Complex ID Generation
 **Problem**: Overcomplicated `createTaskId()` function with hash-based generation
 **Issue**: Hard to debug, potential collisions, not human-readable
 **Impact**: Navigation issues, debugging complexity
+**Status**: Pending simplification
 
 ### 🔶 Architectural Issues
 

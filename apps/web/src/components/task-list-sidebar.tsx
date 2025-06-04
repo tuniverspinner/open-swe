@@ -11,6 +11,8 @@ import {
   Github,
   GitBranch,
   ChevronDown,
+  PanelRightOpen,
+  ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,8 +47,13 @@ const StatusIndicator = ({
   }
 };
 
-export default function TaskListSidebar() {
+interface TaskListSidebarProps {
+  onCollapse?: () => void;
+}
+
+export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
+  const [threadId, setThreadId] = useQueryState("threadId", parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
   const { getAllTasks, allTasks, setAllTasks, tasksLoading, setTasksLoading } =
     useTasks();
@@ -64,6 +71,13 @@ export default function TaskListSidebar() {
   // Handle task navigation
   const handleTaskClick = (taskWithContext: TaskWithContext) => {
     setTaskId(taskWithContext.taskId);
+    setThreadId(taskWithContext.threadId);
+  };
+
+  // Handle thread navigation (navigate to chat mode with thread loaded)
+  const handleThreadClick = (thread: ThreadSummary) => {
+    setThreadId(thread.threadId);
+    setTaskId(null); // Clear task selection to show thread in chat mode
   };
 
   // Group tasks by thread
@@ -126,8 +140,24 @@ export default function TaskListSidebar() {
   return (
     <div className="flex h-full w-full flex-col border-r bg-white">
       <div className="border-b border-gray-200 p-4">
-        <h2 className="text-lg font-semibold text-gray-900">Threads</h2>
-        <p className="text-sm text-gray-500">{totalThreads} total threads</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Threads</h2>
+            <p className="text-sm text-gray-500">
+              {totalThreads} total threads
+            </p>
+          </div>
+          {onCollapse && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCollapse}
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+            >
+              <PanelRightOpen className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-hidden">
@@ -146,8 +176,11 @@ export default function TaskListSidebar() {
                 className="space-y-1"
               >
                 <div className="rounded-md border border-gray-200 bg-white">
-                  <CollapsibleTrigger className="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-gray-50">
-                    <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <div className="relative">
+                    <div
+                      className="flex w-full cursor-pointer items-center gap-2 p-3 text-left transition-colors hover:bg-gray-50"
+                      onClick={() => handleThreadClick(thread)}
+                    >
                       <div className="mt-0.5 flex-shrink-0">
                         <StatusIndicator status={thread.status} />
                       </div>
@@ -179,9 +212,12 @@ export default function TaskListSidebar() {
                           </Badge>
                         </div>
                       </div>
+                      <ArrowRight className="h-3 w-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
-                    <ChevronDown className="h-3 w-3 text-gray-400 transition-transform data-[state=open]:rotate-180" />
-                  </CollapsibleTrigger>
+                    <CollapsibleTrigger className="absolute top-3 right-3 rounded-sm p-1 transition-colors hover:bg-gray-100">
+                      <ChevronDown className="h-3 w-3 text-gray-400 transition-transform data-[state=open]:rotate-180" />
+                    </CollapsibleTrigger>
+                  </div>
 
                   <CollapsibleContent className="space-y-1 border-t border-gray-100 px-3 pb-2">
                     {thread.tasks.map((task) => {

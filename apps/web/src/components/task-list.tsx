@@ -12,6 +12,7 @@ import {
   Github,
   GitBranch,
   ChevronDown,
+  ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ const StatusIndicator = ({
 
 export default function TaskList() {
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
+  const [threadId, setThreadId] = useQueryState("threadId", parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
   const { getAllTasks, allTasks, setAllTasks, tasksLoading, setTasksLoading } =
     useTasks();
@@ -64,15 +66,13 @@ export default function TaskList() {
   // Fetch all tasks when in dashboard mode
   useEffect(() => {
     if (typeof window === "undefined" || !isDashboardMode) return;
-    console.log("🔍 TaskList: Fetching all tasks...");
     setTasksLoading(true);
     getAllTasks()
       .then((result) => {
-        console.log("📊 TaskList: Received tasks:", result);
         setAllTasks(result);
       })
       .catch((error) => {
-        console.error("❌ TaskList: Error fetching tasks:", error);
+        console.error("Error fetching tasks:", error);
       })
       .finally(() => setTasksLoading(false));
   }, [isDashboardMode, getAllTasks, setAllTasks, setTasksLoading]);
@@ -80,15 +80,19 @@ export default function TaskList() {
   // Handle task navigation with UUID
   const handleTaskClick = (taskWithContext: TaskWithContext) => {
     setTaskId(taskWithContext.taskId);
+    setThreadId(taskWithContext.threadId);
+  };
+
+  // Handle thread navigation (navigate to chat mode with thread loaded)
+  const handleThreadClick = (thread: ThreadSummary) => {
+    setThreadId(thread.threadId);
+    setTaskId(null); // Clear task selection to show thread in chat mode
   };
 
   // Only render TaskList in dashboard mode
   if (!isDashboardMode) {
     return null;
   }
-
-  console.log("🎯 TaskList: Current allTasks:", allTasks);
-  console.log("🎯 TaskList: tasksLoading:", tasksLoading);
 
   // Group tasks by thread
   const threadSummaries: ThreadSummary[] = allTasks.reduce((acc, task) => {
@@ -191,8 +195,11 @@ export default function TaskList() {
                     className="space-y-2"
                   >
                     <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-                      <CollapsibleTrigger className="flex w-full items-center justify-between text-left">
-                        <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <div className="relative">
+                        <div
+                          className="-m-2 flex w-full cursor-pointer items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-gray-50"
+                          onClick={() => handleThreadClick(thread)}
+                        >
                           <div className="mt-1 flex-shrink-0">
                             <StatusIndicator status={thread.status} />
                           </div>
@@ -218,9 +225,12 @@ export default function TaskList() {
                               </Badge>
                             </div>
                           </div>
+                          <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                         </div>
-                        <ChevronDown className="h-4 w-4 text-gray-400 transition-transform data-[state=open]:rotate-180" />
-                      </CollapsibleTrigger>
+                        <CollapsibleTrigger className="absolute top-2 right-2 rounded-sm p-2 transition-colors hover:bg-gray-100">
+                          <ChevronDown className="h-4 w-4 text-gray-400 transition-transform data-[state=open]:rotate-180" />
+                        </CollapsibleTrigger>
+                      </div>
 
                       <CollapsibleContent className="mt-4 space-y-2 border-t border-gray-100 pt-3">
                         {thread.tasks.map((task) => {

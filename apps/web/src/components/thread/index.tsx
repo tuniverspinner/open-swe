@@ -24,7 +24,7 @@ import {
   Plus,
   Settings,
 } from "lucide-react";
-import { useQueryState, parseAsBoolean } from "nuqs";
+import { useQueryState, parseAsBoolean, parseAsString } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import TaskListSidebar from "../task-list-sidebar";
 import { toast } from "sonner";
@@ -94,19 +94,20 @@ export function Thread() {
   const { getAllTasks } = useTasks();
 
   const [threadId, _setThreadId] = useQueryState("threadId");
-  const [taskId] = useQueryState("taskId");
+  const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
   const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
     "chatHistoryOpen",
     parseAsBoolean.withDefault(false),
   );
 
   const isTaskView = !!taskId;
+  const isThreadView = !!threadId;
 
   useEffect(() => {
-    if (isTaskView && !chatHistoryOpen) {
+    if ((isTaskView || isThreadView) && !chatHistoryOpen) {
       setChatHistoryOpen(true);
     }
-  }, [isTaskView, chatHistoryOpen, setChatHistoryOpen]);
+  }, [isTaskView, isThreadView, chatHistoryOpen, setChatHistoryOpen]);
 
   useEffect(() => {
     if (taskId && typeof window !== "undefined") {
@@ -120,13 +121,6 @@ export function Thread() {
         .catch(console.error);
     }
   }, [taskId, threadId, _setThreadId, getAllTasks]);
-
-  // Also handle when taskId is cleared
-  useEffect(() => {
-    if (!taskId && threadId) {
-      _setThreadId(null);
-    }
-  }, [taskId, threadId, _setThreadId]);
 
   const [input, setInput] = useState("");
   const {
@@ -149,6 +143,11 @@ export function Thread() {
 
   const setThreadId = (id: string | null) => {
     _setThreadId(id);
+
+    // When clearing thread (going back to dashboard), also clear task
+    if (id === null) {
+      setTaskId(null);
+    }
 
     // close artifact and reset artifact context
     closeArtifact();
@@ -297,7 +296,7 @@ export function Thread() {
             className="relative h-full"
             style={{ width: 300 }}
           >
-            <TaskListSidebar />
+            <TaskListSidebar onCollapse={() => setChatHistoryOpen(false)} />
           </div>
         </motion.div>
       </div>
@@ -576,7 +575,7 @@ export function Thread() {
                     </form>
                   </div>
 
-                  {!isTaskView && (
+                  {!isTaskView && !isThreadView && (
                     <div className="w-full max-w-3xl rounded-lg border border-gray-200 bg-white shadow-sm">
                       <TaskList />
                     </div>
