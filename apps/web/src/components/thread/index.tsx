@@ -10,7 +10,7 @@ import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import {
   DO_NOT_RENDER_ID_PREFIX,
-  ensureToolCallsHaveResponses,
+  ensureToolCallsHaveResponses
 } from "@/lib/ensure-tool-responses";
 import { LangGraphLogoSVG } from "../icons/langgraph";
 import {
@@ -20,7 +20,7 @@ import {
   PanelRightClose,
   SquarePen,
   XIcon,
-  Plus,
+  Plus
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -35,7 +35,7 @@ import {
   useArtifactOpen,
   ArtifactContent,
   ArtifactTitle,
-  useArtifactContext,
+  useArtifactContext
 } from "./artifact";
 import { RepositorySelector } from "../repository-selector";
 import { TargetRepository } from "@/providers/Stream";
