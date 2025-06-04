@@ -1,10 +1,6 @@
 "use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Archive,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+import { Archive, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTasks, ThreadSummary } from "@/providers/Task";
 import { useQueryState, parseAsString } from "nuqs";
