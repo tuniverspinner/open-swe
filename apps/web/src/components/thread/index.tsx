@@ -10,9 +10,10 @@ import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import {
   DO_NOT_RENDER_ID_PREFIX,
-  ensureToolCallsHaveResponses
+  ensureToolCallsHaveResponses,
 } from "@/lib/ensure-tool-responses";
 import { LangGraphLogoSVG } from "../icons/langgraph";
+import { TooltipIconButton } from "./tooltip-icon-button";
 import {
   ArrowDown,
   LoaderCircle,
@@ -20,7 +21,7 @@ import {
   PanelRightClose,
   SquarePen,
   XIcon,
-  Plus
+  Plus,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -35,13 +36,9 @@ import {
   useArtifactOpen,
   ArtifactContent,
   ArtifactTitle,
-  useArtifactContext
+  useArtifactContext,
 } from "./artifact";
-import { RepositorySelector } from "../repository-selector";
-import { TargetRepository } from "@/providers/Stream";
-import { ConfigurationSidebar } from "../configuration-sidebar";
-import { SidebarButtons } from "../sidebar-buttons";
-import { TooltipIconButton } from "./tooltip-icon-button";
+import { GitHubOAuthButton } from "../github-oauth-button";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -110,8 +107,6 @@ export function Thread() {
   } = useFileUpload();
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
-  const [selectedRepository, setSelectedRepository] =
-    useState<TargetRepository>();
 
   const stream = useStreamContext();
   const messages = stream.messages;
@@ -127,43 +122,6 @@ export function Thread() {
     setArtifactContext({});
   };
 
-  const configRef = useRef<HTMLDivElement>(null);
-  const [configOpen, setConfigOpen] = useState(false);
-  const buttonRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-
-      // Check if click is on portal elements (dropdowns, dialogs, etc.)
-      const isPortalElement =
-        document.querySelector('[role="dialog"]')?.contains(target) ||
-        document.querySelector('[role="listbox"]')?.contains(target) ||
-        document.querySelector(".popover")?.contains(target) ||
-        document.querySelector(".dropdown")?.contains(target) ||
-        document
-          .querySelector("[data-radix-popper-content-wrapper]")
-          ?.contains(target) ||
-        document.querySelector('[role="alertdialog"]')?.contains(target);
-
-      // Don't close if clicking on portal elements
-      if (isPortalElement) return;
-
-      // Close config sidebar if clicking outside
-      if (
-        configOpen &&
-        configRef.current &&
-        !configRef.current.contains(target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(target)
-      ) {
-        setConfigOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [configOpen]);
   useEffect(() => {
     if (!stream.error) {
       lastError.current = undefined;
@@ -226,11 +184,10 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
-    const targetRepository = selectedRepository || {
+    const targetRepository = {
       owner: "langchain-ai",
       repo: "open-swe",
     };
-
     stream.submit(
       {
         messages: [...toolMessages, newHumanMessage],
@@ -281,16 +238,6 @@ export function Thread() {
   return (
     <div className="flex h-screen w-full overflow-hidden">
       <div className="relative hidden lg:flex">
-        <SidebarButtons
-          ref={buttonRef}
-          configOpen={configOpen}
-          setConfigOpen={setConfigOpen}
-          // Remove history-related props if you don't need them
-        />
-        <ConfigurationSidebar
-          ref={configRef}
-          open={configOpen}
-        />
         <motion.div
           className="absolute z-20 h-full overflow-hidden border-r bg-white"
           style={{ width: 300 }}
@@ -358,6 +305,9 @@ export function Thread() {
                   </Button>
                 )}
               </div>
+              <div className="absolute top-2 right-4 flex items-center">
+                <GitHubOAuthButton />
+              </div>
             </div>
           )}
           {chatStarted && (
@@ -401,6 +351,9 @@ export function Thread() {
               </div>
 
               <div className="flex items-center gap-4">
+                <div className="flex items-center">
+                  <GitHubOAuthButton />
+                </div>
                 <TooltipIconButton
                   size="lg"
                   className="p-4"
@@ -511,13 +464,6 @@ export function Thread() {
                       />
 
                       <div className="flex items-center gap-6 p-2 pt-4">
-                        <div className="flex items-center space-x-2">
-                          <RepositorySelector
-                            value={selectedRepository}
-                            onValueChange={setSelectedRepository}
-                            disabled={messages.length > 0}
-                          />
-                        </div>
                         <div>
                           <div className="flex items-center space-x-2">
                             <Switch
