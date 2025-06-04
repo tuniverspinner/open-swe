@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
-import ThreadHistory from "./history";
+import TaskListSidebar from "../task-list-sidebar";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
@@ -44,6 +44,7 @@ import { useGitHubApp } from "@/hooks/useGitHubApp";
 import { BranchSelector } from "../branch-selector";
 import Link from "next/link";
 import TaskList from "../task-list";
+import { useTasks } from "@/providers/Task";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -90,12 +91,42 @@ export function Thread() {
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
   const { selectedRepository } = useGitHubApp();
+  const { getAllTasks } = useTasks();
 
   const [threadId, _setThreadId] = useQueryState("threadId");
+  const [taskId] = useQueryState("taskId");
   const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
     "chatHistoryOpen",
     parseAsBoolean.withDefault(false),
   );
+
+  const isTaskView = !!taskId;
+
+  useEffect(() => {
+    if (isTaskView && !chatHistoryOpen) {
+      setChatHistoryOpen(true);
+    }
+  }, [isTaskView, chatHistoryOpen, setChatHistoryOpen]);
+
+  useEffect(() => {
+    if (taskId && typeof window !== "undefined") {
+      getAllTasks()
+        .then((allTasks) => {
+          const selectedTask = allTasks.find((task) => task.taskId === taskId);
+          if (selectedTask && selectedTask.threadId !== threadId) {
+            _setThreadId(selectedTask.threadId);
+          }
+        })
+        .catch(console.error);
+    }
+  }, [taskId, threadId, _setThreadId, getAllTasks]);
+
+  // Also handle when taskId is cleared
+  useEffect(() => {
+    if (!taskId && threadId) {
+      _setThreadId(null);
+    }
+  }, [taskId, threadId, _setThreadId]);
 
   const [input, setInput] = useState("");
   const {
@@ -266,7 +297,7 @@ export function Thread() {
             className="relative h-full"
             style={{ width: 300 }}
           >
-            <ThreadHistory />
+            <TaskListSidebar />
           </div>
         </motion.div>
       </div>
@@ -545,9 +576,11 @@ export function Thread() {
                     </form>
                   </div>
 
-                  <div className="w-full max-w-3xl rounded-lg border border-gray-200 bg-white shadow-sm">
-                    <TaskList />
-                  </div>
+                  {!isTaskView && (
+                    <div className="w-full max-w-3xl rounded-lg border border-gray-200 bg-white shadow-sm">
+                      <TaskList />
+                    </div>
+                  )}
                 </div>
               }
             />
