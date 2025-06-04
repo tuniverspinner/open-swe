@@ -1,18 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, Plus, Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import TaskCreateModal from "./TaskCreateModal";
 
 interface TasksPageHeaderProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onTaskCreated?: () => void;
 }
 
-export default function TasksPageHeader({ 
-  searchQuery, 
-  onSearchChange 
+export default function TasksPageHeader({
+  searchQuery,
+  onSearchChange,
+  onTaskCreated,
 }: TasksPageHeaderProps) {
   return (
     <div className="space-y-6">
@@ -48,10 +51,7 @@ export default function TasksPageHeader({
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Task
-          </Button>
+          <TaskCreateModal onTaskCreated={onTaskCreated} />
         </div>
       </div>
     </div>

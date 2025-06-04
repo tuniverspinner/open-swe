@@ -54,9 +54,33 @@ export interface TaskWithContext extends PlanItem {
   status: "running" | "interrupted" | "done" | "error";
 }
 
+// New task creation interface
+export interface CreateTaskInput {
+  plan: string;
+  summary?: string;
+  repository?: string;
+  branch?: string;
+}
+
+// Task update interface
+export interface UpdateTaskInput {
+  plan?: string;
+  summary?: string;
+  completed?: boolean;
+  status?: "running" | "interrupted" | "done" | "error";
+}
+
 interface TaskContextType {
   getTasks: (threadId: string) => Promise<PlanItem[]>;
   getAllTasks: () => Promise<TaskWithContext[]>;
+  createTask: (input: CreateTaskInput) => Promise<TaskWithContext>;
+  updateTask: (taskId: string, updates: UpdateTaskInput) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  bulkUpdateTasks: (
+    taskIds: string[],
+    updates: UpdateTaskInput,
+  ) => Promise<void>;
+  bulkDeleteTasks: (taskIds: string[]) => Promise<void>;
   tasks: PlanItem[];
   setTasks: Dispatch<SetStateAction<PlanItem[]>>;
   allTasks: TaskWithContext[];
@@ -170,9 +194,129 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     }
   }, [apiUrl, assistantId]);
 
+  // Create a new task
+  const createTask = useCallback(
+    async (input: CreateTaskInput): Promise<TaskWithContext> => {
+      if (!apiUrl || !assistantId) throw new Error("API configuration missing");
+      const client = createClient(apiUrl, getApiKey() ?? undefined);
+
+      try {
+        // For now, create a mock task that will be persisted later
+        // In a real implementation, this would integrate with the LangGraph state management
+        const mockThreadId = `task-thread-${Date.now()}`;
+
+        const newTask: PlanItem = {
+          index: 0,
+          plan: input.plan,
+          completed: false,
+          summary: input.summary,
+        };
+
+        // Create TaskWithContext
+        const taskWithContext: TaskWithContext = {
+          ...newTask,
+          taskId: createTaskId(mockThreadId, 0, newTask.plan),
+          threadId: mockThreadId,
+          threadTitle: `New Task: ${input.plan.substring(0, 50)}...`,
+          repository: input.repository || "Unknown Repository",
+          branch: input.branch || "main",
+          date: new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+          createdAt: new Date().toISOString(),
+          status: "interrupted" as const,
+        };
+
+        return taskWithContext;
+      } catch (error) {
+        console.error("Failed to create task:", error);
+        throw error;
+      }
+    },
+    [apiUrl, assistantId],
+  );
+
+  // Update an existing task
+  const updateTask = useCallback(
+    async (taskId: string, updates: UpdateTaskInput): Promise<void> => {
+      if (!apiUrl || !assistantId) throw new Error("API configuration missing");
+
+      try {
+        // For now, this is a optimistic update
+        // In a real implementation, this would update the LangGraph thread state
+        console.log(`Updating task ${taskId} with:`, updates);
+
+        // Update the local state optimistically
+        setAllTasks((currentTasks) =>
+          currentTasks.map((task) =>
+            task.taskId === taskId
+              ? {
+                  ...task,
+                  plan: updates.plan ?? task.plan,
+                  summary: updates.summary ?? task.summary,
+                  completed: updates.completed ?? task.completed,
+                  status: updates.status ?? task.status,
+                }
+              : task,
+          ),
+        );
+      } catch (error) {
+        console.error("Failed to update task:", error);
+        throw error;
+      }
+    },
+    [apiUrl, assistantId],
+  );
+
+  // Delete a task
+  const deleteTask = useCallback(
+    async (taskId: string): Promise<void> => {
+      if (!apiUrl || !assistantId) throw new Error("API configuration missing");
+
+      try {
+        // For now, this is a optimistic delete
+        // In a real implementation, this would remove from the LangGraph thread state
+        console.log(`Deleting task ${taskId}`);
+
+        // Update the local state optimistically
+        setAllTasks((currentTasks) =>
+          currentTasks.filter((task) => task.taskId !== taskId),
+        );
+      } catch (error) {
+        console.error("Failed to delete task:", error);
+        throw error;
+      }
+    },
+    [apiUrl, assistantId],
+  );
+
+  // Bulk update tasks
+  const bulkUpdateTasks = useCallback(
+    async (taskIds: string[], updates: UpdateTaskInput): Promise<void> => {
+      // Execute updates in parallel
+      await Promise.all(taskIds.map((taskId) => updateTask(taskId, updates)));
+    },
+    [updateTask],
+  );
+
+  // Bulk delete tasks
+  const bulkDeleteTasks = useCallback(
+    async (taskIds: string[]): Promise<void> => {
+      // Execute deletions in parallel
+      await Promise.all(taskIds.map((taskId) => deleteTask(taskId)));
+    },
+    [deleteTask],
+  );
+
   const value = {
     getTasks,
     getAllTasks,
+    createTask,
+    updateTask,
+    deleteTask,
+    bulkUpdateTasks,
+    bulkDeleteTasks,
     tasks,
     setTasks,
     allTasks,

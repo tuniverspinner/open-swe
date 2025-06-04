@@ -19,22 +19,28 @@ export default function TasksStats({ tasks, filteredTasks }: TasksStatsProps) {
   // Calculate statistics
   const totalTasks = tasks.length;
   const filteredCount = filteredTasks.length;
-  
+
   const stats = {
     total: totalTasks,
-    done: tasks.filter(t => t.status === "done").length,
-    interrupted: tasks.filter(t => t.status === "interrupted").length,
-    running: tasks.filter(t => t.status === "running").length,
-    error: tasks.filter(t => t.status === "error").length,
+    done: tasks.filter((t) => t.status === "done").length,
+    interrupted: tasks.filter((t) => t.status === "interrupted").length,
+    running: tasks.filter((t) => t.status === "running").length,
+    error: tasks.filter((t) => t.status === "error").length,
   };
 
-  const completionRate = totalTasks > 0 ? Math.round((stats.done / totalTasks) * 100) : 0;
-  const repositoryCount = new Set(tasks.map(t => t.repository).filter(Boolean)).size;
+  const completionRate =
+    totalTasks > 0 ? Math.round((stats.done / totalTasks) * 100) : 0;
+  const repositoryCount = new Set(
+    tasks.map((t) => t.repository).filter(Boolean),
+  ).size;
 
   const statCards = [
     {
       name: "Total Tasks",
-      value: filteredCount !== totalTasks ? `${filteredCount} / ${totalTasks}` : totalTasks,
+      value:
+        filteredCount !== totalTasks
+          ? `${filteredCount} / ${totalTasks}`
+          : totalTasks,
       icon: Archive,
       color: "text-gray-600",
       bgColor: "bg-gray-100",
@@ -76,18 +82,20 @@ export default function TasksStats({ tasks, filteredTasks }: TasksStatsProps) {
         return (
           <div
             key={stat.name}
-            className="overflow-hidden rounded-lg bg-white border border-gray-200 shadow-sm"
+            className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
           >
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className={`inline-flex items-center justify-center rounded-md p-2 ${stat.bgColor}`}>
+                  <div
+                    className={`inline-flex items-center justify-center rounded-md p-2 ${stat.bgColor}`}
+                  >
                     <Icon className={`h-5 w-5 ${stat.color}`} />
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="truncate text-sm font-medium text-gray-500">
                       {stat.name}
                     </dt>
                     <dd className="text-lg font-semibold text-gray-900">
@@ -102,4 +110,4 @@ export default function TasksStats({ tasks, filteredTasks }: TasksStatsProps) {
       })}
     </div>
   );
-} 
+}

@@ -20,12 +20,12 @@ export const useTaskSearch = (tasks: TaskWithContext[]) => {
       // Search query filter
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           task.plan.toLowerCase().includes(query) ||
-          (task.summary?.toLowerCase().includes(query)) ||
-          (task.repository?.toLowerCase().includes(query)) ||
-          (task.threadTitle?.toLowerCase().includes(query));
-        
+          task.summary?.toLowerCase().includes(query) ||
+          task.repository?.toLowerCase().includes(query) ||
+          task.threadTitle?.toLowerCase().includes(query);
+
         if (!matchesSearch) return false;
       }
 
@@ -35,7 +35,10 @@ export const useTaskSearch = (tasks: TaskWithContext[]) => {
       }
 
       // Repository filter
-      if (filters.repository.length > 0 && !filters.repository.includes(task.repository || "")) {
+      if (
+        filters.repository.length > 0 &&
+        !filters.repository.includes(task.repository || "")
+      ) {
         return false;
       }
 
@@ -45,9 +48,11 @@ export const useTaskSearch = (tasks: TaskWithContext[]) => {
 
   // Get unique values for filter options
   const filterOptions = useMemo(() => {
-    const statuses = [...new Set(tasks.map(task => task.status))];
-    const repositories = [...new Set(tasks.map(task => task.repository).filter(Boolean))];
-    
+    const statuses = [...new Set(tasks.map((task) => task.status))];
+    const repositories = [
+      ...new Set(tasks.map((task) => task.repository).filter(Boolean)),
+    ];
+
     return {
       statuses,
       repositories,
@@ -56,7 +61,7 @@ export const useTaskSearch = (tasks: TaskWithContext[]) => {
 
   // Update specific filter
   const updateFilter = (key: keyof TaskFilters, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   };
 
   // Clear all filters
@@ -75,4 +80,4 @@ export const useTaskSearch = (tasks: TaskWithContext[]) => {
     updateFilter,
     clearFilters,
   };
-}; 
+};
