@@ -7,6 +7,8 @@ import {
   Github,
   Calendar,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { useStreamContext } from "@/providers/Stream";
 
 // Real task data structure from the agent
 export interface PlanItem {
@@ -118,9 +120,14 @@ const StatusIndicator = ({ status }: { status: TaskStatus }) => {
 
 export const Task = ({ task }: { task: TaskWithStatus }) => {
   const formattedTitle = formatTaskTitle(task.plan);
+  const stream = useStreamContext();
 
   return (
-    <div className="group flex items-start gap-3 border-b border-gray-100 py-3 last:border-b-0">
+    <motion.div
+      className="group flex cursor-pointer items-start gap-3 border-b border-gray-100 py-3 transition-colors duration-200 last:border-b-0 hover:bg-gray-50"
+      whileTap={{ opacity: 0.8 }}
+      transition={{ duration: 0.1 }}
+    >
       <div className="mt-1 flex-shrink-0">
         <StatusIndicator status={task.status} />
       </div>
@@ -128,7 +135,7 @@ export const Task = ({ task }: { task: TaskWithStatus }) => {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="mb-1 truncate text-sm font-medium text-gray-900">
+            <h3 className="mb-1 truncate text-sm font-medium text-gray-900 group-hover:text-gray-700">
               {formattedTitle}
             </h3>
             <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -152,6 +159,6 @@ export const Task = ({ task }: { task: TaskWithStatus }) => {
           </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
