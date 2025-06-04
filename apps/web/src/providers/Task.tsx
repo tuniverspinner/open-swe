@@ -16,8 +16,10 @@ export interface TaskWithContext extends PlanItem {
   threadId: string;
   threadTitle?: string;
   repository?: string;
+  branch?: string;
   date: string;
   createdAt: string; // For chronological sorting
+  status: "running" | "interrupted" | "done" | "error";
 }
 
 interface TaskContextType {
@@ -97,6 +99,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
                 targetRepository?.repo ||
                 targetRepository?.name ||
                 "Unknown Repository",
+              branch: targetRepository?.branch || "main",
               date: new Date(threadSummary.created_at).toLocaleDateString(
                 "en-US",
                 {
@@ -105,6 +108,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
                 },
               ),
               createdAt: threadSummary.created_at,
+              status: planItem.completed ? "done" : "interrupted", // Completed tasks are done, others are paused/interrupted
             });
           });
         } catch (error) {

@@ -1,6 +1,17 @@
 "use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Archive, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import {
+  Archive,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  LoaderCircle,
+  Pause,
+  CheckCircle2,
+  XCircle,
+  Github,
+  GitBranch,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useStreamContext } from "@/providers/Stream";
@@ -16,6 +27,26 @@ import {
 } from "./task";
 
 const TASKS_PER_PAGE = 5;
+
+// Import StatusIndicator component to use in dashboard
+const StatusIndicator = ({
+  status,
+}: {
+  status: "running" | "interrupted" | "done" | "error";
+}) => {
+  switch (status) {
+    case "running":
+      return <LoaderCircle className="h-4 w-4 animate-spin text-blue-500" />;
+    case "interrupted":
+      return <Pause className="h-4 w-4 text-yellow-500" />;
+    case "done":
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    case "error":
+      return <XCircle className="h-4 w-4 text-red-500" />;
+    default:
+      return null;
+  }
+};
 
 export default function TaskList() {
   const stream = useStreamContext();
@@ -95,8 +126,10 @@ export default function TaskList() {
     const tasksByRepository = paginatedTasks.reduce(
       (acc, task) => {
         const repo = task.repository || "Unknown Repository";
-        if (!acc[repo]) acc[repo] = [];
-        acc[repo].push(task);
+        const branch = task.branch || "main";
+        const repoKey = `${repo}:::${branch}`; // Use separator to distinguish repo+branch combinations
+        if (!acc[repoKey]) acc[repoKey] = [];
+        acc[repoKey].push(task);
         return acc;
       },
       {} as Record<string, TaskWithContext[]>,
@@ -147,45 +180,66 @@ export default function TaskList() {
               ) : paginatedTasks.length > 0 ? (
                 <div className="space-y-6">
                   {Object.entries(tasksByRepository).map(
-                    ([repository, repoTasks]) => (
-                      <div
-                        key={repository}
-                        className="space-y-2"
-                      >
-                        <h3 className="border-b border-gray-100 pb-1 text-sm font-medium text-gray-600">
-                          {repository}
-                        </h3>
-                        <div className="space-y-0">
-                          {repoTasks.map((taskWithContext) => (
-                            <div
-                              key={`${taskWithContext.threadId}-${taskWithContext.index}`}
-                              className="group cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-50"
-                              onClick={() => handleTaskClick(taskWithContext)}
+                    ([repoKey, repoTasks]: [string, TaskWithContext[]]) => {
+                      const [repository, branch] = repoKey.split(":::");
+                      return (
+                        <div
+                          key={repoKey}
+                          className="space-y-2"
+                        >
+                          <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                            <Badge
+                              variant="outline"
+                              className="flex items-center gap-1"
                             >
-                              <div className="flex items-start gap-3">
-                                <div className="min-w-0 flex-1">
-                                  <h4 className="truncate text-sm font-medium text-gray-900">
-                                    {taskWithContext.plan}
-                                  </h4>
-                                  <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                                    <span>{taskWithContext.date}</span>
-                                    <span>•</span>
-                                    <span>
-                                      Task {taskWithContext.index + 1}
-                                    </span>
-                                    <span>•</span>
-                                    <span className="truncate">
-                                      {taskWithContext.threadTitle}
-                                    </span>
+                              <Github className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {repository}
+                              </span>
+                              <span className="text-sm font-medium text-gray-700">
+                                /
+                              </span>
+                              <GitBranch className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-700">
+                                {branch}
+                              </span>
+                            </Badge>
+                            <Badge
+                              variant="outline"
+                              className="ml-auto text-xs"
+                            >
+                              {repoTasks.length} tasks
+                            </Badge>
+                          </div>
+                          <div className="space-y-0">
+                            {repoTasks.map((taskWithContext) => (
+                              <div
+                                key={`${taskWithContext.threadId}-${taskWithContext.index}`}
+                                className="group cursor-pointer rounded-lg p-2 transition-colors hover:bg-gray-50"
+                                onClick={() => handleTaskClick(taskWithContext)}
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-1 flex-shrink-0">
+                                    <StatusIndicator
+                                      status={taskWithContext.status}
+                                    />
                                   </div>
+                                  <div className="min-w-0 flex-1">
+                                    <h4 className="truncate text-sm font-medium text-gray-900">
+                                      {taskWithContext.plan}
+                                    </h4>
+                                    <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
+                                      <span>{taskWithContext.date}</span>
+                                    </div>
+                                  </div>
+                                  <ExternalLink className="h-4 w-4 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                                 </div>
-                                <ExternalLink className="h-4 w-4 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ),
+                      );
+                    },
                   )}
 
                   {/* Pagination Controls */}

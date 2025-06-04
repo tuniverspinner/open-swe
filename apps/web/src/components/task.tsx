@@ -29,7 +29,7 @@ export interface TaskWithStatus extends PlanItem {
 // Utility function to format task plan into a proper title
 export const formatTaskTitle = (
   plan: string,
-  maxLength: number = 100,
+  maxLength: number = 60,
 ): string => {
   if (!plan) return "Untitled Task";
 
@@ -151,9 +151,6 @@ export const Task = ({ task }: { task: TaskWithStatus }) => {
                   <Github className="h-3 w-3 text-gray-400" />
                   <span>{task.repository}</span>
                 </span>
-              )}
-              {!task.date && !task.repository && (
-                <span>Task {task.index + 1}</span>
               )}
             </div>
           </div>
