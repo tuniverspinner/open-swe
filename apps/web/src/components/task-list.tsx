@@ -4,47 +4,14 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  LoaderCircle,
-  Pause,
-  CheckCircle2,
-  XCircle,
-  Github,
-  GitBranch,
-  ArrowRight,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTasks, ThreadSummary } from "@/providers/Task";
 import { useQueryState, parseAsString } from "nuqs";
 import { useEffect, useState } from "react";
+import { ThreadItem } from "./thread-item";
 
 const THREADS_PER_PAGE = 5;
-
-// StatusIndicator component to use in dashboard
-const StatusIndicator = ({
-  status,
-  size = "default",
-}: {
-  status: "running" | "interrupted" | "done" | "error";
-  size?: "default" | "sm";
-}) => {
-  const iconClass = size === "sm" ? "h-3 w-3" : "h-4 w-4";
-
-  switch (status) {
-    case "running":
-      return (
-        <LoaderCircle className={`${iconClass} animate-spin text-blue-500`} />
-      );
-    case "interrupted":
-      return <Pause className={`${iconClass} text-yellow-500`} />;
-    case "done":
-      return <CheckCircle2 className={`${iconClass} text-green-500`} />;
-    case "error":
-      return <XCircle className={`${iconClass} text-red-500`} />;
-    default:
-      return null;
-  }
-};
 
 export default function TaskList() {
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
@@ -177,40 +144,12 @@ export default function TaskList() {
             ) : paginatedThreads.length > 0 ? (
               <div className="space-y-4">
                 {paginatedThreads.map((thread) => (
-                  <div
+                  <ThreadItem
                     key={thread.threadId}
-                    className="cursor-pointer rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
-                    onClick={() => handleThreadClick(thread)}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="mt-1 flex-shrink-0">
-                        <StatusIndicator status={thread.status} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="truncate text-sm font-medium text-gray-900">
-                          {thread.threadTitle}
-                        </h4>
-                        <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <Github className="h-3 w-3" />
-                            <span>{thread.repository}</span>
-                            <span>/</span>
-                            <GitBranch className="h-3 w-3" />
-                            <span>{thread.branch}</span>
-                          </div>
-                          <span>{thread.date}</span>
-                          <Badge
-                            variant="outline"
-                            className="text-xs"
-                          >
-                            {thread.completedTasksCount}/
-                            {thread.totalTasksCount} tasks completed
-                          </Badge>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                    </div>
-                  </div>
+                    thread={thread}
+                    onClick={handleThreadClick}
+                    variant="dashboard"
+                  />
                 ))}
 
                 {/* Pagination Controls */}

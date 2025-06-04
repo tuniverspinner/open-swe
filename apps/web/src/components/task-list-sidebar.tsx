@@ -3,42 +3,15 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
-  XCircle,
-  LoaderCircle,
-  Pause,
-  Github,
-  GitBranch,
   PanelRightOpen,
-  ArrowRight,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useTasks, ThreadSummary } from "@/providers/Task";
 import { useQueryState, parseAsString } from "nuqs";
 import { useEffect, useState } from "react";
+import { ThreadItem } from "./thread-item";
 
 const THREADS_PER_PAGE = 10; // More threads per page in sidebar
-
-// StatusIndicator component for sidebar
-const StatusIndicator = ({
-  status,
-}: {
-  status: "running" | "interrupted" | "done" | "error";
-}) => {
-  switch (status) {
-    case "running":
-      return <LoaderCircle className="h-3 w-3 animate-spin text-blue-500" />;
-    case "interrupted":
-      return <Pause className="h-3 w-3 text-yellow-500" />;
-    case "done":
-      return <CheckCircle2 className="h-3 w-3 text-green-500" />;
-    case "error":
-      return <XCircle className="h-3 w-3 text-red-500" />;
-    default:
-      return null;
-  }
-};
 
 interface TaskListSidebarProps {
   onCollapse?: () => void;
@@ -158,45 +131,12 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
         ) : paginatedThreads.length > 0 ? (
           <div className="h-full space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
             {paginatedThreads.map((thread) => (
-              <div
+              <ThreadItem
                 key={thread.threadId}
-                className="cursor-pointer rounded-md border border-gray-200 bg-white p-3 transition-colors hover:bg-gray-50"
-                onClick={() => handleThreadClick(thread)}
-              >
-                <div className="flex items-center gap-2">
-                  <div className="mt-0.5 flex-shrink-0">
-                    <StatusIndicator status={thread.status} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h4 className="truncate text-xs leading-tight font-medium text-gray-900">
-                      {thread.threadTitle}
-                    </h4>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <Github className="h-2.5 w-2.5" />
-                        <span className="max-w-[60px] truncate">
-                          {thread.repository}
-                        </span>
-                        <span>/</span>
-                        <GitBranch className="h-2.5 w-2.5" />
-                        <span className="max-w-[40px] truncate">
-                          {thread.branch}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-1 flex items-center gap-2 text-xs">
-                      <span className="text-gray-400">{thread.date}</span>
-                      <Badge
-                        variant="outline"
-                        className="px-1 py-0 text-xs"
-                      >
-                        {thread.completedTasksCount}/{thread.totalTasksCount}
-                      </Badge>
-                    </div>
-                  </div>
-                  <ArrowRight className="h-3 w-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                </div>
-              </div>
+                thread={thread}
+                onClick={handleThreadClick}
+                variant="sidebar"
+              />
             ))}
 
             {/* Pagination Controls */}
