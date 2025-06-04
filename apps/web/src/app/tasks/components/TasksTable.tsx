@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useTasks, TaskWithContext } from "@/providers/Task";
+import { TaskWithContext } from "@/providers/Task";
 import { formatTaskTitle } from "@/components/task";
 
 // Status indicator component
@@ -37,23 +37,17 @@ const StatusIndicator = ({
   }
 };
 
-export default function TasksTable() {
-  const { getAllTasks, allTasks, setAllTasks, tasksLoading, setTasksLoading } =
-    useTasks();
+interface TasksTableProps {
+  tasks: TaskWithContext[];
+  isLoading: boolean;
+}
+
+export default function TasksTable({ tasks, isLoading }: TasksTableProps) {
   const [sortBy, setSortBy] = useState<"date" | "status" | "repository">(
     "date",
   );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const router = useRouter();
-
-  // Fetch all tasks on component mount
-  useEffect(() => {
-    setTasksLoading(true);
-    getAllTasks()
-      .then(setAllTasks)
-      .catch(console.error)
-      .finally(() => setTasksLoading(false));
-  }, [getAllTasks, setAllTasks, setTasksLoading]);
 
   // Handle task click to navigate to conversation
   const handleTaskClick = (task: TaskWithContext) => {
@@ -61,7 +55,7 @@ export default function TasksTable() {
   };
 
   // Sort tasks based on current sort settings
-  const sortedTasks = [...allTasks].sort((a, b) => {
+  const sortedTasks = [...tasks].sort((a, b) => {
     let comparison = 0;
 
     switch (sortBy) {
@@ -90,7 +84,7 @@ export default function TasksTable() {
     }
   };
 
-  if (tasksLoading) {
+  if (isLoading) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
         <div className="flex h-64 items-center justify-center">
@@ -125,7 +119,7 @@ export default function TasksTable() {
       <div className="border-b border-gray-200 bg-gray-50 px-6 py-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-medium text-gray-900">
-            All Tasks ({sortedTasks.length})
+            Tasks ({sortedTasks.length})
           </h3>
           <div className="text-sm text-gray-500">
             Sorted by {sortBy} ({sortOrder})

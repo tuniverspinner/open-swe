@@ -5,7 +5,15 @@ import { ArrowLeft, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function TasksPageHeader() {
+interface TasksPageHeaderProps {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+}
+
+export default function TasksPageHeader({ 
+  searchQuery, 
+  onSearchChange 
+}: TasksPageHeaderProps) {
   return (
     <div className="space-y-6">
       {/* Breadcrumb Navigation */}
@@ -36,6 +44,8 @@ export default function TasksPageHeader() {
             <Input
               placeholder="Search tasks..."
               className="w-64 pl-10"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
           <Button>
