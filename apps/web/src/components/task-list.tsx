@@ -6,6 +6,7 @@ import { useTasks, ThreadSummary } from "@/providers/Task";
 import { useQueryState, parseAsString } from "nuqs";
 import { useEffect, useState } from "react";
 import { ThreadItem } from "./thread-item";
+import { groupTasksIntoThreads, sortThreadsByDate } from "@/lib/thread-utils";
 
 const THREADS_PER_PAGE = 5;
 
@@ -44,56 +45,11 @@ export default function TaskList() {
     return null;
   }
 
-  // Group tasks by thread
-  const threadSummaries: ThreadSummary[] = allTasks.reduce((acc, task) => {
-    const existingThread = acc.find((t) => t.threadId === task.threadId);
+  // Group tasks by thread using utility function
+  const threadSummaries = groupTasksIntoThreads(allTasks);
 
-    if (existingThread) {
-      existingThread.tasks.push(task);
-      existingThread.totalTasksCount += 1;
-      if (task.status === "done") {
-        existingThread.completedTasksCount += 1;
-      }
-    } else {
-      acc.push({
-        threadId: task.threadId,
-        threadTitle:
-          task.threadTitle || `Thread ${task.threadId.substring(0, 8)}`,
-        repository: task.repository || "Unknown Repository",
-        branch: task.branch || "main",
-        date: task.date,
-        createdAt: task.createdAt,
-        tasks: [task],
-        completedTasksCount: task.status === "done" ? 1 : 0,
-        totalTasksCount: 1,
-        status: task.status, // For now, use the first task's status
-      });
-    }
-
-    return acc;
-  }, [] as ThreadSummary[]);
-
-  // Determine overall thread status
-  threadSummaries.forEach((thread) => {
-    const hasRunning = thread.tasks.some((t) => t.status === "running");
-    const hasError = thread.tasks.some((t) => t.status === "error");
-    const allDone = thread.tasks.every((t) => t.status === "done");
-
-    if (hasError) {
-      thread.status = "error";
-    } else if (hasRunning) {
-      thread.status = "running";
-    } else if (allDone) {
-      thread.status = "done";
-    } else {
-      thread.status = "interrupted";
-    }
-  });
-
-  // Sort threads by creation date (newest first)
-  const sortedThreads = threadSummaries.sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
+  // Sort threads by creation date (newest first) using utility function
+  const sortedThreads = sortThreadsByDate(threadSummaries);
 
   // Pagination for threads
   const totalThreads = sortedThreads.length;
@@ -112,7 +68,7 @@ export default function TaskList() {
           <TabsList className="mb-4 grid h-auto w-fit grid-cols-2 bg-transparent p-0">
             <TabsTrigger
               value="threads"
-              className="px-0 font-medium data-[state=active]:rounded-none data-[state=active]:border-b-2 data-[state=active]:border-b-black data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              className="px-0 pb-3 font-medium data-[state=active]:rounded-none data-[state=active]:border-b-2 data-[state=active]:border-b-black data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
               Threads ({totalThreads})
             </TabsTrigger>
