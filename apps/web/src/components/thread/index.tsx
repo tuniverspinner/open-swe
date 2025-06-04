@@ -10,7 +10,7 @@ import { AssistantMessage, AssistantMessageLoading } from "./messages/ai";
 import { HumanMessage } from "./messages/human";
 import {
   DO_NOT_RENDER_ID_PREFIX,
-  ensureToolCallsHaveResponses
+  ensureToolCallsHaveResponses,
 } from "@/lib/ensure-tool-responses";
 import { LangGraphLogoSVG } from "../icons/langgraph";
 import { TooltipIconButton } from "./tooltip-icon-button";
@@ -23,7 +23,7 @@ import {
   XIcon,
   Plus,
   Settings,
-  Github
+  Github,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean, parseAsString } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -37,7 +37,7 @@ import {
   useArtifactOpen,
   ArtifactContent,
   ArtifactTitle,
-  useArtifactContext
+  useArtifactContext,
 } from "./artifact";
 import { GitHubOAuthButton } from "../github-oauth-button";
 import { RepositorySelector } from "../repository-selector";
@@ -375,10 +375,10 @@ export function Thread() {
                   <TooltipIconButton
                     tooltip="GitHub Settings"
                     variant="outline"
-                    className="py-4 px-3 w-24"
+                    className="w-24 px-3 py-4"
                     size="lg"
                   >
-                    <Github className="h-4 w-4 " />
+                    <Github className="h-4 w-4" />
                     <p className="text-sm">Settings</p>
                   </TooltipIconButton>
                 </Link>
@@ -445,7 +445,7 @@ export function Thread() {
                       variant="ghost"
                       size="sm"
                     >
-                      <Github className="h-3 w-3 mr-1" />
+                      <Github className="mr-1 h-3 w-3" />
                       <span className="text-sm">Settings</span>
                     </TooltipIconButton>
                   </Link>
@@ -639,18 +639,11 @@ export function Thread() {
           </div>
         </div>
       </div>
-      
-      <ConfigurationSidebar 
+
+      <ConfigurationSidebar
         open={configSidebarOpen}
+        onClose={() => setConfigSidebarOpen(false)}
       />
-      
-      {/* Overlay to close configuration sidebar when clicking outside */}
-      {configSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-[5] bg-black/20"
-          onClick={() => setConfigSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 }

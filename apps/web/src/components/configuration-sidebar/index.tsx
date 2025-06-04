@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfigurableFieldUIMetadata } from "@/types/configurable";
+import { Button } from "@/components/ui/button";
+import { PanelRightOpen } from "lucide-react";
 
 // Import the actual model options from the open-swe types
 const MODEL_OPTIONS = [
@@ -77,12 +79,13 @@ const MODEL_OPTIONS_NO_THINKING = MODEL_OPTIONS.filter(
 export interface AIConfigPanelProps {
   className?: string;
   open: boolean;
+  onClose?: () => void;
 }
 
 export const ConfigurationSidebar = forwardRef<
   HTMLDivElement,
   AIConfigPanelProps
->(({ className, open }, ref: ForwardedRef<HTMLDivElement>) => {
+>(({ className, open, onClose }, ref: ForwardedRef<HTMLDivElement>) => {
   const { configs, updateConfig } = useConfigStore();
 
   // Local state for configurations and loading
@@ -215,6 +218,16 @@ export const ConfigurationSidebar = forwardRef<
         <div className="flex h-full flex-col">
           <div className="flex flex-shrink-0 items-center justify-between border-b border-gray-200 p-4">
             <h2 className="text-lg font-semibold">Agent Configuration</h2>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-8 w-8 p-0 hover:bg-gray-100"
+              >
+                <PanelRightOpen className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
           <Tabs
