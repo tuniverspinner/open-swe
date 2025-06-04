@@ -264,6 +264,9 @@ export function Thread() {
         config: {
           recursion_limit: 400,
         },
+        metadata: {
+          graph_id: process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "open-swe",
+        },
       },
     );
 
@@ -282,6 +285,9 @@ export function Thread() {
       streamMode: ["values"],
       config: {
         recursion_limit: 400,
+      },
+      metadata: {
+        graph_id: process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "open-swe",
       },
     });
   };
@@ -441,6 +447,7 @@ export function Thread() {
                 <div className="flex items-center gap-2">
                   <Link href="/github">
                     <TooltipIconButton
+                      className="w-24 px-3 py-4"
                       tooltip="GitHub Settings"
                       variant="ghost"
                       size="sm"
