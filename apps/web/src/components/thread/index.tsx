@@ -103,11 +103,24 @@ export function Thread() {
   const isTaskView = !!taskId;
   const isThreadView = !!threadId;
 
+  // Track previous states to detect navigation changes
+  const prevTaskId = useRef(taskId);
+  const prevThreadId = useRef(threadId);
+
+  // Auto-expand sidebar only when navigating TO a thread/task (not continuously)
   useEffect(() => {
-    if ((isTaskView || isThreadView) && !chatHistoryOpen) {
+    const isNavigatingToTask = !prevTaskId.current && taskId;
+    const isNavigatingToThread = !prevThreadId.current && threadId;
+    
+    // Only auto-expand if we're navigating TO a thread/task AND sidebar is currently closed
+    if ((isNavigatingToTask || isNavigatingToThread) && !chatHistoryOpen) {
       setChatHistoryOpen(true);
     }
-  }, [isTaskView, isThreadView, chatHistoryOpen, setChatHistoryOpen]);
+
+    // Update refs for next comparison
+    prevTaskId.current = taskId;
+    prevThreadId.current = threadId;
+  }, [taskId, threadId, chatHistoryOpen, setChatHistoryOpen]);
 
   useEffect(() => {
     if (taskId && typeof window !== "undefined") {
