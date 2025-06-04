@@ -4,24 +4,17 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   LoaderCircle,
   Pause,
   CheckCircle2,
   XCircle,
   Github,
   GitBranch,
-  ChevronDown,
   ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useTasks, TaskWithContext, ThreadSummary } from "@/providers/Task";
+import { useTasks, ThreadSummary } from "@/providers/Task";
 import { useQueryState, parseAsString } from "nuqs";
 import { useEffect, useState } from "react";
 
@@ -76,12 +69,6 @@ export default function TaskList() {
       })
       .finally(() => setTasksLoading(false));
   }, [isDashboardMode, getAllTasks, setAllTasks, setTasksLoading]);
-
-  // Handle task navigation with UUID
-  const handleTaskClick = (taskWithContext: TaskWithContext) => {
-    setTaskId(taskWithContext.taskId);
-    setThreadId(taskWithContext.threadId);
-  };
 
   // Handle thread navigation (navigate to chat mode with thread loaded)
   const handleThreadClick = (thread: ThreadSummary) => {
@@ -190,83 +177,40 @@ export default function TaskList() {
             ) : paginatedThreads.length > 0 ? (
               <div className="space-y-4">
                 {paginatedThreads.map((thread) => (
-                  <Collapsible
+                  <div
                     key={thread.threadId}
-                    className="space-y-2"
+                    className="cursor-pointer rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                    onClick={() => handleThreadClick(thread)}
                   >
-                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-                      <div className="relative">
-                        <div
-                          className="-m-2 flex w-full cursor-pointer items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-gray-50"
-                          onClick={() => handleThreadClick(thread)}
-                        >
-                          <div className="mt-1 flex-shrink-0">
-                            <StatusIndicator status={thread.status} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="truncate text-sm font-medium text-gray-900">
-                              {thread.threadTitle}
-                            </h4>
-                            <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Github className="h-3 w-3" />
-                                <span>{thread.repository}</span>
-                                <span>/</span>
-                                <GitBranch className="h-3 w-3" />
-                                <span>{thread.branch}</span>
-                              </div>
-                              <span>{thread.date}</span>
-                              <Badge
-                                variant="outline"
-                                className="text-xs"
-                              >
-                                {thread.completedTasksCount}/
-                                {thread.totalTasksCount} tasks completed
-                              </Badge>
-                            </div>
-                          </div>
-                          <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                        </div>
-                        <CollapsibleTrigger className="absolute top-2 right-2 rounded-sm p-2 transition-colors hover:bg-gray-100">
-                          <ChevronDown className="h-4 w-4 text-gray-400 transition-transform data-[state=open]:rotate-180" />
-                        </CollapsibleTrigger>
+                    <div className="flex items-center gap-3">
+                      <div className="mt-1 flex-shrink-0">
+                        <StatusIndicator status={thread.status} />
                       </div>
-
-                      <CollapsibleContent className="mt-4 space-y-2 border-t border-gray-100 pt-3">
-                        {thread.tasks.map((task) => {
-                          // Handle task data properly - it might be a string or object
-                          const taskDescription =
-                            typeof task === "string"
-                              ? task
-                              : typeof task === "object" && task.plan
-                                ? task.plan
-                                : Object.values(task).join("") ||
-                                  "No task description";
-
-                          return (
-                            <div
-                              key={task.taskId}
-                              className="group flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm transition-colors hover:bg-gray-50"
-                              onClick={() => handleTaskClick(task)}
-                            >
-                              <div className="flex-shrink-0">
-                                <StatusIndicator
-                                  status={task.status}
-                                  size="sm"
-                                />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-gray-900">
-                                  {taskDescription}
-                                </p>
-                              </div>
-                              <ExternalLink className="h-3 w-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                            </div>
-                          );
-                        })}
-                      </CollapsibleContent>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="truncate text-sm font-medium text-gray-900">
+                          {thread.threadTitle}
+                        </h4>
+                        <div className="mt-2 flex items-center gap-4 text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <Github className="h-3 w-3" />
+                            <span>{thread.repository}</span>
+                            <span>/</span>
+                            <GitBranch className="h-3 w-3" />
+                            <span>{thread.branch}</span>
+                          </div>
+                          <span>{thread.date}</span>
+                          <Badge
+                            variant="outline"
+                            className="text-xs"
+                          >
+                            {thread.completedTasksCount}/
+                            {thread.totalTasksCount} tasks completed
+                          </Badge>
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
-                  </Collapsible>
+                  </div>
                 ))}
 
                 {/* Pagination Controls */}

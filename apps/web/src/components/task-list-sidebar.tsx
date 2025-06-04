@@ -3,25 +3,18 @@ import {
   Archive,
   ChevronLeft,
   ChevronRight,
-  ExternalLink,
   CheckCircle2,
   XCircle,
   LoaderCircle,
   Pause,
   Github,
   GitBranch,
-  ChevronDown,
   PanelRightOpen,
   ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { useTasks, TaskWithContext, ThreadSummary } from "@/providers/Task";
+import { useTasks, ThreadSummary } from "@/providers/Task";
 import { useQueryState, parseAsString } from "nuqs";
 import { useEffect, useState } from "react";
 
@@ -67,12 +60,6 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
       .catch(console.error)
       .finally(() => setTasksLoading(false));
   }, [getAllTasks, setAllTasks, setTasksLoading]);
-
-  // Handle task navigation
-  const handleTaskClick = (taskWithContext: TaskWithContext) => {
-    setTaskId(taskWithContext.taskId);
-    setThreadId(taskWithContext.threadId);
-  };
 
   // Handle thread navigation (navigate to chat mode with thread loaded)
   const handleThreadClick = (thread: ThreadSummary) => {
@@ -171,92 +158,45 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
         ) : paginatedThreads.length > 0 ? (
           <div className="h-full space-y-2 overflow-y-auto p-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-track]:bg-transparent">
             {paginatedThreads.map((thread) => (
-              <Collapsible
+              <div
                 key={thread.threadId}
-                className="space-y-1"
+                className="cursor-pointer rounded-md border border-gray-200 bg-white p-3 transition-colors hover:bg-gray-50"
+                onClick={() => handleThreadClick(thread)}
               >
-                <div className="rounded-md border border-gray-200 bg-white">
-                  <div className="relative">
-                    <div
-                      className="flex w-full cursor-pointer items-center gap-2 p-3 text-left transition-colors hover:bg-gray-50"
-                      onClick={() => handleThreadClick(thread)}
-                    >
-                      <div className="mt-0.5 flex-shrink-0">
-                        <StatusIndicator status={thread.status} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="truncate text-xs leading-tight font-medium text-gray-900">
-                          {thread.threadTitle}
-                        </h4>
-                        <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-                          <div className="flex items-center gap-1">
-                            <Github className="h-2.5 w-2.5" />
-                            <span className="max-w-[60px] truncate">
-                              {thread.repository}
-                            </span>
-                            <span>/</span>
-                            <GitBranch className="h-2.5 w-2.5" />
-                            <span className="max-w-[40px] truncate">
-                              {thread.branch}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="mt-1 flex items-center gap-2 text-xs">
-                          <span className="text-gray-400">{thread.date}</span>
-                          <Badge
-                            variant="outline"
-                            className="px-1 py-0 text-xs"
-                          >
-                            {thread.completedTasksCount}/
-                            {thread.totalTasksCount}
-                          </Badge>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-3 w-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                    </div>
-                    <CollapsibleTrigger className="absolute top-3 right-3 rounded-sm p-1 transition-colors hover:bg-gray-100">
-                      <ChevronDown className="h-3 w-3 text-gray-400 transition-transform data-[state=open]:rotate-180" />
-                    </CollapsibleTrigger>
+                <div className="flex items-center gap-2">
+                  <div className="mt-0.5 flex-shrink-0">
+                    <StatusIndicator status={thread.status} />
                   </div>
-
-                  <CollapsibleContent className="space-y-1 border-t border-gray-100 px-3 pb-2">
-                    {thread.tasks.map((task) => {
-                      // Handle task data properly - it might be a string or object
-                      const taskDescription =
-                        typeof task === "string"
-                          ? task
-                          : typeof task === "object" && task.plan
-                            ? task.plan
-                            : Object.values(task).join("") ||
-                              "No task description";
-
-                      return (
-                        <div
-                          key={task.taskId}
-                          className={`group cursor-pointer rounded-sm p-2 text-xs transition-colors hover:bg-gray-50 ${
-                            task.taskId === taskId
-                              ? "border-l-2 border-l-blue-500 bg-blue-50"
-                              : ""
-                          }`}
-                          onClick={() => handleTaskClick(task)}
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className="mt-0.5 flex-shrink-0">
-                              <StatusIndicator status={task.status} />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs leading-tight font-medium text-gray-900">
-                                {taskDescription}
-                              </p>
-                            </div>
-                            <ExternalLink className="h-2.5 w-2.5 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </CollapsibleContent>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-xs leading-tight font-medium text-gray-900">
+                      {thread.threadTitle}
+                    </h4>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Github className="h-2.5 w-2.5" />
+                        <span className="max-w-[60px] truncate">
+                          {thread.repository}
+                        </span>
+                        <span>/</span>
+                        <GitBranch className="h-2.5 w-2.5" />
+                        <span className="max-w-[40px] truncate">
+                          {thread.branch}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-xs">
+                      <span className="text-gray-400">{thread.date}</span>
+                      <Badge
+                        variant="outline"
+                        className="px-1 py-0 text-xs"
+                      >
+                        {thread.completedTasksCount}/{thread.totalTasksCount}
+                      </Badge>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-3 w-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                 </div>
-              </Collapsible>
+              </div>
             ))}
 
             {/* Pagination Controls */}

@@ -11,34 +11,9 @@ import {
 import { createClient } from "./client";
 import { PlanItem } from "@/components/task";
 
-// Function to create deterministic task ID
-function createTaskId(
-  threadId: string,
-  taskIndex: number,
-  taskContent: string,
-): string {
-  // Create a more unique deterministic string including task content
-  const uniqueString = `${threadId}-${taskIndex}-${taskContent}`;
-  // Use a simple hash function for better distribution
-  let hash = 0;
-  for (let i = 0; i < uniqueString.length; i++) {
-    const char = uniqueString.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-  // Convert to positive number and create UUID-like format
-  const positiveHash = Math.abs(hash).toString(36).padStart(8, "0");
-  const threadHash = Math.abs(
-    threadId.split("").reduce((a, b) => a + b.charCodeAt(0), 0),
-  )
-    .toString(36)
-    .slice(0, 4);
-  const indexHex = taskIndex.toString(16).padStart(4, "0");
-
-  return `${positiveHash.slice(0, 8)}-${threadHash}-${indexHex}-${positiveHash.slice(8, 12)}-${positiveHash}${threadHash}`.slice(
-    0,
-    36,
-  );
+// Function to create simple, predictable task ID
+function createTaskId(threadId: string, taskIndex: number): string {
+  return `${threadId}-task-${taskIndex}`;
 }
 
 // Enhanced task type with thread context
@@ -169,7 +144,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
               taskId: createTaskId(
                 threadSummary.thread_id,
                 tasksToUse.indexOf(planItem),
-                taskDescription,
               ),
               threadId: threadSummary.thread_id,
               threadTitle,

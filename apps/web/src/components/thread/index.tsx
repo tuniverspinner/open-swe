@@ -111,7 +111,7 @@ export function Thread() {
   useEffect(() => {
     const isNavigatingToTask = !prevTaskId.current && taskId;
     const isNavigatingToThread = !prevThreadId.current && threadId;
-    
+
     // Only auto-expand if we're navigating TO a thread/task AND sidebar is currently closed
     if ((isNavigatingToTask || isNavigatingToThread) && !chatHistoryOpen) {
       setChatHistoryOpen(true);
