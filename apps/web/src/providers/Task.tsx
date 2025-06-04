@@ -64,7 +64,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasks] = useState<PlanItem[]>([]);
   const [allTasks, setAllTasks] = useState<TaskWithContext[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
-  
+
   // Add debounce to prevent multiple rapid calls
   const lastCallTime = useRef<number>(0);
   const DEBOUNCE_MS = 1000; // Wait 1 second between calls
@@ -88,26 +88,33 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const getAllTasks = useCallback(async (): Promise<TaskWithContext[]> => {
     const callId = Math.random().toString(36).substring(7);
     const now = Date.now();
-    
+
     // Debounce rapid calls
     if (now - lastCallTime.current < DEBOUNCE_MS) {
-      console.log(`⏸️ [${callId}] Debounced call (${now - lastCallTime.current}ms since last)`);
+      console.log(
+        `⏸️ [${callId}] Debounced call (${now - lastCallTime.current}ms since last)`,
+      );
       return allTasks; // Return cached results
     }
     lastCallTime.current = now;
-    
-    console.log(`🔄 [${callId}] getAllTasks() called at ${new Date().toISOString()}`);
-    
+
+    console.log(
+      `🔄 [${callId}] getAllTasks() called at ${new Date().toISOString()}`,
+    );
+
     if (!apiUrl || !assistantId) {
-      console.warn(`❌ [${callId}] Missing apiUrl or assistantId:`, { apiUrl: !!apiUrl, assistantId: !!assistantId });
+      console.warn(`❌ [${callId}] Missing apiUrl or assistantId:`, {
+        apiUrl: !!apiUrl,
+        assistantId: !!assistantId,
+      });
       return [];
     }
 
-    console.log(`🔧 [${callId}] Config:`, { 
-      apiUrl, 
-      assistantId, 
+    console.log(`🔧 [${callId}] Config:`, {
+      apiUrl,
+      assistantId,
       hasApiKey: !!getApiKey(),
-      apiKeyPrefix: getApiKey()?.substring(0, 10) + "..." 
+      apiKeyPrefix: getApiKey()?.substring(0, 10) + "...",
     });
 
     const client = createClient(apiUrl, getApiKey() ?? undefined);
@@ -121,15 +128,20 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           : { assistant_id: assistantId },
       };
 
-      console.log(`🔍 [${callId}] Searching threads with params:`, JSON.stringify(searchParams, null, 2));
-      
+      console.log(
+        `🔍 [${callId}] Searching threads with params:`,
+        JSON.stringify(searchParams, null, 2),
+      );
+
       let threadsResponse: any[] = [];
       let alternativeResponse: any[] = [];
       let noMetadataResponse: any[] = [];
-      
+
       try {
         threadsResponse = await client.threads.search(searchParams);
-        console.log(`📋 [${callId}] Found ${threadsResponse.length} threads from search`);
+        console.log(
+          `📋 [${callId}] Found ${threadsResponse.length} threads from search`,
+        );
       } catch (error) {
         console.error(`❌ [${callId}] Primary search failed:`, error);
         threadsResponse = [];
@@ -139,32 +151,46 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       const alternativeSearchParams = {
         limit: 200,
         metadata: assistantId.includes("-")
-          ? { assistant_id: assistantId }  // Try the opposite
+          ? { assistant_id: assistantId } // Try the opposite
           : { graph_id: assistantId },
       };
-      
-      console.log(`🔍 [${callId}] Also trying alternative search:`, JSON.stringify(alternativeSearchParams, null, 2));
-      
+
+      console.log(
+        `🔍 [${callId}] Also trying alternative search:`,
+        JSON.stringify(alternativeSearchParams, null, 2),
+      );
+
       try {
-        alternativeResponse = await client.threads.search(alternativeSearchParams);
-        console.log(`📋 [${callId}] Alternative search found ${alternativeResponse.length} threads`);
+        alternativeResponse = await client.threads.search(
+          alternativeSearchParams,
+        );
+        console.log(
+          `📋 [${callId}] Alternative search found ${alternativeResponse.length} threads`,
+        );
       } catch (error) {
         console.error(`❌ [${callId}] Alternative search failed:`, error);
         alternativeResponse = [];
       }
 
       // Let's also try searching without metadata to see if there are ANY threads
-      console.log(`🔍 [${callId}] Trying search without metadata (showing any threads)...`);
-      
+      console.log(
+        `🔍 [${callId}] Trying search without metadata (showing any threads)...`,
+      );
+
       try {
         noMetadataResponse = await client.threads.search({ limit: 10 });
-        console.log(`📋 [${callId}] No-metadata search found ${noMetadataResponse.length} threads`);
+        console.log(
+          `📋 [${callId}] No-metadata search found ${noMetadataResponse.length} threads`,
+        );
         if (noMetadataResponse.length > 0) {
-          console.log(`📝 [${callId}] Sample threads found:`, noMetadataResponse.slice(0, 3).map(t => ({
-            id: t.thread_id,
-            metadata: t.metadata,
-            created_at: t.created_at
-          })));
+          console.log(
+            `📝 [${callId}] Sample threads found:`,
+            noMetadataResponse.slice(0, 3).map((t) => ({
+              id: t.thread_id,
+              metadata: t.metadata,
+              created_at: t.created_at,
+            })),
+          );
         }
       } catch (error) {
         console.error(`❌ [${callId}] No-metadata search failed:`, error);
@@ -172,8 +198,13 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }
 
       // Use whichever search returned more results
-      const bestResponse = threadsResponse.length >= alternativeResponse.length ? threadsResponse : alternativeResponse;
-      console.log(`✅ [${callId}] Using search that returned ${bestResponse.length} threads`);
+      const bestResponse =
+        threadsResponse.length >= alternativeResponse.length
+          ? threadsResponse
+          : alternativeResponse;
+      console.log(
+        `✅ [${callId}] Using search that returned ${bestResponse.length} threads`,
+      );
 
       const allTasksWithContext: TaskWithContext[] = [];
       const failedThreads: string[] = [];
@@ -258,12 +289,20 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       }
 
       // Log summary of results for debugging
-      console.log(`✅ [${callId}] Successfully loaded ${allTasksWithContext.length} tasks from ${bestResponse.length - failedThreads.length} threads`);
+      console.log(
+        `✅ [${callId}] Successfully loaded ${allTasksWithContext.length} tasks from ${bestResponse.length - failedThreads.length} threads`,
+      );
       if (failedThreads.length > 0) {
-        console.warn(`⚠️ [${callId}] Failed to load ${failedThreads.length} threads:`, failedThreads);
+        console.warn(
+          `⚠️ [${callId}] Failed to load ${failedThreads.length} threads:`,
+          failedThreads,
+        );
       }
       if (threadsWithNoTasks.length > 0) {
-        console.log(`📝 [${callId}] Found ${threadsWithNoTasks.length} threads with no tasks:`, threadsWithNoTasks);
+        console.log(
+          `📝 [${callId}] Found ${threadsWithNoTasks.length} threads with no tasks:`,
+          threadsWithNoTasks,
+        );
       }
 
       // Sort by repository, then by creation date (newest first)
