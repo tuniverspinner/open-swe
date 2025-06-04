@@ -184,29 +184,40 @@ export default function TaskListSidebar() {
                   </CollapsibleTrigger>
 
                   <CollapsibleContent className="space-y-1 border-t border-gray-100 px-3 pb-2">
-                    {thread.tasks.map((task) => (
-                      <div
-                        key={task.taskId}
-                        className={`group cursor-pointer rounded-sm p-2 text-xs transition-colors hover:bg-gray-50 ${
-                          task.taskId === taskId
-                            ? "border-l-2 border-l-blue-500 bg-blue-50"
-                            : ""
-                        }`}
-                        onClick={() => handleTaskClick(task)}
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className="mt-0.5 flex-shrink-0">
-                            <StatusIndicator status={task.status} />
+                    {thread.tasks.map((task) => {
+                      // Handle task data properly - it might be a string or object
+                      const taskDescription =
+                        typeof task === "string"
+                          ? task
+                          : typeof task === "object" && task.plan
+                            ? task.plan
+                            : Object.values(task).join("") ||
+                              "No task description";
+
+                      return (
+                        <div
+                          key={task.taskId}
+                          className={`group cursor-pointer rounded-sm p-2 text-xs transition-colors hover:bg-gray-50 ${
+                            task.taskId === taskId
+                              ? "border-l-2 border-l-blue-500 bg-blue-50"
+                              : ""
+                          }`}
+                          onClick={() => handleTaskClick(task)}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5 flex-shrink-0">
+                              <StatusIndicator status={task.status} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-xs leading-tight font-medium text-gray-900">
+                                {taskDescription}
+                              </p>
+                            </div>
+                            <ExternalLink className="h-2.5 w-2.5 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs leading-tight font-medium text-gray-900">
-                              {task.plan}
-                            </p>
-                          </div>
-                          <ExternalLink className="h-2.5 w-2.5 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </CollapsibleContent>
                 </div>
               </Collapsible>

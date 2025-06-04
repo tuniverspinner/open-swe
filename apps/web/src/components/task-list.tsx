@@ -12,7 +12,6 @@ import {
   Github,
   GitBranch,
   ChevronDown,
-  ChevronRight as ChevronRightIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,10 +64,16 @@ export default function TaskList() {
   // Fetch all tasks when in dashboard mode
   useEffect(() => {
     if (typeof window === "undefined" || !isDashboardMode) return;
+    console.log("🔍 TaskList: Fetching all tasks...");
     setTasksLoading(true);
     getAllTasks()
-      .then(setAllTasks)
-      .catch(console.error)
+      .then((result) => {
+        console.log("📊 TaskList: Received tasks:", result);
+        setAllTasks(result);
+      })
+      .catch((error) => {
+        console.error("❌ TaskList: Error fetching tasks:", error);
+      })
       .finally(() => setTasksLoading(false));
   }, [isDashboardMode, getAllTasks, setAllTasks, setTasksLoading]);
 
@@ -81,6 +86,9 @@ export default function TaskList() {
   if (!isDashboardMode) {
     return null;
   }
+
+  console.log("🎯 TaskList: Current allTasks:", allTasks);
+  console.log("🎯 TaskList: tasksLoading:", tasksLoading);
 
   // Group tasks by thread
   const threadSummaries: ThreadSummary[] = allTasks.reduce((acc, task) => {
@@ -215,26 +223,37 @@ export default function TaskList() {
                       </CollapsibleTrigger>
 
                       <CollapsibleContent className="mt-4 space-y-2 border-t border-gray-100 pt-3">
-                        {thread.tasks.map((task) => (
-                          <div
-                            key={task.taskId}
-                            className="group flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm transition-colors hover:bg-gray-50"
-                            onClick={() => handleTaskClick(task)}
-                          >
-                            <div className="flex-shrink-0">
-                              <StatusIndicator
-                                status={task.status}
-                                size="sm"
-                              />
+                        {thread.tasks.map((task) => {
+                          // Handle task data properly - it might be a string or object
+                          const taskDescription =
+                            typeof task === "string"
+                              ? task
+                              : typeof task === "object" && task.plan
+                                ? task.plan
+                                : Object.values(task).join("") ||
+                                  "No task description";
+
+                          return (
+                            <div
+                              key={task.taskId}
+                              className="group flex cursor-pointer items-center gap-3 rounded-md p-2 text-sm transition-colors hover:bg-gray-50"
+                              onClick={() => handleTaskClick(task)}
+                            >
+                              <div className="flex-shrink-0">
+                                <StatusIndicator
+                                  status={task.status}
+                                  size="sm"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-gray-900">
+                                  {taskDescription}
+                                </p>
+                              </div>
+                              <ExternalLink className="h-3 w-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
                             </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-xs font-medium text-gray-900">
-                                {task.plan}
-                              </p>
-                            </div>
-                            <ExternalLink className="h-3 w-3 text-gray-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                          </div>
-                        ))}
+                          );
+                        })}
                       </CollapsibleContent>
                     </div>
                   </Collapsible>
