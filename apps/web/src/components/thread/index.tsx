@@ -47,6 +47,7 @@ import Link from "next/link";
 import TaskList from "../task-list";
 import { useTasks } from "@/providers/Task";
 import { ConfigurationSidebar } from "../configuration-sidebar";
+import { useConfigStore } from "@/hooks/use-config-store";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -94,6 +95,22 @@ export function Thread() {
   const [artifactOpen, closeArtifact] = useArtifactOpen();
   const { selectedRepository } = useGitHubApp();
   const { getAllTasks } = useTasks();
+  const { configs } = useConfigStore();
+
+  // Extract actual config values from the nested store structure
+  const getActualConfigs = () => {
+    const actualConfigs: Record<string, any> = {};
+    Object.entries(configs).forEach(([key, configObj]) => {
+      if (
+        configObj &&
+        typeof configObj === "object" &&
+        configObj[key] !== undefined
+      ) {
+        actualConfigs[key] = configObj[key];
+      }
+    });
+    return actualConfigs;
+  };
 
   const [threadId, _setThreadId] = useQueryState("threadId");
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
@@ -263,6 +280,9 @@ export function Thread() {
         }),
         config: {
           recursion_limit: 400,
+          configurable: {
+            ...getActualConfigs(),
+          },
         },
         metadata: {
           graph_id: process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "open-swe",
@@ -285,6 +305,9 @@ export function Thread() {
       streamMode: ["values"],
       config: {
         recursion_limit: 400,
+        configurable: {
+          ...getActualConfigs(),
+        },
       },
       metadata: {
         graph_id: process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "open-swe",

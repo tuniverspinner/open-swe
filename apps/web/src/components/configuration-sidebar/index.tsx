@@ -11,7 +11,7 @@ import { ConfigurableFieldUIMetadata } from "@/types/configurable";
 import { Button } from "@/components/ui/button";
 import { PanelRightOpen } from "lucide-react";
 
-// Import the actual model options from the open-swe types
+// Model options based on the actual GraphConfiguration schema
 const MODEL_OPTIONS = [
   {
     label: "Claude Sonnet 4 (Extended Thinking)",
@@ -97,8 +97,9 @@ export const ConfigurationSidebar = forwardRef<
   useEffect(() => {
     setLoading(true);
 
-    // Use actual GraphConfiguration from open-swe types
-    const placeholderConfigs: ConfigurableFieldUIMetadata[] = [
+    // Configuration fields based on the actual GraphConfiguration schema
+    // These match the x_oap_ui_config metadata from the schema
+    const actualConfigs: ConfigurableFieldUIMetadata[] = [
       {
         label: "plannerModelName",
         type: "select",
@@ -109,7 +110,7 @@ export const ConfigurationSidebar = forwardRef<
       {
         label: "plannerContextModelName",
         type: "select",
-        description: "The model to use for planning context gathering",
+        description: "The model to use for planning",
         options: MODEL_OPTIONS,
         default: "anthropic:claude-sonnet-4-0",
       },
@@ -130,7 +131,8 @@ export const ConfigurationSidebar = forwardRef<
       {
         label: "summarizerModelName",
         type: "select",
-        description: "The model to use for summarizing conversation history",
+        description:
+          "The model to use for summarizing the conversation history",
         options: MODEL_OPTIONS_NO_THINKING,
         default: "anthropic:claude-sonnet-4-0",
       },
@@ -143,16 +145,25 @@ export const ConfigurationSidebar = forwardRef<
         max: 20,
         default: 6,
       },
+      {
+        label: "maxTokens",
+        type: "number",
+        description:
+          "The maximum number of tokens to generate in an individual generation",
+        min: 1,
+        max: 64000,
+        default: 10000,
+      },
     ];
 
     // Initialize configs with defaults if they don't exist
-    placeholderConfigs.forEach((config) => {
+    actualConfigs.forEach((config) => {
       if (configs[config.label] === undefined && config.default !== undefined) {
         updateConfig(config.label, config.default);
       }
     });
 
-    setConfigurations(placeholderConfigs);
+    setConfigurations(actualConfigs);
     setLoading(false);
   }, [configs, updateConfig]);
 
