@@ -50,3 +50,33 @@ export async function startSandbox(sandboxSessionId: string): Promise<Sandbox> {
   }
   return sandbox;
 }
+
+/**
+ * Checks if a sandbox is currently running
+ * @param sandboxSessionId The ID of the sandbox to check
+ * @returns True if the sandbox is running, false otherwise
+ */
+export async function isSandboxRunning(sandboxSessionId: string): Promise<boolean> {
+  try {
+    const sandbox = await daytonaClient().get(sandboxSessionId);
+    return sandbox.instance.state === "started";
+  } catch (error) {
+    // If we can't get the sandbox, it's not running
+    return false;
+  }
+}
+
+/**
+ * Restarts a sandbox by stopping it if running and then starting it again.
+ * This reuses the existing sandbox ID instead of creating a new one.
+ * @param sandboxSessionId The ID of the sandbox to restart
+ * @returns The sandbox client after restart
+ */
+export async function restartSandbox(sandboxSessionId: string): Promise<Sandbox> {
+  // First stop the sandbox if it's running
+  await stopSandbox(sandboxSessionId);
+  
+  // Then start it again
+  const sandbox = await startSandbox(sandboxSessionId);
+  return sandbox;
+}
