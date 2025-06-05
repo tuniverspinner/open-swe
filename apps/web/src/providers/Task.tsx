@@ -99,7 +99,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     if (now - lastCallTime.current < DEBOUNCE_MS) {
       console.log(`⏰ [${callId}] Debounced getAllTasks call`);
-      return allTasks; // Return cached data
+      return []; // Return empty array for debounced calls instead of stale state
     }
     lastCallTime.current = now;
 
@@ -318,17 +318,44 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       console.error("Failed to fetch all tasks:", error);
       return [];
     }
-  }, [apiUrl, assistantId, activeThreads, allTasks]);
+  }, [apiUrl, assistantId, activeThreads]);
 
   // Setup polling for real-time updates
   useEffect(() => {
     if (activeThreads.size > 0) {
       // Start polling when there are active threads
-      pollIntervalRef.current = setInterval(() => {
+      pollIntervalRef.current = setInterval(async () => {
         console.log(
           `🔄 Polling for updates (${activeThreads.size} active threads)`,
         );
-        getAllTasks().then(setAllTasks).catch(console.error);
+
+        try {
+          const newTasks = await getAllTasks();
+
+          // Only update state if data has actually changed to prevent unnecessary re-renders
+          setAllTasks((prevTasks) => {
+            // Quick comparison - if array lengths differ, update
+            if (prevTasks.length !== newTasks.length) {
+              return newTasks;
+            }
+
+            // Deep comparison of task statuses and IDs to see if anything meaningful changed
+            const hasChanges = prevTasks.some((prevTask, index) => {
+              const newTask = newTasks[index];
+              return (
+                !newTask ||
+                prevTask.taskId !== newTask.taskId ||
+                prevTask.status !== newTask.status ||
+                prevTask.completed !== newTask.completed
+              );
+            });
+
+            // Only update if there are actual changes
+            return hasChanges ? newTasks : prevTasks;
+          });
+        } catch (error) {
+          console.error("Polling error:", error);
+        }
       }, 5000); // Poll every 5 seconds
     } else {
       // Stop polling when no active threads
@@ -344,7 +371,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, [activeThreads.size, getAllTasks]);
+  }, [activeThreads.size]); // Remove getAllTasks from dependencies
 
   // Initialize data on mount and detect active threads
   useEffect(() => {

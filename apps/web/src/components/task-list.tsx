@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTasks } from "@/providers/Task";
 import { ThreadSummary } from "@/types/index";
 import { useQueryState, parseAsString } from "nuqs";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ThreadItem } from "./thread-item";
 import { groupTasksIntoThreads, sortThreadsByDate } from "@/lib/thread-utils";
 
@@ -15,25 +15,10 @@ export default function TaskList() {
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
   const [threadId, setThreadId] = useQueryState("threadId", parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
-  const { getAllTasks, allTasks, setAllTasks, tasksLoading, setTasksLoading } =
-    useTasks();
+  const { allTasks, tasksLoading } = useTasks();
 
   // Only show TaskList when no specific task is selected (dashboard mode)
   const isDashboardMode = !taskId;
-
-  // Fetch all tasks when in dashboard mode
-  useEffect(() => {
-    if (typeof window === "undefined" || !isDashboardMode) return;
-    setTasksLoading(true);
-    getAllTasks()
-      .then((result) => {
-        setAllTasks(result);
-      })
-      .catch((error) => {
-        console.error("Error fetching tasks:", error);
-      })
-      .finally(() => setTasksLoading(false));
-  }, [isDashboardMode, getAllTasks, setAllTasks, setTasksLoading]);
 
   // Handle thread navigation (navigate to chat mode with thread loaded)
   const handleThreadClick = (thread: ThreadSummary) => {
