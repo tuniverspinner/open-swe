@@ -5,12 +5,11 @@ import {
   Pause,
   Loader2,
   Github,
-  Calendar
+  Calendar,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStreamContext } from "@/providers/Stream";
 import { TaskWithStatus, TaskStatus } from "@/types/index";
-
 
 // Utility function to format task plan into a proper title
 export const formatTaskTitle = (
@@ -44,7 +43,9 @@ export const formatTaskTitle = (
 };
 
 // Utility function to determine current task
-export const getCurrentTask = (plan: TaskWithStatus[]): TaskWithStatus | null => {
+export const getCurrentTask = (
+  plan: TaskWithStatus[],
+): TaskWithStatus | null => {
   return (
     plan.filter((p) => !p.completed).sort((a, b) => a.index - b.index)[0] ||
     null

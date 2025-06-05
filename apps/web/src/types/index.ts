@@ -1,57 +1,53 @@
 import { Dispatch, SetStateAction } from "react";
 
-
-
 // Real task data structure from the agent
 export interface PlanItem {
-    index: number;
-    plan: string;
-    completed: boolean;
-    summary?: string;
-  }
-  
-  export type TaskStatus = "running" | "interrupted" | "done" | "error";
-  
-  // Task with status extended from the agent
-  export interface TaskWithStatus extends PlanItem {
-    status: TaskStatus;
-    repository?: string;
-    date?: string;
-  }
+  index: number;
+  plan: string;
+  completed: boolean;
+  summary?: string;
+}
+
+export type TaskStatus = "running" | "interrupted" | "done" | "error";
+
+// Task with status extended from the agent
+export interface TaskWithStatus extends PlanItem {
+  status: TaskStatus;
+  repository?: string;
+  date?: string;
+}
 
 // Enhanced task type with thread context
 export interface TaskWithContext extends TaskWithStatus {
-    taskId: string; // Globally unique UUID
-    threadId: string; // Internal reference (not exposed to user)
-    threadTitle?: string;
-    branch?: string;
-    createdAt: string; // For chronological sorting
-    // status, repository, and date are inherited from TaskWithStatus
-  }
-  
-  
-  export interface TaskContextType {
-    getTasks: (threadId: string) => Promise<TaskWithStatus[]>;
-    getAllTasks: () => Promise<TaskWithContext[]>;
-    tasks: TaskWithStatus[];
-    setTasks: Dispatch<SetStateAction<TaskWithStatus[]>>;
-    allTasks: TaskWithContext[];
-    setAllTasks: Dispatch<SetStateAction<TaskWithContext[]>>;
-    tasksLoading: boolean;
-    setTasksLoading: Dispatch<SetStateAction<boolean>>;
-  }
-  
+  taskId: string; // Globally unique UUID
+  threadId: string; // Internal reference (not exposed to user)
+  threadTitle?: string;
+  branch?: string;
+  createdAt: string; // For chronological sorting
+  // status, repository, and date are inherited from TaskWithStatus
+}
+
+export interface TaskContextType {
+  getTasks: (threadId: string) => Promise<TaskWithStatus[]>;
+  getAllTasks: () => Promise<TaskWithContext[]>;
+  tasks: TaskWithStatus[];
+  setTasks: Dispatch<SetStateAction<TaskWithStatus[]>>;
+  allTasks: TaskWithContext[];
+  setAllTasks: Dispatch<SetStateAction<TaskWithContext[]>>;
+  tasksLoading: boolean;
+  setTasksLoading: Dispatch<SetStateAction<boolean>>;
+}
+
 // Thread summary for grouping tasks
 export interface ThreadSummary {
-    threadId: string;
-    threadTitle: string;
-    repository: string;
-    branch: string;
-    date: string;
-    createdAt: string;
-    tasks: TaskWithContext[];
-    completedTasksCount: number;
-    totalTasksCount: number;
-    status: "running" | "interrupted" | "done" | "error";
-  }
-  
+  threadId: string;
+  threadTitle: string;
+  repository: string;
+  branch: string;
+  date: string;
+  createdAt: string;
+  tasks: TaskWithContext[];
+  completedTasksCount: number;
+  totalTasksCount: number;
+  status: "running" | "interrupted" | "done" | "error";
+}

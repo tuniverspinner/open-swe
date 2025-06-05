@@ -5,16 +5,19 @@ import {
   ReactNode,
   useCallback,
   useState,
-  useRef
+  useRef,
 } from "react";
 import { createClient } from "./client";
-import { TaskContextType, TaskWithContext, TaskWithStatus } from "@/types/index";
+import {
+  TaskContextType,
+  TaskWithContext,
+  TaskWithStatus,
+} from "@/types/index";
 
 // Function to create simple, predictable task ID
 function createTaskId(threadId: string, taskIndex: number): string {
   return `${threadId}-${taskIndex}`;
 }
-
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
@@ -39,13 +42,18 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       try {
         const thread = await client.threads.get(threadId);
         const plan = (thread.values as any)?.plan || [];
-        
+
         // Convert PlanItem[] to TaskWithStatus[] by adding status information
         return plan.map((planItem: any) => ({
           ...planItem,
           status: planItem.completed ? "done" : "interrupted",
-          repository: (thread.values as any)?.targetRepository?.repo || (thread.values as any)?.targetRepository?.name,
-          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })
+          repository:
+            (thread.values as any)?.targetRepository?.repo ||
+            (thread.values as any)?.targetRepository?.name,
+          date: new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
         }));
       } catch (error) {
         console.error("Failed to fetch tasks for thread:", threadId, error);
