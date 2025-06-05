@@ -107,30 +107,11 @@ export const ConfigurationSidebar = forwardRef<
         default: "anthropic:claude-sonnet-4-0",
       },
       {
-        label: "plannerTemperature",
-        type: "slider",
-        description: "Controls randomness (0 = deterministic, 2 = creative)",
-        min: 0,
-        max: 2,
-        step: 0.1,
-        default: 0,
-      },
-      {
         label: "plannerContextModelName",
         type: "select",
         description: "The model to use for planning context gathering",
         options: MODEL_OPTIONS,
         default: "anthropic:claude-sonnet-4-0",
-      },
-      {
-        label: "plannerContextTemperature",
-        type: "slider",
-        description:
-          "Controls randomness for context gathering (0 = deterministic, 2 = creative)",
-        min: 0,
-        max: 2,
-        step: 0.1,
-        default: 0,
       },
       {
         label: "actionGeneratorModelName",
@@ -140,16 +121,6 @@ export const ConfigurationSidebar = forwardRef<
         default: "anthropic:claude-sonnet-4-0",
       },
       {
-        label: "actionGeneratorTemperature",
-        type: "slider",
-        description:
-          "Controls randomness for action generation (0 = deterministic, 2 = creative)",
-        min: 0,
-        max: 2,
-        step: 0.1,
-        default: 0,
-      },
-      {
         label: "progressPlanCheckerModelName",
         type: "select",
         description: "The model to use for progress plan checking",
@@ -157,31 +128,11 @@ export const ConfigurationSidebar = forwardRef<
         default: "anthropic:claude-sonnet-4-0",
       },
       {
-        label: "progressPlanCheckerTemperature",
-        type: "slider",
-        description:
-          "Controls randomness for progress checking (0 = deterministic, 2 = creative)",
-        min: 0,
-        max: 2,
-        step: 0.1,
-        default: 0,
-      },
-      {
         label: "summarizerModelName",
         type: "select",
         description: "The model to use for summarizing conversation history",
         options: MODEL_OPTIONS_NO_THINKING,
         default: "anthropic:claude-sonnet-4-0",
-      },
-      {
-        label: "summarizerTemperature",
-        type: "slider",
-        description:
-          "Controls randomness for summarization (0 = deterministic, 2 = creative)",
-        min: 0,
-        max: 2,
-        step: 0.1,
-        default: 0,
       },
       {
         label: "maxContextActions",
