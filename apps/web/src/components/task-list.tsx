@@ -2,7 +2,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Archive, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useTasks, ThreadSummary } from "@/providers/Task";
+import { useTasks } from "@/providers/Task";
+import { ThreadSummary } from "@/types/index";
 import { useQueryState, parseAsString } from "nuqs";
 import { useEffect, useState } from "react";
 import { ThreadItem } from "./thread-item";

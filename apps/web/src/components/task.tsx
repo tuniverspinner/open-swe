@@ -5,26 +5,12 @@ import {
   Pause,
   Loader2,
   Github,
-  Calendar,
+  Calendar
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStreamContext } from "@/providers/Stream";
+import { TaskWithStatus, TaskStatus } from "@/types/index";
 
-// Real task data structure from the agent
-export interface PlanItem {
-  index: number;
-  plan: string;
-  completed: boolean;
-  summary?: string;
-}
-
-export type TaskStatus = "running" | "interrupted" | "done" | "error";
-
-export interface TaskWithStatus extends PlanItem {
-  status: TaskStatus;
-  repository?: string;
-  date?: string;
-}
 
 // Utility function to format task plan into a proper title
 export const formatTaskTitle = (
@@ -58,7 +44,7 @@ export const formatTaskTitle = (
 };
 
 // Utility function to determine current task
-export const getCurrentTask = (plan: PlanItem[]): PlanItem | null => {
+export const getCurrentTask = (plan: TaskWithStatus[]): TaskWithStatus | null => {
   return (
     plan.filter((p) => !p.completed).sort((a, b) => a.index - b.index)[0] ||
     null
@@ -67,8 +53,8 @@ export const getCurrentTask = (plan: PlanItem[]): PlanItem | null => {
 
 // Utility function to compute task status
 export const computeTaskStatus = (
-  task: PlanItem,
-  currentTask: PlanItem | null,
+  task: TaskWithStatus,
+  currentTask: TaskWithStatus | null,
   isLoading: boolean,
   hasError: boolean,
   hasInterrupt: boolean,

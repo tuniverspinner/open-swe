@@ -1,4 +1,9 @@
-import { ThreadSummary, TaskWithContext } from "@/providers/Task";
+import { ThreadSummary, TaskWithContext } from "@/types/index";
+
+
+
+
+
 
 /**
  * Determines the overall status of a thread based on its constituent tasks
@@ -45,7 +50,7 @@ export function groupTasksIntoThreads(
           task.threadTitle || `Thread ${task.threadId.substring(0, 8)}`,
         repository: task.repository || "Unknown Repository",
         branch: task.branch || "main",
-        date: task.date,
+        date: task.date || new Date(task.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         createdAt: task.createdAt,
         tasks: [task],
         completedTasksCount: task.status === "done" ? 1 : 0,

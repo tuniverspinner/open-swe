@@ -5,54 +5,16 @@ import {
   ReactNode,
   useCallback,
   useState,
-  Dispatch,
-  SetStateAction,
-  useRef,
+  useRef
 } from "react";
 import { createClient } from "./client";
-import { PlanItem } from "@/components/task";
+import { TaskContextType, TaskWithContext, TaskWithStatus } from "@/types/index";
 
 // Function to create simple, predictable task ID
 function createTaskId(threadId: string, taskIndex: number): string {
-  return `${threadId}-task-${taskIndex}`;
+  return `${threadId}-${taskIndex}`;
 }
 
-// Enhanced task type with thread context
-export interface TaskWithContext extends PlanItem {
-  taskId: string; // Globally unique UUID
-  threadId: string; // Internal reference (not exposed to user)
-  threadTitle?: string;
-  repository?: string;
-  branch?: string;
-  date: string;
-  createdAt: string; // For chronological sorting
-  status: "running" | "interrupted" | "done" | "error";
-}
-
-// Thread summary for grouping tasks
-export interface ThreadSummary {
-  threadId: string;
-  threadTitle: string;
-  repository: string;
-  branch: string;
-  date: string;
-  createdAt: string;
-  tasks: TaskWithContext[];
-  completedTasksCount: number;
-  totalTasksCount: number;
-  status: "running" | "interrupted" | "done" | "error";
-}
-
-interface TaskContextType {
-  getTasks: (threadId: string) => Promise<PlanItem[]>;
-  getAllTasks: () => Promise<TaskWithContext[]>;
-  tasks: PlanItem[];
-  setTasks: Dispatch<SetStateAction<PlanItem[]>>;
-  allTasks: TaskWithContext[];
-  setAllTasks: Dispatch<SetStateAction<TaskWithContext[]>>;
-  tasksLoading: boolean;
-  setTasksLoading: Dispatch<SetStateAction<boolean>>;
-}
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
@@ -61,7 +23,7 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const assistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "";
 
-  const [tasks, setTasks] = useState<PlanItem[]>([]);
+  const [tasks, setTasks] = useState<TaskWithStatus[]>([]);
   const [allTasks, setAllTasks] = useState<TaskWithContext[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
 
@@ -70,13 +32,21 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const DEBOUNCE_MS = 1000; // Wait 1 second between calls
 
   const getTasks = useCallback(
-    async (threadId: string): Promise<PlanItem[]> => {
+    async (threadId: string): Promise<TaskWithStatus[]> => {
       if (!apiUrl || !assistantId || !threadId) return [];
       const client = createClient(apiUrl, getApiKey() ?? undefined);
 
       try {
         const thread = await client.threads.get(threadId);
-        return (thread.values as any)?.plan || [];
+        const plan = (thread.values as any)?.plan || [];
+        
+        // Convert PlanItem[] to TaskWithStatus[] by adding status information
+        return plan.map((planItem: any) => ({
+          ...planItem,
+          status: planItem.completed ? "done" : "interrupted",
+          repository: (thread.values as any)?.targetRepository?.repo || (thread.values as any)?.targetRepository?.name,
+          date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        }));
       } catch (error) {
         console.error("Failed to fetch tasks for thread:", threadId, error);
         return [];
@@ -217,14 +187,14 @@ export function TaskProvider({ children }: { children: ReactNode }) {
           const threadValues = thread.values as any;
 
           // Check both plan and proposedPlan fields
-          const plan: PlanItem[] = threadValues?.plan || [];
-          const proposedPlan: PlanItem[] = threadValues?.proposedPlan || [];
+          const plan: any[] = threadValues?.plan || [];
+          const proposedPlan: any[] = threadValues?.proposedPlan || [];
 
           // Use proposedPlan if plan is empty, otherwise use plan
-          const tasksToUse = plan.length > 0 ? plan : proposedPlan;
+          const rawTasks = plan.length > 0 ? plan : proposedPlan;
 
           // Skip threads with no tasks
-          if (tasksToUse.length === 0) {
+          if (rawTasks.length === 0) {
             threadsWithNoTasks.push(threadSummary.thread_id);
             continue;
           }
@@ -237,29 +207,33 @@ export function TaskProvider({ children }: { children: ReactNode }) {
             messages?.[0]?.content?.[0]?.text?.substring(0, 50) + "..." ||
             `Thread ${threadSummary.thread_id.substring(0, 8)}`;
 
-          // Convert each task to TaskWithContext
-          tasksToUse.forEach((planItem) => {
+          // Convert each raw task to TaskWithContext (which extends TaskWithStatus)
+          rawTasks.forEach((rawTask) => {
             // Handle both string tasks and PlanItem objects
             const taskDescription =
-              typeof planItem === "string"
-                ? planItem
-                : planItem.plan || "No description";
+              typeof rawTask === "string"
+                ? rawTask
+                : rawTask.plan || "No description";
 
             const taskData =
-              typeof planItem === "string"
+              typeof rawTask === "string"
                 ? {
-                    index: tasksToUse.indexOf(planItem),
-                    plan: planItem,
+                    index: rawTasks.indexOf(rawTask),
+                    plan: rawTask,
                     completed: false,
                     summary: undefined,
                   }
-                : planItem;
+                : rawTask;
 
+            // Create TaskWithContext which includes status from TaskWithStatus
             allTasksWithContext.push({
               ...taskData,
+              // Add status information (from TaskWithStatus)
+              status: taskData.completed ? "done" : "interrupted",
+              // Add context information (TaskWithContext specific)
               taskId: createTaskId(
                 threadSummary.thread_id,
-                tasksToUse.indexOf(planItem),
+                rawTasks.indexOf(rawTask),
               ),
               threadId: threadSummary.thread_id,
               threadTitle,
@@ -276,7 +250,6 @@ export function TaskProvider({ children }: { children: ReactNode }) {
                 },
               ),
               createdAt: threadSummary.created_at,
-              status: taskData.completed ? "done" : "interrupted", // Completed tasks are done, others are paused/interrupted
             });
           });
         } catch (error) {

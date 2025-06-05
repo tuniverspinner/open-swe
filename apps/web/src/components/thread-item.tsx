@@ -9,7 +9,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { ThreadSummary } from "@/providers/Task";
+import { ThreadSummary } from "@/types/index";
 import { cn } from "@/lib/utils";
 
 // StatusIndicator component
