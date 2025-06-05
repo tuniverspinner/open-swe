@@ -527,7 +527,16 @@ export function Thread() {
                 </>
               }
               footer={
-                <div className="sticky bottom-0 flex flex-col items-center gap-8 bg-white">
+                <div
+                  className={cn(
+                    "flex flex-col items-center gap-8 bg-white",
+                    // Don't make footer sticky when TaskList is shown to allow page scrolling
+                    // Add equivalent of 128px (32 * 4 = 8rem) bottom spacing
+                    !isTaskView && !isThreadView
+                      ? "mb-32 pb-32"
+                      : "sticky bottom-0",
+                  )}
+                >
                   {!chatStarted && (
                     <div className="flex items-center gap-3">
                       <LangGraphLogoSVG className="h-8 flex-shrink-0" />
