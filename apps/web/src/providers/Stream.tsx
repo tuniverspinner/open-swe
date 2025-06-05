@@ -4,6 +4,7 @@ import React, {
   ReactNode,
   useState,
   useEffect,
+  useRef,
 } from "react";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { type Message } from "@langchain/langgraph-sdk";
@@ -17,6 +18,7 @@ import {
 import { useQueryState } from "nuqs";
 import { LangGraphLogoSVG } from "@/components/icons/langgraph";
 import { useThreads } from "./Thread";
+import { useTasks } from "./Task";
 import { TooltipIconButton } from "@/components/thread/tooltip-icon-button";
 import { Copy, CopyCheck, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
@@ -65,6 +67,8 @@ const StreamSession = ({
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { getThreads, setThreads } = useThreads();
+  const { getAllTasks, setAllTasks, addActiveThread, removeActiveThread } =
+    useTasks();
   const githubAccessToken =
     document.cookie
       .split("; ")
@@ -89,11 +93,48 @@ const StreamSession = ({
     },
     onThreadId: (id) => {
       setThreadId(id);
+      // Add thread to active tracking for real-time status updates
+      addActiveThread(id);
       // Refetch threads list when thread ID changes.
       // Wait for some seconds before fetching so we're able to get the new thread that was created.
-      sleep().then(() => getThreads().then(setThreads).catch(console.error));
+      sleep().then(() => {
+        Promise.all([
+          getThreads().then(setThreads),
+          getAllTasks().then(setAllTasks),
+        ]).catch(console.error);
+      });
     },
   });
+
+  const isLoading = streamValue.isLoading;
+  const prevIsLoading = useRef(isLoading);
+
+  // Track loading state changes to manage active threads
+  useEffect(() => {
+    if (threadId) {
+      if (isLoading && !prevIsLoading.current) {
+        // Stream started - mark thread as active
+        console.log(`🏃 Thread ${threadId} started streaming`);
+        addActiveThread(threadId);
+      } else if (!isLoading && prevIsLoading.current) {
+        // Stream finished - remove thread from active (with delay to allow status updates)
+        console.log(`⏹️ Thread ${threadId} finished streaming`);
+        setTimeout(() => {
+          removeActiveThread(threadId);
+          // Trigger final status update
+          getAllTasks().then(setAllTasks).catch(console.error);
+        }, 2000); // 2 second delay
+      }
+    }
+    prevIsLoading.current = isLoading;
+  }, [
+    isLoading,
+    threadId,
+    addActiveThread,
+    removeActiveThread,
+    getAllTasks,
+    setAllTasks,
+  ]);
 
   return (
     <StreamContext.Provider value={streamValue}>

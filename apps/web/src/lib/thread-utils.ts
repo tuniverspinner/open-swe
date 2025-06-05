@@ -1,4 +1,155 @@
-import { ThreadSummary, TaskWithContext } from "@/types/index";
+import {
+  ThreadSummary,
+  TaskWithContext,
+  TaskStatus,
+  PlanItem,
+} from "@/types/index";
+
+/**
+ * Analyzes thread state to determine if it has an error
+ */
+function hasThreadError(threadValues: any): boolean {
+  // Check for error messages in recent messages
+  const messages = threadValues?.messages || [];
+  const recentMessages = messages.slice(-5); // Check last 5 messages
+
+  return recentMessages.some((msg: any) => {
+    const content = msg.content;
+    if (typeof content === "string") {
+      return (
+        content.toLowerCase().includes("error") ||
+        content.toLowerCase().includes("failed") ||
+        content.toLowerCase().includes("exception")
+      );
+    }
+    if (Array.isArray(content)) {
+      return content.some(
+        (c: any) =>
+          c.text &&
+          (c.text.toLowerCase().includes("error") ||
+            c.text.toLowerCase().includes("failed") ||
+            c.text.toLowerCase().includes("exception")),
+      );
+    }
+    return false;
+  });
+}
+
+/**
+ * Analyzes thread state to determine if it has a human interrupt
+ */
+function hasThreadInterrupt(threadValues: any): boolean {
+  // Check if there are any tool calls waiting for responses
+  const messages = threadValues?.messages || [];
+  const lastMessage = messages[messages.length - 1];
+
+  if (lastMessage?.type === "ai" && lastMessage.tool_calls?.length > 0) {
+    // Check if there are pending tool calls without responses
+    const pendingToolCalls = lastMessage.tool_calls.some((toolCall: any) => {
+      const responseExists = messages.some(
+        (msg: any) => msg.type === "tool" && msg.tool_call_id === toolCall.id,
+      );
+      return !responseExists;
+    });
+    return pendingToolCalls;
+  }
+
+  return false;
+}
+
+/**
+ * Determines which task is currently being executed based on plan progress
+ */
+function getCurrentTaskIndex(plan: PlanItem[]): number {
+  // Find the first non-completed task
+  for (let i = 0; i < plan.length; i += 1) {
+    if (!plan[i].completed) {
+      return i;
+    }
+  }
+  // If all tasks are completed, return -1
+  return -1;
+}
+
+/**
+ * Checks if a thread is actively running by analyzing execution state
+ */
+function isThreadActive(
+  threadId: string,
+  allActiveThreads: Set<string> = new Set(),
+): boolean {
+  // For now, we'll determine this based on whether the thread has active stream context
+  // This will be enhanced when we connect to the streaming infrastructure
+  return allActiveThreads.has(threadId);
+}
+
+/**
+ * Infers task status based on thread state and execution context
+ */
+export function inferTaskStatus(
+  task: PlanItem,
+  taskIndex: number,
+  threadValues: any,
+  threadId: string,
+  allActiveThreads: Set<string> = new Set(),
+): TaskStatus {
+  // If task is completed, it's done
+  if (task.completed) {
+    return "done";
+  }
+
+  const plan = threadValues?.plan || [];
+  const currentTaskIndex = getCurrentTaskIndex(plan);
+  const isCurrentTask = taskIndex === currentTaskIndex;
+  const hasError = hasThreadError(threadValues);
+  const hasInterrupt = hasThreadInterrupt(threadValues);
+  const isActive = isThreadActive(threadId, allActiveThreads);
+
+  // If this is the current task being worked on
+  if (isCurrentTask) {
+    // Check for error state first
+    if (hasError) {
+      return "error";
+    }
+
+    // Check for interrupt state
+    if (hasInterrupt) {
+      return "interrupted";
+    }
+
+    // If thread is active and this is current task, it's running
+    if (isActive) {
+      return "running";
+    }
+  }
+
+  // Past tasks that aren't completed are in error state
+  if (taskIndex < currentTaskIndex && !task.completed) {
+    return "error";
+  }
+
+  // Future tasks or paused current task default to interrupted
+  return "interrupted";
+}
+
+/**
+ * Enhanced version that can be called with active thread tracking
+ */
+export function inferTaskStatusWithContext(
+  task: PlanItem,
+  taskIndex: number,
+  threadValues: any,
+  threadId: string,
+  activeThreads: Set<string>,
+): TaskStatus {
+  return inferTaskStatus(
+    task,
+    taskIndex,
+    threadValues,
+    threadId,
+    activeThreads,
+  );
+}
 
 /**
  * Determines the overall status of a thread based on its constituent tasks

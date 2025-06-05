@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ThreadSummary } from "@/types/index";
 import { cn } from "@/lib/utils";
+import { useTasks } from "@/providers/Task";
 
 // StatusIndicator component
 const StatusIndicator = ({
@@ -52,6 +53,8 @@ export function ThreadItem({
   className,
 }: ThreadItemProps) {
   const isSidebar = variant === "sidebar";
+  const { activeThreads } = useTasks();
+  const isActiveThread = activeThreads.has(thread.threadId);
 
   return (
     <div
@@ -79,6 +82,10 @@ export function ThreadItem({
             )}
           >
             {thread.threadTitle}
+            {/* Debug indicator for development */}
+            {process.env.NODE_ENV === "development" && isActiveThread && (
+              <span className="ml-1 font-mono text-xs text-blue-500">●</span>
+            )}
           </h4>
           <div
             className={cn(

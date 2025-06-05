@@ -6,6 +6,7 @@ import {
   useCallback,
   useState,
   useRef,
+  useEffect,
 } from "react";
 import { createClient } from "./client";
 import {
@@ -13,6 +14,7 @@ import {
   TaskWithContext,
   TaskWithStatus,
 } from "@/types/index";
+import { inferTaskStatusWithContext } from "@/lib/thread-utils";
 
 // Function to create simple, predictable task ID
 function createTaskId(threadId: string, taskIndex: number): string {
@@ -30,9 +32,29 @@ export function TaskProvider({ children }: { children: ReactNode }) {
   const [allTasks, setAllTasks] = useState<TaskWithContext[]>([]);
   const [tasksLoading, setTasksLoading] = useState(false);
 
+  // Track active threads for real-time status inference
+  const [activeThreads, setActiveThreads] = useState<Set<string>>(new Set());
+
   // Add debounce to prevent multiple rapid calls
   const lastCallTime = useRef<number>(0);
   const DEBOUNCE_MS = 1000; // Wait 1 second between calls
+
+  // Add polling for real-time updates
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to add thread to active tracking
+  const addActiveThread = useCallback((threadId: string) => {
+    setActiveThreads((prev) => new Set(prev).add(threadId));
+  }, []);
+
+  // Function to remove thread from active tracking
+  const removeActiveThread = useCallback((threadId: string) => {
+    setActiveThreads((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(threadId);
+      return newSet;
+    });
+  }, []);
 
   const getTasks = useCallback(
     async (threadId: string): Promise<TaskWithStatus[]> => {
@@ -41,15 +63,22 @@ export function TaskProvider({ children }: { children: ReactNode }) {
 
       try {
         const thread = await client.threads.get(threadId);
-        const plan = (thread.values as any)?.plan || [];
+        const threadValues = thread.values as any;
+        const plan = threadValues?.plan || [];
 
-        // Convert PlanItem[] to TaskWithStatus[] by adding status information
-        return plan.map((planItem: any) => ({
+        // Convert PlanItem[] to TaskWithStatus[] using improved status inference
+        return plan.map((planItem: any, index: number) => ({
           ...planItem,
-          status: planItem.completed ? "done" : "interrupted",
+          status: inferTaskStatusWithContext(
+            planItem,
+            index,
+            threadValues,
+            threadId,
+            activeThreads,
+          ),
           repository:
-            (thread.values as any)?.targetRepository?.repo ||
-            (thread.values as any)?.targetRepository?.name,
+            threadValues?.targetRepository?.repo ||
+            threadValues?.targetRepository?.name,
           date: new Date().toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -60,40 +89,26 @@ export function TaskProvider({ children }: { children: ReactNode }) {
         return [];
       }
     },
-    [apiUrl, assistantId],
+    [apiUrl, assistantId, activeThreads],
   );
 
   const getAllTasks = useCallback(async (): Promise<TaskWithContext[]> => {
     const callId = Math.random().toString(36).substring(7);
-    const now = Date.now();
 
-    // Debounce rapid calls
+    // Add debounce check
+    const now = Date.now();
     if (now - lastCallTime.current < DEBOUNCE_MS) {
-      console.log(
-        `⏸️ [${callId}] Debounced call (${now - lastCallTime.current}ms since last)`,
-      );
-      return allTasks; // Return cached results
+      console.log(`⏰ [${callId}] Debounced getAllTasks call`);
+      return allTasks; // Return cached data
     }
     lastCallTime.current = now;
 
-    console.log(
-      `🔄 [${callId}] getAllTasks() called at ${new Date().toISOString()}`,
-    );
+    console.log(`🚀 [${callId}] Starting getAllTasks...`);
 
     if (!apiUrl || !assistantId) {
-      console.warn(`❌ [${callId}] Missing apiUrl or assistantId:`, {
-        apiUrl: !!apiUrl,
-        assistantId: !!assistantId,
-      });
+      console.error(`❌ [${callId}] Missing API URL or Assistant ID`);
       return [];
     }
-
-    console.log(`🔧 [${callId}] Config:`, {
-      apiUrl,
-      assistantId,
-      hasApiKey: !!getApiKey(),
-      apiKeyPrefix: getApiKey()?.substring(0, 10) + "...",
-    });
 
     const client = createClient(apiUrl, getApiKey() ?? undefined);
 
@@ -233,16 +248,21 @@ export function TaskProvider({ children }: { children: ReactNode }) {
                   }
                 : rawTask;
 
-            // Create TaskWithContext which includes status from TaskWithStatus
+            const taskIndex = rawTasks.indexOf(rawTask);
+
+            // Create TaskWithContext using improved status inference
             allTasksWithContext.push({
               ...taskData,
-              // Add status information (from TaskWithStatus)
-              status: taskData.completed ? "done" : "interrupted",
-              // Add context information (TaskWithContext specific)
-              taskId: createTaskId(
+              // Use improved status inference instead of simple completed check
+              status: inferTaskStatusWithContext(
+                taskData,
+                taskIndex,
+                threadValues,
                 threadSummary.thread_id,
-                rawTasks.indexOf(rawTask),
+                activeThreads,
               ),
+              // Add context information (TaskWithContext specific)
+              taskId: createTaskId(threadSummary.thread_id, taskIndex),
               threadId: threadSummary.thread_id,
               threadTitle,
               repository:
@@ -298,7 +318,64 @@ export function TaskProvider({ children }: { children: ReactNode }) {
       console.error("Failed to fetch all tasks:", error);
       return [];
     }
-  }, [apiUrl, assistantId]);
+  }, [apiUrl, assistantId, activeThreads, allTasks]);
+
+  // Setup polling for real-time updates
+  useEffect(() => {
+    if (activeThreads.size > 0) {
+      // Start polling when there are active threads
+      pollIntervalRef.current = setInterval(() => {
+        console.log(
+          `🔄 Polling for updates (${activeThreads.size} active threads)`,
+        );
+        getAllTasks().then(setAllTasks).catch(console.error);
+      }, 5000); // Poll every 5 seconds
+    } else {
+      // Stop polling when no active threads
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [activeThreads.size, getAllTasks]);
+
+  // Initialize data on mount and detect active threads
+  useEffect(() => {
+    if (!apiUrl || !assistantId) return;
+
+    console.log("🚀 TaskProvider initializing...");
+    setTasksLoading(true);
+
+    getAllTasks()
+      .then((tasks) => {
+        setAllTasks(tasks);
+
+        // Auto-detect threads that should be marked as active
+        // (threads with running tasks or recent activity)
+        const potentiallyActiveThreads = new Set<string>();
+        tasks.forEach((task) => {
+          if (task.status === "running" || task.status === "interrupted") {
+            potentiallyActiveThreads.add(task.threadId);
+          }
+        });
+
+        if (potentiallyActiveThreads.size > 0) {
+          console.log(
+            `🎯 Auto-detected ${potentiallyActiveThreads.size} potentially active threads`,
+          );
+          setActiveThreads(potentiallyActiveThreads);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setTasksLoading(false));
+  }, [apiUrl, assistantId]); // Only run on mount or config change
 
   const value = {
     getTasks,
@@ -309,6 +386,10 @@ export function TaskProvider({ children }: { children: ReactNode }) {
     setAllTasks,
     tasksLoading,
     setTasksLoading,
+    // Expose active thread management
+    addActiveThread,
+    removeActiveThread,
+    activeThreads,
   };
 
   return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;

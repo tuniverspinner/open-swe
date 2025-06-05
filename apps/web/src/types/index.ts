@@ -36,6 +36,10 @@ export interface TaskContextType {
   setAllTasks: Dispatch<SetStateAction<TaskWithContext[]>>;
   tasksLoading: boolean;
   setTasksLoading: Dispatch<SetStateAction<boolean>>;
+  // Active thread management for real-time status updates
+  addActiveThread: (threadId: string) => void;
+  removeActiveThread: (threadId: string) => void;
+  activeThreads: Set<string>;
 }
 
 // Thread summary for grouping tasks
