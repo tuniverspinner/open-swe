@@ -96,7 +96,7 @@ That's it! You can now authenticate users with GitHub, and generate tokens for t
 ## Running the graph
 
 > [!INFO]
-> Since Open SWE is still under development, the following requires hard coding the repository information. This will be changed before the release.
+> Currently, the following requires hard coding the repository information. This will be improved in future releases.
 
 To run the graph, first you must set which repository you want Open SWE to make changes to inside the `web` package. To do this, search for instances of `repo: "open-swe",` inside the `apps/web` directory. This should yield _7_ results in _5_ files. Go through each of these, and modify the `owner` and `repo` properties to match the repository you want Open SWE to make changes to. (ensure your GitHub PAT has access to this repository).
 
@@ -137,6 +137,7 @@ Once you've accepted the plan, it will begin the execution flow. When the agent 
 ## Accessing Changes
 
 Open SWE will automatically create a branch whenever you create a new thread with a naming format of `open-swe/<threadId>`. Every time a file is created, modified, or deleted, the changes will be committed to this branch. You can access the changes in the repository by checking out this branch.
+
 
 
 
