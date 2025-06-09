@@ -1,22 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@open-swe/ui/slider";
+import { Switch } from "@open-swe/ui/switch";
+import { Input } from "@open-swe/ui/input";
+import { Textarea } from "@open-swe/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+} from "@open-swe/ui/select";
+import { Label } from "@open-swe/ui/label";
 import { useConfigStore } from "@/hooks/use-config-store";
 import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@open-swe/ui/alert";
+import { Button } from "@open-swe/ui/button";
 import _ from "lodash";
 import { cn } from "@/lib/utils";
 
@@ -289,3 +289,4 @@ export function ConfigField({
     </div>
   );
 }
+
