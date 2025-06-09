@@ -8,10 +8,10 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { TooltipIconButton } from "@/components/ui/tooltip-icon-button";
+import { TooltipIconButton } from "@open-swe/ui/tooltip-icon-button";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@open-swe/ui/button";
 
 function ContentCopyable({
   content,
@@ -219,3 +219,4 @@ export function CommandBar({
     </div>
   );
 }
+
