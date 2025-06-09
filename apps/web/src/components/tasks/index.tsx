@@ -206,7 +206,7 @@ export function TasksSidebar({
       onClick={onClose}
     >
       <div
-        className="absolute top-0 right-0 h-full w-full border-l border-gray-200 bg-white shadow-xl"
+        className="absolute top-0 right-0 h-full w-96 border-l border-gray-200 bg-white shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex h-full flex-col">
