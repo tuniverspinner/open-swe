@@ -433,15 +433,17 @@ export function Thread() {
                 </motion.button>
               </div>
 
-              <div className="col-span-6 w-3xl flex mx-auto">
-                <TaskPlanView
-                  taskPlan={taskPlan}
-                  onTaskChange={handleTaskChange}
-                  onRevisionChange={handleRevisionChange}
-                  onEditPlanItem={handleEditPlanItem}
-                  onAddPlanItem={handleAddPlanItem}
-                  onDeletePlanItem={handleDeletePlanItem}
-                />
+              <div className="col-span-6 mx-auto flex w-3xl">
+                {taskPlan && (
+                  <TaskPlanView
+                    taskPlan={taskPlan}
+                    onTaskChange={handleTaskChange}
+                    onRevisionChange={handleRevisionChange}
+                    onEditPlanItem={handleEditPlanItem}
+                    onAddPlanItem={handleAddPlanItem}
+                    onDeletePlanItem={handleDeletePlanItem}
+                  />
+                )}
               </div>
 
               <div className="col-span-2 flex items-center justify-end gap-2 text-gray-700">
