@@ -82,7 +82,7 @@ export function ActionStep(props: ActionStepProps) {
     if (props.status === "done") {
       if (props.actionType === "shell") {
         return props.success ? "Command completed" : "Command failed";
-      } else {
+      } else if (props.actionType === "apply-patch") {
         return props.success ? "Patch applied" : "Patch failed";
       }
     }
