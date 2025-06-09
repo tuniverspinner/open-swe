@@ -2,7 +2,7 @@
 
 import { useGitHubApp } from "@/hooks/useGitHubApp";
 import { InstallAppButton } from "./install-app-button";
-import { Button } from "@/components/ui/button";
+import { Button } from "@open-swe/ui/button";
 import { RefreshCw } from "lucide-react";
 
 interface RepositoryListProps {
@@ -146,3 +146,4 @@ export function RepositoryList({ className = "" }: RepositoryListProps) {
     </div>
   );
 }
+
