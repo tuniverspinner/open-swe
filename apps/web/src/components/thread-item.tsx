@@ -1,11 +1,11 @@
 "use client";
 
 import { GitBranch, ArrowRight, ListTodo } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@open-swe/ui/badge";
 import { ThreadWithTasks } from "@/providers/Thread";
 import { cn } from "@/lib/utils";
 import { StatusIndicator } from "@/components/status-indicator";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@open-swe/ui/skeleton";
 import { GitHubSVG } from "./icons/github";
 
 interface ThreadItemProps {
@@ -132,3 +132,4 @@ export function ThreadItem({
     </div>
   );
 }
+
