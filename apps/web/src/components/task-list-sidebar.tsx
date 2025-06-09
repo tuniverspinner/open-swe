@@ -6,7 +6,7 @@ import {
   ChevronRight,
   PanelRightOpen,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@open-swe/ui/button";
 import { useThreads, ThreadWithTasks } from "@/providers/Thread";
 import { useQueryState, parseAsString } from "nuqs";
 import { useState } from "react";
@@ -125,3 +125,4 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
     </div>
   );
 }
+
