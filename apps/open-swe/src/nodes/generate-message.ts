@@ -142,11 +142,15 @@ export async function generateAction(
 ): Promise<GraphUpdate> {
   const ui = typedUi(config);
   const uiMessageId = uuidv4();
+  const aiMessageId = uuidv4();
   ui.push({
     id: uiMessageId,
     name: "action-step",
     props: {
       status: "loading",
+    },
+    metadata: {
+      message_id: aiMessageId,
     },
   });
   const model = await loadModel(config, Task.ACTION_GENERATOR);
@@ -216,6 +220,7 @@ export async function generateAction(
   return {
     messages: [
       new AIMessage({
+        id: aiMessageId,
         ...response,
         additional_kwargs: {
           ...response.additional_kwargs,

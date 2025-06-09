@@ -39,8 +39,11 @@ export const applyPatchTool = tool(
       throw new Error("FAILED TO RUN COMMAND: No sandbox session ID provided");
     }
 
-    const { id: genUIMessageId, content: lastMessageContent } =
-      getGenUIMessageIdAndContent(state);
+    const {
+      id: genUIMessageId,
+      content: lastMessageContent,
+      aiMessageId,
+    } = getGenUIMessageIdAndContent(state);
     const ui = typedUi(getConfig());
 
     const { diff, file_path, workdir } = input;
@@ -67,6 +70,9 @@ export const applyPatchTool = tool(
           diff,
           errorMessage: readFileOutput,
           reasoningText: lastMessageContent,
+        },
+        metadata: {
+          ai_message_id: aiMessageId,
         },
       });
       throw new Error(readFileOutput);
@@ -122,6 +128,9 @@ export const applyPatchTool = tool(
           errorMessage: patchApplyError,
           reasoningText: lastMessageContent,
         },
+        metadata: {
+          ai_message_id: aiMessageId,
+        },
       });
       throw new Error(patchApplyError);
     }
@@ -146,6 +155,9 @@ export const applyPatchTool = tool(
           errorMessage: writeFileOutput,
           reasoningText: lastMessageContent,
         },
+        metadata: {
+          ai_message_id: aiMessageId,
+        },
       });
       throw new Error(writeFileOutput);
     }
@@ -169,6 +181,9 @@ export const applyPatchTool = tool(
         diff,
         ...(fixedDiff ? { fixedDiff } : {}),
         reasoningText: lastMessageContent,
+      },
+      metadata: {
+        ai_message_id: aiMessageId,
       },
     });
     return {

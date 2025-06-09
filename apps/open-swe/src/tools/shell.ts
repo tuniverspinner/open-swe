@@ -48,8 +48,11 @@ export const shellTool = tool(
       throw new Error("FAILED TO RUN COMMAND: No sandbox session ID provided");
     }
 
-    const { id: genUIMessageId, content: lastMessageContent } =
-      getGenUIMessageIdAndContent(state);
+    const {
+      id: genUIMessageId,
+      content: lastMessageContent,
+      aiMessageId,
+    } = getGenUIMessageIdAndContent(state);
     const ui = typedUi(getConfig());
     try {
       sandbox = await daytonaClient().get(sandboxSessionId);
@@ -79,6 +82,9 @@ export const shellTool = tool(
             errorCode: response.exitCode,
             reasoningText: lastMessageContent,
           },
+          metadata: {
+            ai_message_id: aiMessageId,
+          },
         });
         throw new Error(
           `Command failed. Exit code: ${response.exitCode}\nResult: ${response.result}\nStdout:\n${response.artifacts?.stdout}`,
@@ -96,6 +102,9 @@ export const shellTool = tool(
           workdir,
           output: response.result,
           reasoningText: lastMessageContent,
+        },
+        metadata: {
+          ai_message_id: aiMessageId,
         },
       });
       return {
@@ -123,6 +132,9 @@ export const shellTool = tool(
             errorCode: errorFields.exitCode,
             reasoningText: lastMessageContent,
           },
+          metadata: {
+            ai_message_id: aiMessageId,
+          },
         });
         throw new Error(errorMessage);
       }
@@ -146,6 +158,9 @@ export const shellTool = tool(
           output: errorMessage,
           errorCode: undefined,
           reasoningText: lastMessageContent,
+        },
+        metadata: {
+          ai_message_id: aiMessageId,
         },
       });
       throw new Error(errorMessage);
