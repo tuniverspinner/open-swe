@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@open-swe/ui/button";
 import { GitHubSVG } from "@/components/icons/github";
 
 interface InstallAppButtonProps {
@@ -52,3 +52,4 @@ export function InstallAppButton({
     </Button>
   );
 }
+
