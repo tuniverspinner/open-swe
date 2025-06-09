@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@open-swe/ui/button";
 import { CopyIcon, CheckIcon, RefreshCwIcon } from "lucide-react";
 import { InstallAppButton } from "./install-app-button";
 
@@ -149,3 +149,4 @@ export function AgentTokenProvider({
     </div>
   );
 }
+
