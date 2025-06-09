@@ -3,7 +3,8 @@ import { TaskPlan } from "@open-swe/shared/open-swe/types";
 import { useEffect, useState } from "react";
 
 export function useTaskPlan() {
-  const { values } = useStreamContext();
+  const stream = useStreamContext();
+  const { values } = stream;
   const [taskPlan, setTaskPlan] = useState<TaskPlan>();
 
   useEffect(() => {
@@ -13,6 +14,20 @@ export function useTaskPlan() {
       setTaskPlan(values?.plan);
     }
   }, [values?.plan]);
+
+  // Helper function to update graph state
+  const updateGraphState = (updatedPlan: TaskPlan) => {
+    stream.submit(
+      { plan: updatedPlan },
+      {
+        streamMode: ["values"],
+        optimisticValues: (prev) => ({
+          ...prev,
+          plan: updatedPlan,
+        }),
+      },
+    );
+  };
 
   const handleTaskChange = (taskId: string) => {
     console.log(`Switched to task: ${taskId}`);
@@ -58,7 +73,7 @@ export function useTaskPlan() {
   };
 
   const handleAddPlanItem = (taskId: string, plan: string) => {
-    setTaskPlan((prevTaskPlan) => {
+    const updatedPlan = ((prevTaskPlan) => {
       const prevTaskPlan_ = prevTaskPlan ?? {
         tasks: [],
         activeTaskIndex: 0,
@@ -88,7 +103,10 @@ export function useTaskPlan() {
           return task;
         }),
       };
-    });
+    })(taskPlan);
+
+    setTaskPlan(updatedPlan);
+    updateGraphState(updatedPlan);
     console.log(`Added new plan item to task ${taskId}: ${plan}`);
   };
 
