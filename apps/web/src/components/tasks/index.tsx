@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +33,7 @@ interface TasksSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   taskPlan: TaskPlan;
+  className?: string;
   onTaskChange?: (taskId: string) => void;
   onRevisionChange?: (taskId: string, revisionIndex: number) => void;
   onEditPlanItem?: (
@@ -97,7 +97,7 @@ export function TasksSidebar({
     }
   }, [currentTask]);
 
-  if (!isOpen || !currentTask) return null;
+  if (!currentTask) return null;
 
   const currentRevision = currentTask.planRevisions[currentRevisionIndex];
   const planItems = currentRevision?.plans || [];
@@ -202,326 +202,331 @@ export function TasksSidebar({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/20"
-      onClick={onClose}
+      className={cn(
+        "fixed top-0 right-0 z-10 h-screen border-l border-gray-200 bg-white shadow-lg transition-all duration-300",
+        isOpen ? "w-80 md:w-xl" : "w-0 overflow-hidden border-l-0",
+      )}
     >
       <div
-        className="absolute top-0 right-0 h-full w-96 border-l border-gray-200 bg-white shadow-xl"
-        onClick={(e) => e.stopPropagation()}
+        className={cn(
+          "flex h-full flex-col transition-opacity duration-300",
+          isOpen ? "opacity-100 delay-150" : "opacity-0",
+        )}
+        style={{ minWidth: isOpen ? "320px" : "0" }}
       >
-        <div className="flex h-full flex-col">
-          {/* Header */}
-          <div className="border-b border-gray-200 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </Button>
-            </div>
+        {/* Header */}
+        <div className="border-b border-gray-200 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          </div>
 
-            {/* Task selector */}
-            {taskPlan.tasks.length > 1 && (
-              <div className="mb-3">
-                <label className="mb-1 block text-xs font-medium text-gray-700">
-                  Task
-                </label>
-                <select
-                  className="w-full rounded border border-gray-200 px-2 py-1 text-sm"
-                  value={currentTask.id}
-                  onChange={(e) => {
-                    const newTaskIndex = taskPlan.tasks.findIndex(
-                      (t) => t.id === e.target.value,
-                    );
-                    if (newTaskIndex !== -1) {
-                      setCurrentTaskIndex(newTaskIndex);
-                      onTaskChange?.(e.target.value);
-                    }
-                  }}
-                >
-                  {taskPlan.tasks.map((task, index) => (
-                    <option
-                      key={task.id}
-                      value={task.id}
-                    >
-                      Task #{task.taskIndex + 1}:{" "}
-                      {task.request.substring(0, 50)}
-                      {index === taskPlan.activeTaskIndex && " (Active)"}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Plan revision navigation */}
+          {/* Task selector */}
+          {taskPlan.tasks.length > 1 && (
             <div className="mb-3">
               <label className="mb-1 block text-xs font-medium text-gray-700">
-                Plan Revision
+                Task
               </label>
-              <div className="flex items-center gap-2">
-                <div className="flex flex-1 items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-1">
-                  <div className="flex items-center gap-1">
-                    {currentRevision?.createdBy === "agent" ? (
-                      <Bot className="h-3 w-3 text-blue-500" />
-                    ) : (
-                      <User className="h-3 w-3 text-green-500" />
-                    )}
-                    <Clock className="h-3 w-3 text-gray-500" />
-                  </div>
-                  <span className="text-xs">
-                    Rev {currentRevision?.revisionIndex + 1} of{" "}
-                    {currentTask.planRevisions.length}
-                  </span>
-                  {!isLatestRevision && (
-                    <span className="ml-1 rounded bg-orange-50 px-1 py-0.5 text-xs text-orange-600">
-                      Historical
-                    </span>
+              <select
+                className="w-full rounded border border-gray-200 px-2 py-1 text-sm"
+                value={currentTask.id}
+                onChange={(e) => {
+                  const newTaskIndex = taskPlan.tasks.findIndex(
+                    (t) => t.id === e.target.value,
+                  );
+                  if (newTaskIndex !== -1) {
+                    setCurrentTaskIndex(newTaskIndex);
+                    onTaskChange?.(e.target.value);
+                  }
+                }}
+              >
+                {taskPlan.tasks.map((task, index) => (
+                  <option
+                    key={task.id}
+                    value={task.id}
+                  >
+                    Task #{task.taskIndex + 1}: {task.request.substring(0, 50)}
+                    {index === taskPlan.activeTaskIndex && " (Active)"}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Plan revision navigation */}
+          <div className="mb-3">
+            <label className="mb-1 block text-xs font-medium text-gray-700">
+              Plan Revision
+            </label>
+            <div className="flex items-center gap-2">
+              <div className="flex flex-1 items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-1">
+                <div className="flex items-center gap-1">
+                  {currentRevision?.createdBy === "agent" ? (
+                    <Bot className="h-3 w-3 text-blue-500" />
+                  ) : (
+                    <User className="h-3 w-3 text-green-500" />
                   )}
+                  <Clock className="h-3 w-3 text-gray-500" />
                 </div>
-
-                {currentTask.planRevisions.length > 1 && (
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={goToPreviousRevision}
-                      disabled={currentRevisionIndex === 0}
-                      className="h-6 w-6 p-0"
-                      title="Previous revision"
-                    >
-                      <ChevronLeft className="h-3 w-3" />
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={goToNextRevision}
-                      disabled={
-                        currentRevisionIndex ===
-                        currentTask.planRevisions.length - 1
-                      }
-                      className="h-6 w-6 p-0"
-                      title="Next revision"
-                    >
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
-
-                    {!isLatestRevision && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={goToLatestRevision}
-                        className="h-6 w-6 p-0"
-                        title="Latest revision"
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                      </Button>
-                    )}
-                  </div>
+                <span className="text-xs">
+                  Rev {currentRevision?.revisionIndex + 1} of{" "}
+                  {currentTask.planRevisions.length}
+                </span>
+                {!isLatestRevision && (
+                  <span className="ml-1 rounded bg-orange-50 px-1 py-0.5 text-xs text-orange-600">
+                    Historical
+                  </span>
                 )}
               </div>
 
-              {/* Revision info */}
-              {currentRevision && (
-                <div className="mt-1 text-xs text-gray-500">
-                  Created by {currentRevision.createdBy} on{" "}
-                  {formatDate(currentRevision.createdAt)}
+              {currentTask.planRevisions.length > 1 && (
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToPreviousRevision}
+                    disabled={currentRevisionIndex === 0}
+                    className="h-6 w-6 p-0"
+                    title="Previous revision"
+                  >
+                    <ChevronLeft className="h-3 w-3" />
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextRevision}
+                    disabled={
+                      currentRevisionIndex ===
+                      currentTask.planRevisions.length - 1
+                    }
+                    className="h-6 w-6 p-0"
+                    title="Next revision"
+                  >
+                    <ChevronRight className="h-3 w-3" />
+                  </Button>
+
+                  {!isLatestRevision && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToLatestRevision}
+                      className="h-6 w-6 p-0"
+                      title="Latest revision"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Filter controls */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-1">
-                <Filter className="h-3 w-3 text-gray-500" />
-                <select
-                  className="border-none bg-transparent text-xs outline-none"
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value as FilterType)}
-                >
-                  <option value="all">All</option>
-                  <option value="completed">Completed</option>
-                  <option value="current">Current</option>
-                  <option value="pending">Pending</option>
-                </select>
+            {/* Revision info */}
+            {currentRevision && (
+              <div className="mt-1 text-xs text-gray-500">
+                Created by {currentRevision.createdBy} on{" "}
+                {formatDate(currentRevision.createdAt)}
               </div>
-
-              {isLatestTask && isLatestRevision && (
-                <span className="rounded bg-green-50 px-2 py-1 text-xs text-green-600">
-                  Editable
-                </span>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="space-y-3">
-              {filteredItems.length === 0 ? (
-                <div className="py-8 text-center text-sm text-gray-500">
-                  No plan items match the current filter
-                </div>
-              ) : (
-                filteredItems.map((item) => {
-                  const state = getItemState(item);
-                  const isExpanded = expandedSummaries.has(item.index);
-                  const isEditing = editingPlanItem === item.index;
-                  const editable = isPlanItemEditable(item);
+          {/* Filter controls */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 rounded border border-gray-200 bg-gray-50 px-2 py-1">
+              <Filter className="h-3 w-3 text-gray-500" />
+              <select
+                className="border-none bg-transparent text-xs outline-none"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as FilterType)}
+              >
+                <option value="all">All</option>
+                <option value="completed">Completed</option>
+                <option value="current">Current</option>
+                <option value="pending">Pending</option>
+              </select>
+            </div>
 
-                  return (
-                    <div
-                      key={item.index}
-                      className={cn(
-                        "rounded-lg border p-3",
-                        state === "current" && "border-blue-200 bg-blue-50",
-                        state === "completed" && "border-green-200 bg-green-50",
-                        state === "remaining" && "border-gray-200 bg-white",
-                      )}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex-shrink-0">
-                          {getStateIcon(state)}
-                        </div>
+            {isLatestTask && isLatestRevision && (
+              <span className="rounded bg-green-50 px-2 py-1 text-xs text-green-600">
+                Editable
+              </span>
+            )}
+          </div>
+        </div>
 
-                        <div className="min-w-0 flex-1">
-                          {isEditing ? (
-                            <div className="space-y-2">
-                              <Textarea
-                                value={editingText}
-                                onChange={(e) => setEditingText(e.target.value)}
-                                className="min-h-[60px] text-sm"
-                                placeholder="Enter plan item description..."
-                              />
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={saveEdit}
-                                  className="h-7 text-xs"
-                                >
-                                  <Save className="mr-1 h-3 w-3" />
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setEditingPlanItem(null);
-                                    setEditingText("");
-                                  }}
-                                  className="h-7 text-xs"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-3">
+            {filteredItems.length === 0 ? (
+              <div className="py-8 text-center text-sm text-gray-500">
+                No plan items match the current filter
+              </div>
+            ) : (
+              filteredItems.map((item) => {
+                const state = getItemState(item);
+                const isExpanded = expandedSummaries.has(item.index);
+                const isEditing = editingPlanItem === item.index;
+                const editable = isPlanItemEditable(item);
+
+                return (
+                  <div
+                    key={item.index}
+                    className={cn(
+                      "rounded-lg border p-3",
+                      state === "current" && "border-blue-200 bg-blue-50",
+                      state === "completed" && "border-green-200 bg-green-50",
+                      state === "remaining" && "border-gray-200 bg-white",
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex-shrink-0">
+                        {getStateIcon(state)}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <Textarea
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              className="min-h-[60px] text-sm"
+                              placeholder="Enter plan item description..."
+                            />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={saveEdit}
+                                className="h-7 text-xs"
+                              >
+                                <Save className="mr-1 h-3 w-3" />
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingPlanItem(null);
+                                  setEditingText("");
+                                }}
+                                className="h-7 text-xs"
+                              >
+                                Cancel
+                              </Button>
                             </div>
-                          ) : (
-                            <>
-                              <div className="mb-1 flex items-start justify-between gap-2">
-                                <p className="text-sm leading-relaxed text-gray-900">
-                                  {item.plan}
-                                </p>
-                                {editable && (
-                                  <div className="flex flex-shrink-0 items-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => startEditing(item)}
-                                      className="h-6 w-6 p-0"
-                                    >
-                                      <Edit2 className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() =>
-                                        onDeletePlanItem?.(
-                                          currentTask.id,
-                                          item.index,
-                                        )
-                                      }
-                                      className="h-6 w-6 p-0 text-red-500"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs text-gray-500">
-                                  Plan Item #{item.index + 1}
-                                </span>
-                                <span
-                                  className={cn(
-                                    "rounded-full px-2 py-1 text-xs",
-                                    state === "completed" &&
-                                      "bg-green-100 text-green-700",
-                                    state === "current" &&
-                                      "bg-blue-100 text-blue-700",
-                                    state === "remaining" &&
-                                      "bg-gray-100 text-gray-700",
-                                  )}
-                                >
-                                  {state === "completed"
-                                    ? "Completed"
-                                    : state === "current"
-                                      ? "In Progress"
-                                      : "Pending"}
-                                </span>
-                              </div>
-
-                              {item.completed && item.summary && (
-                                <Collapsible
-                                  open={isExpanded}
-                                  onOpenChange={() => {
-                                    const newExpanded = new Set(
-                                      expandedSummaries,
-                                    );
-                                    if (newExpanded.has(item.index)) {
-                                      newExpanded.delete(item.index);
-                                    } else {
-                                      newExpanded.add(item.index);
+                          </div>
+                        ) : (
+                          <>
+                            <div className="mb-1 flex items-start justify-between gap-2">
+                              <p className="text-sm leading-relaxed text-gray-900">
+                                {item.plan}
+                              </p>
+                              {editable && (
+                                <div className="flex flex-shrink-0 items-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => startEditing(item)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Edit2 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                      onDeletePlanItem?.(
+                                        currentTask.id,
+                                        item.index,
+                                      )
                                     }
-                                    setExpandedSummaries(newExpanded);
-                                  }}
-                                  className="mt-2"
-                                >
-                                  <CollapsibleTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 p-0 text-xs text-green-700"
-                                    >
-                                      {isExpanded ? (
-                                        <ChevronDown className="mr-1 h-3 w-3" />
-                                      ) : (
-                                        <ChevronRight className="mr-1 h-3 w-3" />
-                                      )}
-                                      View summary
-                                    </Button>
-                                  </CollapsibleTrigger>
-                                  <CollapsibleContent className="mt-2">
-                                    <div className="rounded border border-green-200 bg-green-50 p-2 text-xs text-green-800">
-                                      {item.summary}
-                                    </div>
-                                  </CollapsibleContent>
-                                </Collapsible>
+                                    className="h-6 w-6 p-0 text-red-500"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               )}
-                            </>
-                          )}
-                        </div>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-500">
+                                Plan Item #{item.index + 1}
+                              </span>
+                              <span
+                                className={cn(
+                                  "rounded-full px-2 py-1 text-xs",
+                                  state === "completed" &&
+                                    "bg-green-100 text-green-700",
+                                  state === "current" &&
+                                    "bg-blue-100 text-blue-700",
+                                  state === "remaining" &&
+                                    "bg-gray-100 text-gray-700",
+                                )}
+                              >
+                                {state === "completed"
+                                  ? "Completed"
+                                  : state === "current"
+                                    ? "In Progress"
+                                    : "Pending"}
+                              </span>
+                            </div>
+
+                            {item.completed && item.summary && (
+                              <Collapsible
+                                open={isExpanded}
+                                onOpenChange={() => {
+                                  const newExpanded = new Set(
+                                    expandedSummaries,
+                                  );
+                                  if (newExpanded.has(item.index)) {
+                                    newExpanded.delete(item.index);
+                                  } else {
+                                    newExpanded.add(item.index);
+                                  }
+                                  setExpandedSummaries(newExpanded);
+                                }}
+                                className="mt-2"
+                              >
+                                <CollapsibleTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 p-0 text-xs text-green-700"
+                                  >
+                                    {isExpanded ? (
+                                      <ChevronDown className="mr-1 h-3 w-3" />
+                                    ) : (
+                                      <ChevronRight className="mr-1 h-3 w-3" />
+                                    )}
+                                    View summary
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent className="mt-2">
+                                  <div className="rounded border border-green-200 bg-green-50 p-2 text-xs text-green-800">
+                                    {item.summary}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
-                  );
-                })
-              )}
+                  </div>
+                );
+              })
+            )}
 
-              {/* Add New Plan Item - Only for latest task and revision */}
-              {isLatestTask && isLatestRevision && (
+            {/* Add New Plan Item - Only for latest task and revision */}
+            {isLatestTask &&
+              isLatestRevision &&
+              !planItems.every((item) => item.completed) && (
                 <div>
                   {showAddPlanItem ? (
                     <div className="rounded-lg border border-dashed border-gray-300 p-3">
@@ -568,7 +573,6 @@ export function TasksSidebar({
                   )}
                 </div>
               )}
-            </div>
           </div>
         </div>
       </div>
