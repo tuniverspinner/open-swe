@@ -17,9 +17,7 @@ import { createLogger, LogLevel } from "../utils/logger.js";
 import { getCurrentPlanItem } from "../utils/current-task.js";
 import { getMessageContentString } from "../utils/message/content.js";
 import { getActivePlanItems } from "../utils/task-plan.js";
-import {
-  typedUi,
-} from "@langchain/langgraph-sdk/react-ui/server";
+import { typedUi } from "@langchain/langgraph-sdk/react-ui/server";
 import { SANDBOX_ROOT_DIR } from "@open-swe/shared/constants";
 
 const logger = createLogger(LogLevel.INFO, "GenerateMessageNode");
@@ -176,18 +174,33 @@ export async function generateAction(
   if (hasToolCalls) {
     const toolCall = response.tool_calls?.[0];
     if (toolCall?.name === "apply_patch") {
-      ui.push({ name: "apply-patch", props: {
-        file: path.join(toolCall.args.workdir || SANDBOX_ROOT_DIR, toolCall.args.file_path),
-        status: "generating",
-        diff: toolCall.args.diff,
-        reasoningText: messageTextContent
-      } }, { message: response })
+      ui.push(
+        {
+          name: "apply-patch",
+          props: {
+            file: path.join(
+              toolCall.args.workdir || SANDBOX_ROOT_DIR,
+              toolCall.args.file_path,
+            ),
+            status: "generating",
+            diff: toolCall.args.diff,
+            reasoningText: messageTextContent,
+          },
+        },
+        { message: response },
+      );
     } else if (toolCall?.name === "shell") {
-      ui.push({ name: "shell-command", props: {
-        command: `cd ${toolCall.args.workdir || SANDBOX_ROOT_DIR} && ${toolCall.args.command.join(" ")}`,
-        status: "generating",
-        reasoningText: messageTextContent
-      } }, { message: response })
+      ui.push(
+        {
+          name: "shell-command",
+          props: {
+            command: `cd ${toolCall.args.workdir || SANDBOX_ROOT_DIR} && ${toolCall.args.command.join(" ")}`,
+            status: "generating",
+            reasoningText: messageTextContent,
+          },
+        },
+        { message: response },
+      );
     }
   }
 

@@ -1,10 +1,10 @@
-import { ApplyPatch } from "./apply-patch"
-import { DiagnoseError } from "./diagnose-error"
-import { InitializeStep } from "./initialize-step"
-import { PushChanges } from "./push-changes"
-import { ReplanningStep } from "./replanning-step"
-import { Shell } from "./shell-command"
-import { TaskSummary } from "./task-summary"
+import { ApplyPatch } from "./apply-patch";
+import { DiagnoseError } from "./diagnose-error";
+import { InitializeStep } from "./initialize-step";
+import { PushChanges } from "./push-changes";
+import { ReplanningStep } from "./replanning-step";
+import { Shell } from "./shell-command";
+import { TaskSummary } from "./task-summary";
 
 export default {
   "apply-patch": ApplyPatch,
@@ -14,4 +14,4 @@ export default {
   "replanning-step": ReplanningStep,
   "shell-command": Shell,
   "task-summary": TaskSummary,
-}
+};
