@@ -18,10 +18,10 @@ import {
 import { useQueryState } from "nuqs";
 import { LangGraphLogoSVG } from "@/components/icons/langgraph";
 import { useThreads } from "./Thread";
-import { TooltipIconButton } from "@/components/ui/tooltip-icon-button";
+import { TooltipIconButton } from "@open-swe/ui/tooltip-icon-button";
 import { Copy, CopyCheck, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import { Button } from "@open-swe/ui/button";
 import { GitHubSVG } from "@/components/icons/github";
 import { useGitHubToken } from "@/hooks/useGitHubToken";
 import { GraphState, GraphUpdate } from "@open-swe/shared/open-swe/types";
@@ -421,3 +421,4 @@ export const useStreamContext = (): StreamContextType => {
 };
 
 export default StreamContext;
+
