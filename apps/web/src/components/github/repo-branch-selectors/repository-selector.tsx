@@ -5,13 +5,13 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command";
+} from "@open-swe/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
+} from "@open-swe/ui/popover";
+import { Button } from "@open-swe/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -216,3 +216,4 @@ export function RepositorySelector({
     </Popover>
   );
 }
+
