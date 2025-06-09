@@ -23,6 +23,7 @@
     "@langchain/langgraph": "^0.3.1",
     "@langchain/langgraph-sdk": "^0.0.83",
     "@open-swe/shared": "workspace:*",
+    "@open-swe/ui": "workspace:*",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-avatar": "^1.1.3",
     "@radix-ui/react-collapsible": "^1.1.11",
@@ -98,3 +99,4 @@
   },
   "packageManager": "yarn@3.5.1"
 }
+
