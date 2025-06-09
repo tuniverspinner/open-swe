@@ -1,8 +1,5 @@
 # Open SWE
 
-> [!WARNING]
-> Open SWE is under active development and is not yet ready for production use.
-
 Open SWE is an open-source cloud based coding agent.
 
 ## Usage
