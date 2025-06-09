@@ -6,9 +6,9 @@ import {
   EllipsisVertical,
   ChevronRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@open-swe/ui/button";
 import { cn } from "@/lib/utils";
-import { TooltipIconButton } from "@/components/ui/tooltip-icon-button";
+import { TooltipIconButton } from "@open-swe/ui/tooltip-icon-button";
 
 interface SidebarButtonsProps {
   historyOpen: boolean;
@@ -112,3 +112,4 @@ export const SidebarButtons = forwardRef<HTMLDivElement, SidebarButtonsProps>(
 );
 
 SidebarButtons.displayName = "SidebarButtons";
+
