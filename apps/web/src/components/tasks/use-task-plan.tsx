@@ -42,7 +42,7 @@ export function useTaskPlan() {
     planItemIndex: number,
     newPlan: string,
   ) => {
-    setTaskPlan((prevTaskPlan) => {
+    const updatedPlan = ((prevTaskPlan) => {
       const prevTaskPlan_ = prevTaskPlan ?? {
         tasks: [],
         activeTaskIndex: 0,
@@ -66,7 +66,10 @@ export function useTaskPlan() {
           return task;
         }),
       };
-    });
+    })(taskPlan);
+
+    setTaskPlan(updatedPlan);
+    updateGraphState(updatedPlan);
     console.log(
       `Edited plan item ${planItemIndex} in task ${taskId}: ${newPlan}`,
     );
@@ -111,7 +114,7 @@ export function useTaskPlan() {
   };
 
   const handleDeletePlanItem = (taskId: string, planItemIndex: number) => {
-    setTaskPlan((prevTaskPlan) => {
+    const updatedPlan = ((prevTaskPlan) => {
       const prevTaskPlan_ = prevTaskPlan ?? {
         tasks: [],
         activeTaskIndex: 0,
@@ -133,7 +136,10 @@ export function useTaskPlan() {
           return task;
         }),
       };
-    });
+    })(taskPlan);
+
+    setTaskPlan(updatedPlan);
+    updateGraphState(updatedPlan);
     console.log(`Deleted plan item ${planItemIndex} from task ${taskId}`);
   };
 
