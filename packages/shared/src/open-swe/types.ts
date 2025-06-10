@@ -108,8 +108,17 @@ export type TaskPlan = {
 };
 
 export type TargetRepository = {
+  /**
+   * The owner of the repository
+   */
   owner: string;
+  /**
+   * The name of the repository
+   */
   repo: string;
+  /**
+   * The branch to checkout when initially cloning the repository
+   */
   branch?: string;
 };
 
