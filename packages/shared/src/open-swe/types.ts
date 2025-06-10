@@ -120,6 +120,7 @@ export type TargetRepository = {
    * The branch to checkout when initially cloning the repository
    */
   branch?: string;
+  baseCommit?: string;
 };
 
 export const GraphAnnotation = MessagesZodState.extend({
