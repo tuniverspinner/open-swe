@@ -589,7 +589,6 @@ export function Plan({
   onEditTask,
   onAddTask,
   onDeleteTask,
-  onReorderTasks,
 }: any) {
   // Implementation remains the same as before
   return <div>Plan component - use TasksSidebar instead</div>;
@@ -603,7 +602,6 @@ export function MultiRequestPlan({
   onEditTask,
   onAddTask,
   onDeleteTask,
-  onReorderTasks,
 }: any) {
   return <div>MultiRequestPlan component - use TaskPlanView instead</div>;
 }

@@ -16,17 +16,29 @@ export function useTaskPlan() {
   }, [values?.plan]);
 
   // Helper function to update graph state
-  const updateGraphState = (updatedPlan: TaskPlan) => {
-    stream.submit(
-      { plan: updatedPlan },
-      {
-        streamMode: ["values"],
-        optimisticValues: (prev) => ({
-          ...prev,
-          plan: updatedPlan,
-        }),
-      },
-    );
+  const updateGraphState = async (updatedPlan: TaskPlan) => {
+    try {
+      stream.submit(
+        { plan: updatedPlan },
+        {
+          streamMode: ["values"],
+          optimisticValues: (prev) => ({
+            ...prev,
+            plan: updatedPlan,
+          }),
+          multitaskStrategy: "enqueue",
+          config: {
+            recursion_limit: 400,
+            configurable: {},
+          },
+          metadata: {
+            graph_id: process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "open-swe",
+          },
+        },
+      );
+    } catch (error) {
+      console.error("Error updating graph state:", error);
+    }
   };
 
   const handleTaskChange = (taskId: string) => {
