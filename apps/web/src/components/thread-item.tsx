@@ -26,8 +26,8 @@ export const ThreadItem = memo(function ThreadItem({
   const isSelected = thread.thread_id === threadId;
   const isSidebar = variant === "sidebar";
 
-   // Use selectedThread data when available for the current thread
-   const displayThread = useMemo(() => {
+  // Use selectedThread data when available for the current thread
+  const displayThread = useMemo(() => {
     if (selectedThread && selectedThread.thread_id === thread.thread_id) {
       return selectedThread; // Use fresh click data
     }
@@ -44,11 +44,11 @@ export const ThreadItem = memo(function ThreadItem({
 
   // Check if thread data is still loading/incomplete
   const isLoading =
-  !displayThread.threadTitle ||
-  displayThread.threadTitle.includes("undefined") ||
-  !displayThread.repository ||
-  displayThread.repository === "Unknown Repository" ||
-  displayThread.repository.includes("undefined");
+    !displayThread.threadTitle ||
+    displayThread.threadTitle.includes("undefined") ||
+    !displayThread.repository ||
+    displayThread.repository === "Unknown Repository" ||
+    displayThread.repository.includes("undefined");
 
   if (isLoading) {
     return (
@@ -111,10 +111,14 @@ export const ThreadItem = memo(function ThreadItem({
                 height="16"
                 className="flex-shrink-0"
               />
-              <span className="max-w-[90px] truncate">{displayThread.repository}</span>
+              <span className="max-w-[90px] truncate">
+                {displayThread.repository}
+              </span>
               <span>/</span>
               <GitBranch className="size-2.5 flex-shrink-0" />
-              <span className="max-w-[70px] truncate">{displayThread.branch}</span>
+              <span className="max-w-[70px] truncate">
+                {displayThread.branch}
+              </span>
             </div>
 
             <span>•</span>
@@ -127,7 +131,8 @@ export const ThreadItem = memo(function ThreadItem({
                 <div className="ml-1 flex items-center gap-1">
                   <ListTodo className="size-4 flex-shrink-0" />
                   <span>
-                    {displayThread.completedTasksCount}/{displayThread.totalTasksCount} tasks
+                    {displayThread.completedTasksCount}/
+                    {displayThread.totalTasksCount} tasks
                   </span>
                 </div>
               </>
@@ -137,7 +142,8 @@ export const ThreadItem = memo(function ThreadItem({
             <div className="flex items-center gap-1 text-xs text-gray-500">
               <ListTodo className="size-4 flex-shrink-0" />
               <span>
-                {displayThread.completedTasksCount}/{displayThread.totalTasksCount} tasks
+                {displayThread.completedTasksCount}/
+                {displayThread.totalTasksCount} tasks
               </span>
             </div>
           )}

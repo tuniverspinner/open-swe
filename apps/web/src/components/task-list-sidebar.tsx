@@ -23,7 +23,8 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
   const [threadId, setThreadId] = useQueryState("threadId", parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
-  const { threads, threadsLoading, setSelectedThread, isPending } = useThreads();
+  const { threads, threadsLoading, setSelectedThread, isPending } =
+    useThreads();
 
   // Handle thread navigation with enhanced click handler
   const handleThreadClick = useCallback(

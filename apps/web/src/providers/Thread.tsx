@@ -107,8 +107,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   const [selectedThread, setSelectedThread] = useState<ThreadWithTasks | null>(
     null,
   );
-  const [isPending, startTransition] = useTransition()
-  
+  const [isPending, startTransition] = useTransition();
 
   const updateThreadFromStream = useCallback(
     (threadId: string, streamValues: any) => {
@@ -275,8 +274,8 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     refreshThreads();
   }, [refreshThreads]);
 
-   // Clear selectedThread when navigating to different threads or away from threads
-   useEffect(() => {
+  // Clear selectedThread when navigating to different threads or away from threads
+  useEffect(() => {
     return () => {
       // Cleanup selectedThread when ThreadProvider unmounts or context changes
       setSelectedThread(null);
