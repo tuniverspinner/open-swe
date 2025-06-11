@@ -9,11 +9,19 @@ import { SimpleEvaluationResult } from "langsmith/vitest";
 
 const logger = createLogger(LogLevel.INFO, "Evaluator-RunTests");
 
+const VENV_PATH = ".venv";
+const RUN_PYTHON_IN_VENV = `${VENV_PATH}/bin/python`;
+const RUN_PIP_IN_VENV = `${VENV_PATH}/bin/pip`;
+
 const INSTALL_COMMANDS_REPO_MAP: Record<string, string[]> = {
   pyvista: [
-    "venv/bin/python -m pip install -e .",
-    "venv/bin/pip install -r requirements_test.txt",
-    "venv/bin/pip install -r requirements_docs.txt",
+    `${RUN_PYTHON_IN_VENV} -m pip install -e .`,
+    `${RUN_PIP_IN_VENV} install -r requirements_test.txt`,
+    `${RUN_PIP_IN_VENV} install -r requirements_docs.txt`,
+  ],
+  sqlfluff: [
+    `${RUN_PYTHON_IN_VENV} -m pip install -U tox`,
+    `${RUN_PIP_IN_VENV} install -U .`,
   ],
 };
 
@@ -23,7 +31,7 @@ async function setupEnv(
   repoName: string,
 ): Promise<boolean> {
   // 1. Create the virtual environment
-  const createVenvCommand = "python3.11 -m venv venv";
+  const createVenvCommand = "python3.11 -m venv .venv";
   const createVenvRes = await sandbox.process.executeCommand(
     createVenvCommand,
     absoluteRepoDir,
@@ -106,7 +114,7 @@ async function runTests(
   for (const test of tests) {
     try {
       const runTestRes = await sandbox.process.executeCommand(
-        `venv/bin/python -m pytest ${test}`,
+        `${RUN_PYTHON_IN_VENV} -m pytest ${test}`,
         absoluteRepoDir,
         undefined,
         TIMEOUT_SEC,

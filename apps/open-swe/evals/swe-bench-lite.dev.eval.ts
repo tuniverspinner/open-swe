@@ -43,72 +43,76 @@ const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 const GRAPH_NAME = "open_swe";
 
 ls.describe.skip(DATASET_NAME, () => {
-  ls.test.each(DATASET)("Can resolve issue", async ({ inputs }) => {
-    const lgClient = new LangGraphClient({
-      apiUrl: LANGGRAPH_URL,
-    });
+  ls.test.each(DATASET)(
+    "Can resolve issue",
+    async ({ inputs }) => {
+      const lgClient = new LangGraphClient({
+        apiUrl: LANGGRAPH_URL,
+      });
 
-    const input = await formatInputs(inputs);
+      const input = await formatInputs(inputs);
 
-    const thread = await lgClient.threads.create({
-      graphId: GRAPH_NAME,
-    });
-    logger.info("Starting run", {
-      thread_id: thread.thread_id,
-    });
-    const run = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
-      input,
-      config: {
-        recursion_limit: 250,
-        configurable: {
-          "x-github-installation-token": process.env.GITHUB_PAT,
-          "x-github-access-token": process.env.GITHUB_PAT,
-        }
-      },
-    });
+      const thread = await lgClient.threads.create({
+        graphId: GRAPH_NAME,
+      });
+      logger.info("Starting run", {
+        thread_id: thread.thread_id,
+      });
+      const run = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
+        input,
+        config: {
+          recursion_limit: 250,
+          configurable: {
+            "x-github-installation-token": process.env.GITHUB_PAT,
+            "x-github-access-token": process.env.GITHUB_PAT,
+          },
+        },
+      });
 
-    if (!("__interrupt__" in run)) {
-      throw new Error("Run did not interrupt with initial plan.")
-    }
-
-    logger.info("Completed planning step. Accepting plan", {
-      thread_id: thread.thread_id,
-      ...(run as Record<string, any>)["__interrupt__"],
-    })
-    ls.logOutputs(run)
-
-    // graph interrupted. we should now resume the run, accepting the plan.
-    const resumeValue: HumanResponse[] = [
-      {
-        type: "accept",
-        args: null,
-      },
-    ];
-    const resumeRun = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
-      command: {
-        resume: resumeValue,
-      },
-      config: {
-        recursion_limit: 250,
+      if (!("__interrupt__" in run)) {
+        throw new Error("Run did not interrupt with initial plan.");
       }
-    })
-    ls.logOutputs(resumeRun as Record<string, any>);
-    logger.info("Completed run.", {
-      thread_id: thread.thread_id,
-      ...resumeRun,
-    })
-    logger.info("Starting evaluator...")
 
-    const wrappedEvaluator = ls.wrapEvaluator(evaluator);
-    const evalResult = await wrappedEvaluator({
-      sweBenchInputs: inputs,
-      output: resumeRun as GraphState,
-    });
-    logger.info("Completed evaluator.", {
-      thread_id: thread.thread_id,
-      evalResult,
-    })
-  }, 600_000); // 10 min
+      logger.info("Completed planning step. Accepting plan", {
+        thread_id: thread.thread_id,
+        ...(run as Record<string, any>)["__interrupt__"],
+      });
+      ls.logOutputs(run);
+
+      // graph interrupted. we should now resume the run, accepting the plan.
+      const resumeValue: HumanResponse[] = [
+        {
+          type: "accept",
+          args: null,
+        },
+      ];
+      const resumeRun = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
+        command: {
+          resume: resumeValue,
+        },
+        config: {
+          recursion_limit: 250,
+        },
+      });
+      ls.logOutputs(resumeRun as Record<string, any>);
+      logger.info("Completed run.", {
+        thread_id: thread.thread_id,
+        ...resumeRun,
+      });
+      logger.info("Starting evaluator...");
+
+      const wrappedEvaluator = ls.wrapEvaluator(evaluator);
+      const evalResult = await wrappedEvaluator({
+        sweBenchInputs: inputs,
+        output: resumeRun as GraphState,
+      });
+      logger.info("Completed evaluator.", {
+        thread_id: thread.thread_id,
+        evalResult,
+      });
+    },
+    600_000,
+  ); // 10 min
 });
 
 ls.describe(DATASET_NAME, () => {
