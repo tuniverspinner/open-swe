@@ -172,7 +172,7 @@ export async function evaluator(inputs: {
 
   try {
     const res = await cloneRepo(sandbox, output.targetRepository, {
-      githubToken: githubToken,
+      githubAccessToken: githubToken,
     });
     if (res.exitCode !== 0) {
       logger.error("Failed to clone repository", {
