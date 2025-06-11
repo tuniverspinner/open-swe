@@ -1,4 +1,4 @@
-export interface SWEBench {
+export interface SWEBenchInput {
   /**
    * A formatted instance identifier, usually as repo_owner__repo_name-PR-number.
    */
@@ -11,6 +11,10 @@ export interface SWEBench {
    * The repository owner/name identifier from GitHub.
    */
   repo: string;
+  /**
+   * The original repository owner/name identifier, if the repo the agent is cloning is a fork.
+   */
+  original_repo?: string;
   /**
    * The commit hash of the repository representing the HEAD of the repository before the solution PR is applied.
    */

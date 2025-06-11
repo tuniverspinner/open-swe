@@ -120,6 +120,9 @@ export type TargetRepository = {
    * The branch to checkout when initially cloning the repository
    */
   branch?: string;
+  /**
+   * The base commit to use when initially cloning the repository
+   */
   baseCommit?: string;
 };
 

@@ -27,7 +27,7 @@
   },
   "include": [
     "**/*.ts",
-    "apps/open-swe/ls.jest.config.cjs"
+    "apps/open-swe/jest.config.cjs"
   ],
   "exclude": [
     "node_modules",
