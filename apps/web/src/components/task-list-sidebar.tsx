@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useThreads, ThreadWithTasks } from "@/providers/Thread";
 import { useQueryState, parseAsString } from "nuqs";
-import { useState } from "react";
+import { useState, useCallback, startTransition } from "react";
 import { ThreadItem } from "./thread-item";
 
 const THREADS_PER_PAGE = 10; // More threads per page in sidebar
@@ -23,14 +23,21 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
   const [threadId, setThreadId] = useQueryState("threadId", parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
-  const { threads, threadsLoading } = useThreads();
+  const { threads, threadsLoading, setSelectedThread, isPending } = useThreads();
 
-  // Handle thread navigation
-  const handleThreadClick = (thread: ThreadWithTasks) => {
-    setThreadId(thread.thread_id);
-    setTaskId(null);
-  };
+  // Handle thread navigation with enhanced click handler
+  const handleThreadClick = useCallback(
+    (thread: ThreadWithTasks) => {
+      // Prevent double-clicks and clicks on already selected thread
+      if (threadId === thread.thread_id || isPending) return;
 
+      startTransition(() => {
+        setSelectedThread(thread); // Fresh data immediately
+        setThreadId(thread.thread_id);
+      });
+    },
+    [setThreadId, setSelectedThread, threadId, isPending],
+  );
   // Sort threads by creation date (newest first) - already done in provider
   const sortedThreads = threads;
   const totalThreads = sortedThreads.length;

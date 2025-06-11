@@ -9,6 +9,7 @@ import {
   Dispatch,
   SetStateAction,
   useEffect,
+  useTransition,
 } from "react";
 import { createClient } from "./client";
 import { getMessageContentString } from "@open-swe/shared/messages";
@@ -32,6 +33,9 @@ interface ThreadContextType {
   refreshThreads: () => Promise<void>;
   getThread: (threadId: string) => Promise<ThreadWithTasks | null>;
   updateThreadFromStream: (threadId: string, streamValues: any) => void;
+  selectedThread: ThreadWithTasks | null;
+  setSelectedThread: (thread: ThreadWithTasks | null) => void;
+  isPending: boolean;
 }
 
 const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
@@ -49,8 +53,16 @@ function getThreadSearchMetadata(
 const getTaskCounts = (
   tasks?: TaskPlan,
   proposedPlan?: string[],
+  existingCounts?: { totalTasksCount: number; completedTasksCount: number },
 ): { totalTasksCount: number; completedTasksCount: number } => {
-  if (proposedPlan && !tasks) {
+  // Default to existing counts to prevent zero-flashing during loading states
+  const defaultCounts = existingCounts || {
+    totalTasksCount: 0,
+    completedTasksCount: 0,
+  };
+
+  // If we have proposed plans but no tasks yet (initial state)
+  if (proposedPlan && proposedPlan.length > 0 && !tasks) {
     return {
       totalTasksCount: proposedPlan.length,
       completedTasksCount: 0,
@@ -59,7 +71,7 @@ const getTaskCounts = (
 
   if (!tasks) {
     // No tasks passed, return 0s
-    return { totalTasksCount: 0, completedTasksCount: 0 };
+    return defaultCounts;
   }
 
   const activeTaskList = tasks.tasks.find(
@@ -67,7 +79,7 @@ const getTaskCounts = (
   );
   if (!activeTaskList) {
     // Something is wrong here. Return 0
-    return { totalTasksCount: 0, completedTasksCount: 0 };
+    return defaultCounts;
   }
 
   const activeTaskPlans = activeTaskList.planRevisions.find(
@@ -75,7 +87,7 @@ const getTaskCounts = (
   );
   if (!activeTaskPlans) {
     // Something is wrong here. Return 0
-    return { totalTasksCount: 0, completedTasksCount: 0 };
+    return defaultCounts;
   }
 
   return {
@@ -92,9 +104,12 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
 
   const [threads, setThreads] = useState<ThreadWithTasks[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
-  const [busyThreadIds, setBusyThreadIds] = useState<string[]>([]);
+  const [selectedThread, setSelectedThread] = useState<ThreadWithTasks | null>(
+    null,
+  );
+  const [isPending, startTransition] = useTransition()
+  
 
-  // Real-time thread updater for all properties (replaces polling)
   const updateThreadFromStream = useCallback(
     (threadId: string, streamValues: any) => {
       if (!threadId || !streamValues) return;
@@ -113,6 +128,10 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
         const { totalTasksCount, completedTasksCount } = getTaskCounts(
           plan,
           proposedPlan,
+          {
+            totalTasksCount: targetThread.totalTasksCount,
+            completedTasksCount: targetThread.completedTasksCount,
+          },
         );
 
         // Extract thread title from messages if available
@@ -256,6 +275,14 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     refreshThreads();
   }, [refreshThreads]);
 
+   // Clear selectedThread when navigating to different threads or away from threads
+   useEffect(() => {
+    return () => {
+      // Cleanup selectedThread when ThreadProvider unmounts or context changes
+      setSelectedThread(null);
+    };
+  }, []);
+
   const value = {
     threads,
     setThreads,
@@ -264,6 +291,9 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     refreshThreads,
     getThread,
     updateThreadFromStream,
+    selectedThread,
+    setSelectedThread,
+    isPending,
   };
 
   return (

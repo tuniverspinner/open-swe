@@ -1,8 +1,7 @@
 "use client";
-
+import { memo, useMemo } from "react";
 import { GitBranch, ArrowRight, ListTodo } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ThreadWithTasks } from "@/providers/Thread";
+import { ThreadWithTasks, useThreads } from "@/providers/Thread";
 import { cn } from "@/lib/utils";
 import { StatusIndicator } from "@/components/status-indicator";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,28 +15,40 @@ interface ThreadItemProps {
   className?: string;
 }
 
-export function ThreadItem({
+export const ThreadItem = memo(function ThreadItem({
   thread,
   onClick,
   variant = "dashboard",
   className,
 }: ThreadItemProps) {
   const [threadId] = useQueryState("threadId");
+  const { selectedThread } = useThreads();
   const isSelected = thread.thread_id === threadId;
   const isSidebar = variant === "sidebar";
 
-  const displayDate = new Date(thread.created_at).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+   // Use selectedThread data when available for the current thread
+   const displayThread = useMemo(() => {
+    if (selectedThread && selectedThread.thread_id === thread.thread_id) {
+      return selectedThread; // Use fresh click data
+    }
+    return thread; // Fall back to props safely
+  }, [thread, selectedThread]);
+
+  const displayDate = new Date(displayThread.created_at).toLocaleDateString(
+    "en-US",
+    {
+      month: "short",
+      day: "numeric",
+    },
+  );
 
   // Check if thread data is still loading/incomplete
   const isLoading =
-    !thread.threadTitle ||
-    thread.threadTitle.includes("undefined") ||
-    !thread.repository ||
-    thread.repository === "Unknown Repository" ||
-    thread.repository.includes("undefined");
+  !displayThread.threadTitle ||
+  displayThread.threadTitle.includes("undefined") ||
+  !displayThread.repository ||
+  displayThread.repository === "Unknown Repository" ||
+  displayThread.repository.includes("undefined");
 
   if (isLoading) {
     return (
@@ -80,16 +91,16 @@ export function ThreadItem({
       )}
       onClick={() => {
         if (!isSelected) {
-          onClick(thread);
+          onClick(displayThread);
         }
       }}
     >
       <div className="flex items-start gap-1.5">
         <div className="flex w-full min-w-0 flex-col gap-1">
           <div className="flex w-full items-center gap-1.5">
-            <StatusIndicator status={thread.status} />
+            <StatusIndicator status={displayThread.status} />
             <h4 className="w-full truncate text-xs leading-tight font-medium text-gray-900">
-              {thread.threadTitle}
+              {displayThread.threadTitle}
             </h4>
           </div>
 
@@ -100,10 +111,10 @@ export function ThreadItem({
                 height="16"
                 className="flex-shrink-0"
               />
-              <span className="max-w-[90px] truncate">{thread.repository}</span>
+              <span className="max-w-[90px] truncate">{displayThread.repository}</span>
               <span>/</span>
               <GitBranch className="size-2.5 flex-shrink-0" />
-              <span className="max-w-[70px] truncate">{thread.branch}</span>
+              <span className="max-w-[70px] truncate">{displayThread.branch}</span>
             </div>
 
             <span>•</span>
@@ -116,7 +127,7 @@ export function ThreadItem({
                 <div className="ml-1 flex items-center gap-1">
                   <ListTodo className="size-4 flex-shrink-0" />
                   <span>
-                    {thread.completedTasksCount}/{thread.totalTasksCount} tasks
+                    {displayThread.completedTasksCount}/{displayThread.totalTasksCount} tasks
                   </span>
                 </div>
               </>
@@ -126,7 +137,7 @@ export function ThreadItem({
             <div className="flex items-center gap-1 text-xs text-gray-500">
               <ListTodo className="size-4 flex-shrink-0" />
               <span>
-                {thread.completedTasksCount}/{thread.totalTasksCount} tasks
+                {displayThread.completedTasksCount}/{displayThread.totalTasksCount} tasks
               </span>
             </div>
           )}
@@ -139,4 +150,4 @@ export function ThreadItem({
       </div>
     </div>
   );
-}
+});
