@@ -2,6 +2,8 @@ import "@langchain/langgraph/zod";
 import { z } from "zod";
 import {
   LangGraphRunnableConfig,
+  Messages,
+  messagesStateReducer,
   MessagesZodState,
 } from "@langchain/langgraph/web";
 import { MODEL_OPTIONS, MODEL_OPTIONS_NO_THINKING } from "./models.js";
@@ -12,6 +14,8 @@ import {
   type RemoveUIMessage,
 } from "@langchain/langgraph-sdk/react-ui";
 import { GITHUB_TOKEN_COOKIE } from "../constants.js";
+import { withLangGraph } from "@langchain/langgraph/zod";
+import { BaseMessage } from "@langchain/core/messages";
 
 export type PlanItem = {
   /**
@@ -128,6 +132,24 @@ export type TargetRepository = {
 };
 
 export const GraphAnnotation = MessagesZodState.extend({
+  /**
+   * The internal messages. These are the messages which are
+   * passed to the LLM, truncated, removed etc. The main `messages`
+   * key is never modified to persist the content show on the client.
+   */
+  internalMessages: withLangGraph<BaseMessage[], Messages>(
+    z.custom<BaseMessage[]>(),
+    {
+      reducer: {
+        schema: z.custom<Messages>(),
+        fn: messagesStateReducer,
+      },
+      jsonSchemaExtra: {
+        langgraph_type: "messages",
+      },
+      default: () => [],
+    },
+  ),
   proposedPlan: z
     .array(z.string())
     .default(() => [])
@@ -188,6 +210,16 @@ export const GraphConfigurationMetadata: {
       | { type: "hidden" };
   };
 } = {
+  maxContextActions: {
+    x_open_swe_ui_config: {
+      type: "number",
+      default: 10,
+      min: 1,
+      max: 50,
+      description:
+        "Maximum number of context gathering actions during planning",
+    },
+  },
   plannerModelName: {
     x_open_swe_ui_config: {
       type: "select",
@@ -278,16 +310,6 @@ export const GraphConfigurationMetadata: {
       description: "Controls randomness (0 = deterministic, 2 = creative)",
     },
   },
-  maxContextActions: {
-    x_open_swe_ui_config: {
-      type: "number",
-      default: 6,
-      min: 1,
-      max: 20,
-      description:
-        "Maximum number of context gathering actions during planning",
-    },
-  },
   maxTokens: {
     x_open_swe_ui_config: {
       type: "number",
@@ -306,6 +328,17 @@ export const GraphConfigurationMetadata: {
 };
 
 export const GraphConfiguration = z.object({
+  /**
+   * The maximum number of context gathering actions to take during planning.
+   * Each action consists of 2 messages (request & result), plus 1 human message.
+   * Total messages = maxContextActions * 2 + 1
+   * @default 10
+   */
+  maxContextActions: z
+    .number()
+    .optional()
+    .langgraph.metadata(GraphConfigurationMetadata.maxContextActions),
+
   /**
    * The model ID to use for the planning step.
    * This includes initial planning, and rewriting.
@@ -403,16 +436,6 @@ export const GraphConfiguration = z.object({
     .optional()
     .langgraph.metadata(GraphConfigurationMetadata.summarizerTemperature),
 
-  /**
-   * The maximum number of context gathering actions to take during planning.
-   * Each action consists of 2 messages (request & result), plus 1 human message.
-   * Total messages = maxContextActions * 2 + 1
-   * @default 6
-   */
-  maxContextActions: z
-    .number()
-    .optional()
-    .langgraph.metadata(GraphConfigurationMetadata.maxContextActions),
   /**
    * The maximum number of tokens to generate in an individual generation.
    * @default 10_000

@@ -1,81 +1,66 @@
 "use client";
-
+import { memo } from "react";
+import { differenceInHours, differenceInMinutes, format } from "date-fns";
 import { GitBranch, ArrowRight, ListTodo } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { ThreadWithTasks } from "@/providers/Thread";
+import { useThreads } from "@/providers/Thread";
 import { cn } from "@/lib/utils";
 import { StatusIndicator } from "@/components/status-indicator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { GitHubSVG } from "./icons/github";
 import { useQueryState } from "nuqs";
+import { Thread } from "@langchain/langgraph-sdk";
+import { GraphState } from "@open-swe/shared/open-swe/types";
+import { getThreadTasks, getThreadTitle } from "@/lib/thread";
 
 interface ThreadItemProps {
-  thread: ThreadWithTasks;
-  onClick: (thread: ThreadWithTasks) => void;
+  thread: Thread<GraphState>;
+  onClick: (thread: Thread<GraphState>) => void;
   variant?: "sidebar" | "dashboard";
   className?: string;
 }
 
-export function ThreadItem({
+function formatRelativeDate(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+
+  const minutesAgo = differenceInMinutes(now, date);
+  const hoursAgo = differenceInHours(now, date);
+
+  // Within the last hour - show minutes ago
+  if (minutesAgo < 60) {
+    return `${minutesAgo} min ago`;
+  }
+
+  // Between 1-24 hours ago - show hours ago
+  if (hoursAgo < 24) {
+    return `${hoursAgo} hour${hoursAgo === 1 ? "" : "s"} ago`;
+  }
+
+  // More than 24 hours ago - show month, day format
+  return format(date, "MMM do");
+}
+
+export const ThreadItem = memo(function ThreadItem({
   thread,
   onClick,
   variant = "dashboard",
   className,
 }: ThreadItemProps) {
   const [threadId] = useQueryState("threadId");
+  const { recentlyUpdatedThreads } = useThreads();
   const isSelected = thread.thread_id === threadId;
   const isSidebar = variant === "sidebar";
+  const isRecentlyUpdated = recentlyUpdatedThreads.has(thread.thread_id);
 
-  const displayDate = new Date(thread.created_at).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const displayDate = formatRelativeDate(thread.created_at);
 
-  // Check if thread data is still loading/incomplete
-  const isLoading =
-    !thread.threadTitle ||
-    thread.threadTitle.includes("undefined") ||
-    !thread.repository ||
-    thread.repository === "Unknown Repository" ||
-    thread.repository.includes("undefined");
-
-  if (isLoading) {
-    return (
-      <div
-        className={cn(
-          "rounded-md border border-gray-200 bg-inherit p-1.5 shadow-sm",
-          className,
-        )}
-      >
-        <div className="flex items-start gap-1.5">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <Skeleton className="h-3 w-3 rounded-full" />
-              <Skeleton className="h-3 w-24" />
-            </div>
-
-            <div className="mt-1 flex items-center gap-1 text-xs">
-              <Skeleton className="h-3 w-3" /> {/* GitHub icon placeholder */}
-              <Skeleton className="h-3 w-16" /> {/* Repo */}
-              <Skeleton className="ml-0.5 h-2.5 w-2.5" />{" "}
-              <Skeleton className="ml-0.5 h-3 w-12" /> {/* Branch */}
-              <Skeleton className="ml-auto h-3 w-10" /> {/* Date */}
-            </div>
-
-            <div className="mt-1">
-              <Skeleton className="h-4 w-20 rounded" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const { totalTasks, completedTasks } = getThreadTasks(thread);
 
   return (
     <div
       className={cn(
         "group cursor-pointer rounded-md border border-gray-200 bg-inherit p-2 shadow-sm transition-colors hover:bg-gray-50 hover:shadow-md",
         isSelected && "border-primary",
+        isRecentlyUpdated && "animate-pulse border-blue-200 bg-blue-50",
         className,
       )}
       onClick={() => {
@@ -89,7 +74,7 @@ export function ThreadItem({
           <div className="flex w-full items-center gap-1.5">
             <StatusIndicator status={thread.status} />
             <h4 className="w-full truncate text-xs leading-tight font-medium text-gray-900">
-              {thread.threadTitle}
+              {getThreadTitle(thread)}
             </h4>
           </div>
 
@@ -100,10 +85,14 @@ export function ThreadItem({
                 height="16"
                 className="flex-shrink-0"
               />
-              <span className="max-w-[90px] truncate">{thread.repository}</span>
+              <span className="max-w-[90px] truncate">
+                {thread.values?.targetRepository?.repo || "x"}
+              </span>
               <span>/</span>
               <GitBranch className="size-2.5 flex-shrink-0" />
-              <span className="max-w-[70px] truncate">{thread.branch}</span>
+              <span className="max-w-[70px] truncate">
+                {thread.values?.targetRepository?.branch || "x"}
+              </span>
             </div>
 
             <span>•</span>
@@ -116,7 +105,7 @@ export function ThreadItem({
                 <div className="ml-1 flex items-center gap-1">
                   <ListTodo className="size-4 flex-shrink-0" />
                   <span>
-                    {thread.completedTasksCount}/{thread.totalTasksCount} tasks
+                    {completedTasks}/{totalTasks} tasks
                   </span>
                 </div>
               </>
@@ -126,7 +115,7 @@ export function ThreadItem({
             <div className="flex items-center gap-1 text-xs text-gray-500">
               <ListTodo className="size-4 flex-shrink-0" />
               <span>
-                {thread.completedTasksCount}/{thread.totalTasksCount} tasks
+                {completedTasks}/{totalTasks} tasks
               </span>
             </div>
           )}
@@ -139,4 +128,4 @@ export function ThreadItem({
       </div>
     </div>
   );
-}
+});

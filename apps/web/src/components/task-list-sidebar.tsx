@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Archive,
   ChevronLeft,
@@ -7,31 +6,31 @@ import {
   PanelRightOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useThreads, ThreadWithTasks } from "@/providers/Thread";
+import { useThreads } from "@/providers/Thread";
 import { useQueryState, parseAsString } from "nuqs";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ThreadItem } from "./thread-item";
+import { Thread } from "@langchain/langgraph-sdk";
+import { GraphState } from "@open-swe/shared/open-swe/types";
 
-const THREADS_PER_PAGE = 10; // More threads per page in sidebar
+const THREADS_PER_PAGE = 10;
 
-// TODO: Clarify Language about Threads and Tasks in the TaskListSidebar component
 interface TaskListSidebarProps {
   onCollapse?: () => void;
 }
 
 export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
-  const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
   const [threadId, setThreadId] = useQueryState("threadId", parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
-  const { threads, threadsLoading } = useThreads();
+  const { threads, threadsLoading, handleThreadClick } = useThreads();
 
-  // Handle thread navigation
-  const handleThreadClick = (thread: ThreadWithTasks) => {
-    setThreadId(thread.thread_id);
-    setTaskId(null);
-  };
-
-  // Sort threads by creation date (newest first) - already done in provider
+  const onThreadClick = useCallback(
+    (thread: Thread<GraphState>) => {
+      handleThreadClick(thread, threadId, setThreadId);
+    },
+    [handleThreadClick, threadId, setThreadId],
+  );
+  // Sort threads by creation date (newest first) TODO use provider (already done there)
   const sortedThreads = threads;
   const totalThreads = sortedThreads.length;
   const totalPages = Math.ceil(totalThreads / THREADS_PER_PAGE);
@@ -63,7 +62,7 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {threadsLoading ? (
+        {threadsLoading && threads.length === 0 ? (
           <div className="flex h-full items-center justify-center">
             <div className="text-center text-gray-500">
               <Archive className="mx-auto mb-2 h-5 w-5 animate-pulse opacity-50" />
@@ -77,7 +76,7 @@ export default function TaskListSidebar({ onCollapse }: TaskListSidebarProps) {
                 <ThreadItem
                   key={thread.thread_id}
                   thread={thread}
-                  onClick={handleThreadClick}
+                  onClick={onThreadClick}
                   variant="sidebar"
                 />
               ))}

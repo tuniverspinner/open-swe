@@ -16,7 +16,7 @@ import { stopSandbox } from "../utils/sandbox.js";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { getCurrentPlanItem } from "../utils/current-task.js";
 import { getMessageContentString } from "@open-swe/shared/messages";
-import { getActivePlanItems } from "../utils/task-plan.js";
+import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";
 import { SANDBOX_ROOT_DIR } from "@open-swe/shared/constants";
 
 const logger = createLogger(LogLevel.INFO, "GenerateMessageNode");
@@ -147,14 +147,17 @@ export async function generateAction(
     requestHumanHelpTool,
     updatePlanTool,
   ];
-  const modelWithTools = model.bindTools(tools, { tool_choice: "auto" });
+  const modelWithTools = model.bindTools(tools, {
+    tool_choice: "auto",
+    parallel_tool_calls: false,
+  });
 
   const response = await modelWithTools.invoke([
     {
       role: "system",
       content: formatPrompt(state),
     },
-    ...state.messages,
+    ...state.internalMessages,
   ]);
 
   const hasToolCalls = !!response.tool_calls?.length;
@@ -178,6 +181,7 @@ export async function generateAction(
 
   return {
     messages: [response],
+    internalMessages: [response],
     ...(newSandboxSessionId && { sandboxSessionId: newSandboxSessionId }),
   };
 }

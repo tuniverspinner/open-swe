@@ -19,7 +19,7 @@ import {
   completePlanItem,
   getActivePlanItems,
   getActiveTask,
-} from "../utils/task-plan.js";
+} from "@open-swe/shared/open-swe/tasks";
 import { getCompletedPlanItems } from "../utils/current-task.js";
 
 const taskSummarySysPrompt = `You are operating as a terminal-based agentic coding assistant built by LangChain. It wraps LLM models to enable natural language interaction with a local codebase. You are expected to be precise, safe, and helpful.
@@ -107,7 +107,7 @@ async function generateTaskSummaryFunc(
     },
     {
       role: "user",
-      content: formatUserMessage(state.messages, activePlanItems),
+      content: formatUserMessage(state.internalMessages, activePlanItems),
     },
   ]);
 
@@ -144,7 +144,7 @@ export async function summarizeTaskSteps(
     taskSummary.summary,
   );
 
-  const removedMessages = removeLastTaskMessages(state.messages);
+  const removedMessages = removeLastTaskMessages(state.internalMessages);
   logger.info(`Removing ${removedMessages.length} message(s) from state.`);
 
   const condensedTaskMessage = new AIMessage({
@@ -159,7 +159,8 @@ export async function summarizeTaskSteps(
   const allTasksCompleted = activePlanItems.every((p) => p.completed);
   if (allTasksCompleted) {
     const commandUpdate: GraphUpdate = {
-      messages: newMessagesStateUpdate,
+      messages: [condensedTaskMessage],
+      internalMessages: newMessagesStateUpdate,
       plan: updatedTaskPlan,
     };
     return new Command({
@@ -169,7 +170,8 @@ export async function summarizeTaskSteps(
   }
 
   const commandUpdate: GraphUpdate = {
-    messages: newMessagesStateUpdate,
+    messages: [condensedTaskMessage],
+    internalMessages: newMessagesStateUpdate,
     plan: updatedTaskPlan,
   };
   return new Command({

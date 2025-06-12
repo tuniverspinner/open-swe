@@ -15,14 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
-import { useGitHubApp } from "@/hooks/useGitHubApp";
+import { useGitHubAppProvider } from "@/providers/GitHubApp";
 import { GitBranch, Shield } from "lucide-react";
+import { TargetRepository } from "@open-swe/shared/open-swe/types";
 
 interface BranchSelectorProps {
   disabled?: boolean;
   placeholder?: string;
   buttonClassName?: string;
   chatStarted?: boolean;
+  streamTargetRepository?: TargetRepository;
 }
 
 export function BranchSelector({
@@ -30,6 +32,7 @@ export function BranchSelector({
   placeholder = "Select a branch...",
   buttonClassName,
   chatStarted = false,
+  streamTargetRepository,
 }: BranchSelectorProps) {
   const [open, setOpen] = useState(false);
   const {
@@ -39,8 +42,11 @@ export function BranchSelector({
     selectedBranch,
     setSelectedBranch,
     selectedRepository,
+    branchesHasMore,
+    branchesLoadingMore,
+    loadMoreBranches,
     defaultBranch,
-  } = useGitHubApp();
+  } = useGitHubAppProvider();
 
   // Auto-select default branch when repository changes and branches are loaded
   useEffect(() => {
@@ -144,6 +150,12 @@ export function BranchSelector({
     );
   }
 
+  // Determine the display value - prioritize stream data when chatStarted and available
+  const displayValue =
+    chatStarted && streamTargetRepository?.branch
+      ? streamTargetRepository.branch
+      : selectedBranch;
+
   if (chatStarted) {
     return (
       <Button
@@ -154,7 +166,7 @@ export function BranchSelector({
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <GitBranch />
           <span className="truncate text-left">
-            {selectedBranch || placeholder}
+            {displayValue || placeholder}
           </span>
         </div>
       </Button>
@@ -232,6 +244,21 @@ export function BranchSelector({
                   );
                 })}
             </CommandGroup>
+            {branchesHasMore && (
+              <CommandGroup>
+                <CommandItem
+                  onSelect={() => {
+                    loadMoreBranches();
+                  }}
+                  disabled={branchesLoadingMore}
+                  className="justify-center"
+                >
+                  {branchesLoadingMore
+                    ? "Loading more..."
+                    : "Load more branches"}
+                </CommandItem>
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

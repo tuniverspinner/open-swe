@@ -21,8 +21,8 @@ import {
   PanelRightClose,
   SquarePen,
   XIcon,
-  Plus,
   Settings,
+  FilePlus2,
 } from "lucide-react";
 import { useQueryState, parseAsBoolean, parseAsString } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
@@ -30,7 +30,7 @@ import TaskListSidebar from "../task-list-sidebar";
 import { toast } from "sonner";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Label } from "../ui/label";
-import { useFileUpload } from "@/hooks/use-file-upload";
+import { useFileUpload } from "@/hooks/useFileUpload";
 import { ContentBlocksPreview } from "./ContentBlocksPreview";
 import {
   useArtifactOpen,
@@ -39,12 +39,13 @@ import {
   useArtifactContext,
 } from "./artifact";
 import { GitHubOAuthButton } from "../github/github-oauth-button";
-import { useGitHubApp } from "@/hooks/useGitHubApp";
+import { useGitHubAppProvider } from "@/providers/GitHubApp";
 import TaskList from "../task-list";
 import { ConfigurationSidebar } from "../configuration-sidebar";
-import { DEFAULT_CONFIG_KEY, useConfigStore } from "@/hooks/use-config-store";
+import { DEFAULT_CONFIG_KEY, useConfigStore } from "@/hooks/useConfigStore";
 import { RepositoryBranchSelectors } from "../github/repo-branch-selectors";
 import { useRouter } from "next/navigation";
+import { OpenPRButton } from "../github/open-pr-button";
 import {
   Tooltip,
   TooltipContent,
@@ -53,7 +54,7 @@ import {
 } from "../ui/tooltip";
 import { BaseMessage } from "@langchain/core/messages";
 import { TaskPlanView } from "../tasks";
-import { useTaskPlan } from "../tasks/use-task-plan";
+import { useTaskPlan } from "../tasks/useTaskPlan";
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -100,12 +101,10 @@ export function Thread() {
   const { push } = useRouter();
   const [artifactContext, setArtifactContext] = useArtifactContext();
   const [artifactOpen, closeArtifact] = useArtifactOpen();
-  const { selectedRepository } = useGitHubApp();
+  const { selectedRepository } = useGitHubAppProvider();
   const { getConfig } = useConfigStore();
   const {
     taskPlan,
-    handleTaskChange,
-    handleRevisionChange,
     handleEditPlanItem,
     handleAddPlanItem,
     handleDeletePlanItem,
@@ -117,6 +116,7 @@ export function Thread() {
     "chatHistoryOpen",
     parseAsBoolean.withDefault(false),
   );
+  const [baseBranch, setBaseBranch] = useQueryState("base-branch");
 
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
 
@@ -246,12 +246,14 @@ export function Thread() {
     const context =
       Object.keys(artifactContext).length > 0 ? artifactContext : undefined;
 
+    const newMessages = [
+      ...toolMessages,
+      newHumanMessage,
+    ] as unknown as BaseMessage[];
     stream.submit(
       {
-        messages: [
-          ...toolMessages,
-          newHumanMessage,
-        ] as unknown as BaseMessage[],
+        messages: newMessages,
+        internalMessages: newMessages,
         context,
         targetRepository: selectedRepository,
       },
@@ -437,8 +439,8 @@ export function Thread() {
                 {taskPlan && (
                   <TaskPlanView
                     taskPlan={taskPlan}
-                    onTaskChange={handleTaskChange}
-                    onRevisionChange={handleRevisionChange}
+                    onTaskChange={() => {}}
+                    onRevisionChange={() => {}}
                     onEditPlanItem={handleEditPlanItem}
                     onAddPlanItem={handleAddPlanItem}
                     onDeletePlanItem={handleDeletePlanItem}
@@ -448,6 +450,7 @@ export function Thread() {
 
               <div className="col-span-2 flex items-center justify-end gap-2 text-gray-700">
                 <GitHubOAuthButton />
+                <OpenPRButton />
                 <TooltipIconButton
                   tooltip="Configuration"
                   variant="ghost"
@@ -456,13 +459,6 @@ export function Thread() {
                   }}
                 >
                   <Settings className="size-4" />
-                </TooltipIconButton>
-                <TooltipIconButton
-                  tooltip="New thread"
-                  variant="ghost"
-                  onClick={() => setThreadId(null)}
-                >
-                  <SquarePen className="size-4" />
                 </TooltipIconButton>
               </div>
 
@@ -582,9 +578,9 @@ export function Thread() {
                             <TooltipTrigger>
                               <Label
                                 htmlFor="file-input"
-                                className="mr-1 ml-2 flex cursor-pointer items-center gap-2"
+                                className="mx-1 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full border-[1px] border-gray-300 bg-inherit text-gray-500 hover:text-gray-700"
                               >
-                                <Plus className="size-4 text-gray-600" />
+                                <FilePlus2 className="size-4" />
                               </Label>
                             </TooltipTrigger>
                             <TooltipContent>Attach files</TooltipContent>
@@ -600,6 +596,16 @@ export function Thread() {
                           className="hidden"
                         />
                         <RepositoryBranchSelectors />
+                        {chatStarted && (
+                          <TooltipIconButton
+                            tooltip="New thread"
+                            variant="outline"
+                            onClick={() => setThreadId(null)}
+                            className="ml-1 h-8 w-8 rounded-full border-gray-300 bg-inherit text-gray-500 hover:text-gray-700"
+                          >
+                            <SquarePen className="size-4" />
+                          </TooltipIconButton>
+                        )}
 
                         {stream.isLoading ? (
                           <Button
@@ -607,7 +613,7 @@ export function Thread() {
                             onClick={() => stream.stop()}
                             className="ml-auto"
                           >
-                            <LoaderCircle className="h-4 w-4 animate-spin" />
+                            <LoaderCircle className="size-4 animate-spin" />
                             Cancel
                           </Button>
                         ) : (

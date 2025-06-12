@@ -1,26 +1,30 @@
 "use client";
-
 import { Archive, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useThreads, ThreadWithTasks } from "@/providers/Thread";
+import { useThreads } from "@/providers/Thread";
 import { useQueryState, parseAsString } from "nuqs";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { ThreadItem } from "./thread-item";
+import { Thread } from "@langchain/langgraph-sdk";
+import { GraphState } from "@open-swe/shared/open-swe/types";
 
 const THREADS_PER_PAGE = 5;
 
 export default function TaskList() {
   const [taskId, setTaskId] = useQueryState("taskId", parseAsString);
-  const [_threadId, setThreadId] = useQueryState("threadId", parseAsString);
+  const [threadId, setThreadId] = useQueryState("threadId", parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
-  const { threads, threadsLoading } = useThreads();
+  const { threads, threadsLoading, handleThreadClick } = useThreads();
 
   const isDashboardMode = !taskId;
 
-  const handleThreadClick = (thread: ThreadWithTasks) => {
-    setThreadId(thread.thread_id);
-    setTaskId(null);
-  };
+  const onThreadClick = useCallback(
+    (thread: Thread<GraphState>) => {
+      handleThreadClick(thread, threadId, setThreadId);
+      setTaskId(null);
+    },
+    [handleThreadClick, threadId, setThreadId, setTaskId],
+  );
 
   if (!isDashboardMode) {
     return null;
@@ -51,7 +55,7 @@ export default function TaskList() {
               <ThreadItem
                 key={thread.thread_id}
                 thread={thread}
-                onClick={handleThreadClick}
+                onClick={onThreadClick}
                 variant="dashboard"
               />
             ))}
