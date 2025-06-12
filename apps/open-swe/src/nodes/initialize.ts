@@ -54,7 +54,7 @@ export async function initialize(
 
   logger.info("Creating sandbox...");
   const sandbox = await daytonaClient().create({
-    image: SNAPSHOT_NAME,
+    snapshot: SNAPSHOT_NAME,
   });
 
   const res = await cloneRepo(sandbox, targetRepository, {
@@ -96,3 +96,4 @@ export async function initialize(
     codebaseTree,
   };
 }
+
