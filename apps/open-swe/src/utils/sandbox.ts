@@ -1,4 +1,11 @@
-import { Daytona, Sandbox, SandboxState } from "@daytonaio/sdk";
+import { 
+  Daytona, 
+  Sandbox, 
+  SandboxState,
+  CreateSandboxFromSnapshotParams,
+  CreateSandboxFromImageParams,
+  Resources
+} from "@daytonaio/sdk";
 import { createLogger, LogLevel } from "./logger.js";
 
 const logger = createLogger(LogLevel.INFO, "Sandbox");
@@ -74,3 +81,4 @@ export async function deleteSandbox(
     return false;
   }
 }
+
