@@ -1,4 +1,3 @@
-import { GITHUB_TOKEN_COOKIE } from "@open-swe/shared/constants";
 import * as jwt from "jsonwebtoken";
 
 function getBaseApiUrl(): string {
@@ -97,7 +96,6 @@ export async function getRepositoryBranches(
   const perPage = 100; // Maximum allowed by GitHub API
 
   // First, get repository info to ensure we have the default branch
-
   const repoResponse = await fetch(
     `${getBaseApiUrl()}github/proxy/repos/${owner}/${repo}`,
     {
@@ -147,15 +145,43 @@ export async function getRepositoryBranches(
     page++;
   }
 
-  // Ensure default branch is at the beginning if it exists
   if (defaultBranch) {
-    const defaultBranchIndex = allBranches.findIndex(
+    const defaultBranchExists = allBranches.some(
       (branch) => branch.name === defaultBranch,
     );
-    if (defaultBranchIndex > 0) {
-      const defaultBranchData = allBranches[defaultBranchIndex];
-      allBranches.splice(defaultBranchIndex, 1);
-      allBranches.unshift(defaultBranchData);
+
+    if (!defaultBranchExists) {
+      try {
+        const defaultBranchResponse = await fetch(
+          `${getBaseApiUrl()}github/proxy/repos/${owner}/${repo}/branches/${defaultBranch}`,
+          {
+            headers: {
+              Accept: "application/vnd.github.v3+json",
+              "User-Agent": "OpenSWE-Agent",
+            },
+          },
+        );
+
+        if (defaultBranchResponse.ok) {
+          const defaultBranchData = await defaultBranchResponse.json();
+          allBranches.unshift(defaultBranchData); // Add to beginning
+        }
+      } catch (error) {
+        console.error(
+          `Error fetching default branch '${defaultBranch}' for ${owner}/${repo}:`,
+          error,
+        );
+      }
+    } else {
+      // Move default branch to the beginning if it exists
+      const defaultBranchIndex = allBranches.findIndex(
+        (branch) => branch.name === defaultBranch,
+      );
+      if (defaultBranchIndex > 0) {
+        const defaultBranchData = allBranches[defaultBranchIndex];
+        allBranches.splice(defaultBranchIndex, 1);
+        allBranches.unshift(defaultBranchData);
+      }
     }
   }
 
