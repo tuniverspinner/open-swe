@@ -70,25 +70,36 @@ export class ConcurrencyLimiter {
 export async function processConcurrently<T, R>(
   items: T[],
   processor: (item: T) => Promise<R>,
-  config: ConcurrencyConfig = DEFAULT_CONCURRENCY_CONFIG
+  config: ConcurrencyConfig = DEFAULT_CONCURRENCY_CONFIG,
 ): Promise<R[]> {
   const limiter = new ConcurrencyLimiter(config);
   const results: R[] = [];
-  
+
   // Process items in batches if batchSize is specified
   if (config.batchSize && items.length > config.batchSize) {
     for (let i = 0; i < items.length; i += config.batchSize) {
       const batch = items.slice(i, i + config.batchSize);
-      const batchPromises = batch.map(item => limiter.execute(() => processor(item)));
+      const batchPromises = batch.map((item) =>
+        limiter.execute(() => processor(item)),
+      );
       const batchResults = await Promise.allSettled(batchPromises);
-      results.push(...batchResults.filter(r => r.status === 'fulfilled').map(r => (r as PromiseFulfilledResult<R>).value));
+      results.push(
+        ...batchResults
+          .filter((r) => r.status === "fulfilled")
+          .map((r) => (r as PromiseFulfilledResult<R>).value),
+      );
     }
   } else {
-    const promises = items.map(item => limiter.execute(() => processor(item)));
+    const promises = items.map((item) =>
+      limiter.execute(() => processor(item)),
+    );
     const settledResults = await Promise.allSettled(promises);
-    results.push(...settledResults.filter(r => r.status === 'fulfilled').map(r => (r as PromiseFulfilledResult<R>).value));
+    results.push(
+      ...settledResults
+        .filter((r) => r.status === "fulfilled")
+        .map((r) => (r as PromiseFulfilledResult<R>).value),
+    );
   }
-  
+
   return results;
 }
-

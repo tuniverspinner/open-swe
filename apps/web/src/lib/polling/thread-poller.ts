@@ -1,5 +1,9 @@
 import { ThreadWithTasks } from "@/providers/Thread";
-import { processConcurrently, ConcurrencyConfig, DEFAULT_CONCURRENCY_CONFIG } from "@/lib/concurrency-limiter";
+import {
+  processConcurrently,
+  ConcurrencyConfig,
+  DEFAULT_CONCURRENCY_CONFIG,
+} from "@/lib/concurrency-limiter";
 
 export interface PollConfig {
   interval: number;
@@ -26,7 +30,10 @@ export class ThreadPoller {
     this.config = config;
     this.threads = threads;
     this.getThreadFn = getThreadFn;
-    this.concurrencyConfig = { ...DEFAULT_CONCURRENCY_CONFIG, ...config.concurrency };
+    this.concurrencyConfig = {
+      ...DEFAULT_CONCURRENCY_CONFIG,
+      ...config.concurrency,
+    };
   }
 
   start(): void {
@@ -62,7 +69,7 @@ export class ThreadPoller {
           const updatedThread = await this.getThreadFn(currentThread.thread_id);
           return { currentThread, updatedThread };
         },
-        this.concurrencyConfig
+        this.concurrencyConfig,
       );
 
       const updatedThreads: ThreadWithTasks[] = [];
@@ -77,7 +84,7 @@ export class ThreadPoller {
             changedThreadIds.push(updatedThread.thread_id);
           }
         } else {
-          // On error or null result, keep the current thread  
+          // On error or null result, keep the current thread
           if (result && result.currentThread) {
             updatedThreads.push(result.currentThread);
           }
@@ -109,5 +116,3 @@ export class ThreadPoller {
     );
   }
 }
-
-

@@ -15,7 +15,11 @@ import { createClient } from "./client";
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { TaskPlan, GraphState } from "@open-swe/shared/open-swe/types";
 import { useThreadPolling } from "@/hooks/useThreadPolling";
-import { processConcurrently, ConcurrencyConfig, DEFAULT_CONCURRENCY_CONFIG } from "@/lib/concurrency-limiter";
+import {
+  processConcurrently,
+  ConcurrencyConfig,
+  DEFAULT_CONCURRENCY_CONFIG,
+} from "@/lib/concurrency-limiter";
 
 export interface ThreadWithTasks extends Thread {
   threadTitle: string;
@@ -136,7 +140,7 @@ const fetchThreadWithState = async (
       client.threads.getState(threadId).catch((stateError) => {
         console.error("Failed to get state data:", stateError);
         return null;
-      })
+      }),
     ]);
     return { thread, stateData };
   } catch (error) {
@@ -145,10 +149,13 @@ const fetchThreadWithState = async (
   }
 };
 
-export function ThreadProvider({ 
-  children, 
-  config = {} 
-}: { children: ReactNode; config?: ThreadProviderConfig }) {
+export function ThreadProvider({
+  children,
+  config = {},
+}: {
+  children: ReactNode;
+  config?: ThreadProviderConfig;
+}) {
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
   const assistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "";
@@ -161,7 +168,10 @@ export function ThreadProvider({
   >(new Set());
 
   // Merge default concurrency config with provided config
-  const concurrencyConfig = { ...DEFAULT_CONCURRENCY_CONFIG, ...config.concurrency };
+  const concurrencyConfig = {
+    ...DEFAULT_CONCURRENCY_CONFIG,
+    ...config.concurrency,
+  };
 
   const getThread = useCallback(
     async (threadId: string): Promise<ThreadWithTasks | null> => {
@@ -170,7 +180,7 @@ export function ThreadProvider({
 
       // Use the helper function to fetch thread data and state in parallel
       const result = await fetchThreadWithState(client, threadId);
-      
+
       if (!result) {
         return null;
       }
@@ -250,9 +260,11 @@ export function ThreadProvider({
           }
           return enhanceThreadWithTasks(result.thread, result.stateData);
         },
-        concurrencyConfig
+        concurrencyConfig,
       );
-      const enhancedThreads = enhancedThreadsResults.filter((thread): thread is ThreadWithTasks => thread !== null);
+      const enhancedThreads = enhancedThreadsResults.filter(
+        (thread): thread is ThreadWithTasks => thread !== null,
+      );
 
       enhancedThreads.sort(
         (a, b) =>
@@ -334,7 +346,3 @@ export function useThreads() {
   }
   return context;
 }
-
-
-
-
