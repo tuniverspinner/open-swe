@@ -110,6 +110,35 @@ const getTaskCounts = (
   };
 };
 
+/**
+ * Helper function to fetch both thread data and thread state in parallel for a single thread
+ * @param client - The LangGraph client instance
+ * @param threadId - The thread ID to fetch data for
+ * @returns Promise resolving to an object with thread data and state data, or null if thread fetch fails
+ */
+const fetchThreadWithState = async (
+  client: ReturnType<typeof createClient>,
+  threadId: string,
+): Promise<{
+  thread: Thread;
+  stateData: { values: GraphState } | null;
+} | null> => {
+  try {
+    // Fetch thread details and state in parallel using Promise.all()
+    const [thread, stateData] = await Promise.all([
+      client.threads.get(threadId),
+      client.threads.getState(threadId).catch((stateError) => {
+        console.error("Failed to get state data:", stateError);
+        return null;
+      })
+    ]);
+    return { thread, stateData };
+  } catch (error) {
+    console.error(`Failed to fetch thread ${threadId}:`, error);
+    return null;
+  }
+};
+
 export function ThreadProvider({ children }: { children: ReactNode }) {
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
   const assistantId: string | undefined =
@@ -310,4 +339,5 @@ export function useThreads() {
   }
   return context;
 }
+
 
