@@ -1,5 +1,6 @@
 // Run evals over the development SWE Bench Lite dataset
 
+import { v4 as uuidv4 } from "uuid";
 import * as ls from "langsmith/vitest";
 import { Client as LangSmithClient, Example } from "langsmith";
 import { Client as LangGraphClient } from "@langchain/langgraph-sdk";
@@ -9,6 +10,7 @@ import { createLogger, LogLevel } from "../src/utils/logger.js";
 import { HumanResponse } from "@langchain/langgraph/prebuilt";
 import { evaluator } from "./evaluator.js";
 import { GraphState } from "@open-swe/shared/open-swe/types";
+import { GITHUB_TOKEN_COOKIE } from "@open-swe/shared/constants";
 
 const logger = createLogger(LogLevel.INFO, "Evaluator");
 
@@ -24,7 +26,11 @@ async function loadDataset(): Promise<Example[]> {
   logger.info(
     `Loaded ${examples.length} examples from dataset "${DATASET_NAME}"`,
   );
-  return [examples[0]];
+  const ex = examples.find((e) => e.inputs.repo.includes("sqlfluff"));
+  if (!ex) {
+    throw new Error("Example not found");
+  }
+  return [ex];
 }
 
 function convertExampleToInput(example: Example) {
@@ -48,25 +54,29 @@ ls.describe.skip(DATASET_NAME, () => {
     async ({ inputs }) => {
       const lgClient = new LangGraphClient({
         apiUrl: LANGGRAPH_URL,
+        apiKey: process.env.LANGCHAIN_API_KEY,
+        defaultHeaders: {
+          [GITHUB_TOKEN_COOKIE]: process.env.GITHUB_PAT,
+        },
       });
 
+      logger.info("Constructing input");
       const input = await formatInputs(inputs);
 
-      const thread = await lgClient.threads.create({
-        graphId: GRAPH_NAME,
-      });
+      const threadId = uuidv4();
       logger.info("Starting run", {
-        thread_id: thread.thread_id,
+        thread_id: threadId,
       });
-      const run = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
+
+      const run = await lgClient.runs.wait(threadId, GRAPH_NAME, {
         input,
         config: {
           recursion_limit: 250,
           configurable: {
-            "x-github-installation-token": process.env.GITHUB_PAT,
-            "x-github-access-token": process.env.GITHUB_PAT,
+            [GITHUB_TOKEN_COOKIE]: process.env.GITHUB_PAT,
           },
         },
+        ifNotExists: "create",
       });
 
       if (!("__interrupt__" in run)) {
@@ -74,7 +84,7 @@ ls.describe.skip(DATASET_NAME, () => {
       }
 
       logger.info("Completed planning step. Accepting plan", {
-        thread_id: thread.thread_id,
+        thread_id: threadId,
         ...(run as Record<string, any>)["__interrupt__"],
       });
       ls.logOutputs(run);
@@ -86,7 +96,7 @@ ls.describe.skip(DATASET_NAME, () => {
           args: null,
         },
       ];
-      const resumeRun = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
+      const resumeRun = await lgClient.runs.wait(threadId, GRAPH_NAME, {
         command: {
           resume: resumeValue,
         },
@@ -96,7 +106,7 @@ ls.describe.skip(DATASET_NAME, () => {
       });
       ls.logOutputs(resumeRun as Record<string, any>);
       logger.info("Completed run.", {
-        thread_id: thread.thread_id,
+        thread_id: threadId,
         ...resumeRun,
       });
       logger.info("Starting evaluator...");
@@ -107,7 +117,7 @@ ls.describe.skip(DATASET_NAME, () => {
         output: resumeRun as GraphState,
       });
       logger.info("Completed evaluator.", {
-        thread_id: thread.thread_id,
+        thread_id: threadId,
         evalResult,
       });
     },
@@ -119,71 +129,18 @@ ls.describe(DATASET_NAME, () => {
   ls.test.each(DATASET)(
     "Can resolve issue",
     async ({ inputs }) => {
-      // const lgClient = new LangGraphClient({
-      //   apiUrl: LANGGRAPH_URL,
-      // });
-
       const input = await formatInputs(inputs);
-
-      // const thread = await lgClient.threads.create({
-      //   graphId: GRAPH_NAME,
-      // });
-      // logger.info("Starting run", {
-      //   thread_id: thread.thread_id,
-      // });
-      // const run = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
-      //   input,
-      //   config: {
-      //     recursion_limit: 250,
-      //     configurable: {
-      //       "x-github-installation-token": process.env.GITHUB_PAT,
-      //       "x-github-access-token": process.env.GITHUB_PAT,
-      //     }
-      //   },
-      // });
-
-      // if (!("__interrupt__" in run)) {
-      //   throw new Error("Run did not interrupt with initial plan.")
-      // }
-
-      // logger.info("Completed planning step. Accepting plan", {
-      //   thread_id: thread.thread_id,
-      //   ...(run as Record<string, any>)["__interrupt__"],
-      // })
-      // ls.logOutputs(run)
-
-      // // graph interrupted. we should now resume the run, accepting the plan.
-      // const resumeValue: HumanResponse[] = [
-      //   {
-      //     type: "accept",
-      //     args: null,
-      //   },
-      // ];
-      // const resumeRun = await lgClient.runs.wait(thread.thread_id, GRAPH_NAME, {
-      //   command: {
-      //     resume: resumeValue,
-      //   },
-      //   config: {
-      //     recursion_limit: 250,
-      //   }
-      // })
-      // ls.logOutputs(resumeRun as Record<string, any>);
-      // logger.info("Completed run.", {
-      //   thread_id: thread.thread_id,
-      //   ...resumeRun,
-      // })
-      // logger.info("Starting evaluator...")
 
       const wrappedEvaluator = ls.wrapEvaluator(evaluator);
       const evalResult = await wrappedEvaluator({
         sweBenchInputs: inputs,
         output: {
           ...input,
-          branchName: "open-swe/83051e12-72c5-4908-b4ce-31656d7ab383",
+          branchName: "open-swe/e6a73c4e-bfbf-4323-8484-33d14ec25048",
         } as GraphState,
       });
       logger.info("Completed evaluator.", {
-        thread_id: "83051e12-72c5-4908-b4ce-31656d7ab383",
+        thread_id: "e6a73c4e-bfbf-4323-8484-33d14ec25048",
         evalResult,
       });
     },

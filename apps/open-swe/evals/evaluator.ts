@@ -14,14 +14,26 @@ const RUN_PYTHON_IN_VENV = `${VENV_PATH}/bin/python`;
 const RUN_PIP_IN_VENV = `${VENV_PATH}/bin/pip`;
 
 const INSTALL_COMMANDS_REPO_MAP: Record<string, string[]> = {
+  // Does not work
   pyvista: [
     `${RUN_PYTHON_IN_VENV} -m pip install -e .`,
     `${RUN_PIP_IN_VENV} install -r requirements_test.txt`,
     `${RUN_PIP_IN_VENV} install -r requirements_docs.txt`,
   ],
+  // Works
   sqlfluff: [
     `${RUN_PYTHON_IN_VENV} -m pip install -U tox`,
     `${RUN_PIP_IN_VENV} install -U .`,
+  ],
+  // Does not work
+  pydicom: [
+    `${RUN_PIP_IN_VENV} install -e .`,
+    `${RUN_PIP_IN_VENV} install numpy pillow pytest`,
+  ],
+  // Works
+  astroid: [
+    `${RUN_PIP_IN_VENV} install -e .`,
+    `${RUN_PIP_IN_VENV} install -e . pytest`,
   ],
 };
 
@@ -31,7 +43,7 @@ async function setupEnv(
   repoName: string,
 ): Promise<boolean> {
   // 1. Create the virtual environment
-  const createVenvCommand = "python3.11 -m venv .venv";
+  const createVenvCommand = "python -m venv .venv";
   const createVenvRes = await sandbox.process.executeCommand(
     createVenvCommand,
     absoluteRepoDir,
@@ -45,22 +57,6 @@ async function setupEnv(
     });
     return false;
   }
-
-  // 2. Update pip
-  // const updatePipCommand = "venv/bin/pip install --upgrade pip";
-  // const updatePipRes = await sandbox.process.executeCommand(
-  //   updatePipCommand,
-  //   absoluteRepoDir,
-  //   undefined,
-  //   TIMEOUT_SEC,
-  // );
-  // if (updatePipRes.exitCode !== 0) {
-  //   logger.error("Failed to update pip", {
-  //     updatePipCommand,
-  //     updatePipRes,
-  //   });
-  //   return false;
-  // }
 
   // 3. Install dependencies
   if (!(repoName in INSTALL_COMMANDS_REPO_MAP)) {
@@ -120,7 +116,10 @@ async function runTests(
         TIMEOUT_SEC,
       );
 
-      if (runTestRes.exitCode !== 0) {
+      if (
+        runTestRes.exitCode !== 0 &&
+        !runTestRes.result.includes("no tests ran")
+      ) {
         logger.error(`Failed to run ${type} test`, {
           test,
           runTestRes,

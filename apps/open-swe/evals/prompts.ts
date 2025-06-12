@@ -9,6 +9,9 @@ import { HumanMessage } from "@langchain/core/messages";
 async function getRepoReadmeContents(
   targetRepository: TargetRepository,
 ): Promise<string> {
+  if (!process.env.GITHUB_PAT) {
+    throw new Error("GITHUB_PAT environment variable missing.");
+  }
   const octokit = new Octokit({
     auth: process.env.GITHUB_PAT,
   });
@@ -61,8 +64,10 @@ export async function formatInputs(
     )
     .replace("{CODEBASE_README}", readmeContents);
 
+  const userMessage = new HumanMessage(userMessageContent);
   return {
-    messages: [new HumanMessage(userMessageContent)],
+    messages: [userMessage],
+    internalMessages: [userMessage],
     targetRepository,
   };
 }
