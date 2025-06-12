@@ -51,24 +51,31 @@ export class ThreadPoller {
       const threadsToPool = currentThreads.slice(0, 10);
       const updatedThreads: ThreadWithTasks[] = [];
       const changedThreadIds: string[] = [];
-      const errors: string[] = [];
 
-      for (const currentThread of threadsToPool) {
-        try {
-          const updatedThread = await this.getThreadFn(currentThread.thread_id);
-          if (updatedThread) {
-            updatedThreads.push(updatedThread);
+      // Process all threads in parallel using Promise.allSettled
+      const threadPromises = threadsToPool.map(async (currentThread) => {
+        const updatedThread = await this.getThreadFn(currentThread.thread_id);
+        return { currentThread, updatedThread };
+      });
 
-            if (this.hasThreadChanged(currentThread, updatedThread)) {
-              changedThreadIds.push(updatedThread.thread_id);
-            }
+      const results = await Promise.allSettled(threadPromises);
+
+      // Process results from parallel execution
+      results.forEach((result, index) => {
+        const currentThread = threadsToPool[index];
+        
+        if (result.status === 'fulfilled' && result.value.updatedThread) {
+          const updatedThread = result.value.updatedThread;
+          updatedThreads.push(updatedThread);
+
+          if (this.hasThreadChanged(currentThread, updatedThread)) {
+            changedThreadIds.push(updatedThread.thread_id);
           }
-        } catch (error) {
-          errors.push(`Thread ${currentThread.thread_id}: ${error}`);
-
+        } else {
+          // On error or null result, keep the current thread
           updatedThreads.push(currentThread);
         }
-      }
+      });
 
       if (changedThreadIds.length > 0) {
         this.config.onUpdate(updatedThreads, changedThreadIds);
@@ -95,3 +102,4 @@ export class ThreadPoller {
     );
   }
 }
+
