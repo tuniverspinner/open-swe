@@ -208,23 +208,27 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      const enhancedThreads: ThreadWithTasks[] = [];
-      for (const thread of threadsResponse) {
+      // Parallelize thread data fetching using Promise.all()
+      const threadPromises = threadsResponse.map(async (thread) => {
         try {
-          const fullThread = await client.threads.get(thread.thread_id);
+          // Fetch thread details and state in parallel using Promise.all()
+          const [fullThread, stateData] = await Promise.all([
+            client.threads.get(thread.thread_id),
+            client.threads.getState(thread.thread_id).catch((stateError) => {
+              console.error("Failed to get state data:", stateError);
+              return null;
+            })
+          ]);
 
-          let stateData: { values: GraphState } | null = null;
-          try {
-            stateData = await client.threads.getState(thread.thread_id);
-          } catch (stateError) {
-            console.error("Failed to get state data:", stateError);
-          }
-
-          enhancedThreads.push(enhanceThreadWithTasks(fullThread, stateData));
+          return enhanceThreadWithTasks(fullThread, stateData);
         } catch (error) {
           console.error(`Failed to enhance thread ${thread.thread_id}:`, error);
+          return null;
         }
-      }
+      });
+
+      const enhancedThreadsResults = await Promise.all(threadPromises);
+      const enhancedThreads = enhancedThreadsResults.filter((thread): thread is ThreadWithTasks => thread !== null);
 
       enhancedThreads.sort(
         (a, b) =>
@@ -306,3 +310,4 @@ export function useThreads() {
   }
   return context;
 }
+
