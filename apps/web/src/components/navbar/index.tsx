@@ -2,7 +2,12 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { motion } from "framer-motion";
 import TaskListSidebar from "../task-list-sidebar";
 import { parseAsBoolean, useQueryState } from "nuqs";
-import { useArtifactOpen } from "../thread/artifact";
+import {
+  ArtifactContent,
+  ArtifactTitle,
+  useArtifactContext,
+  useArtifactOpen,
+} from "../thread/artifact";
 import { cn } from "@/lib/utils";
 import { useStreamContext } from "@/providers/Stream";
 import { Button } from "../ui/button";
@@ -11,12 +16,13 @@ import {
   PanelRightOpen,
   Settings,
   SquarePen,
+  XIcon,
 } from "lucide-react";
 import { TooltipIconButton } from "../ui/tooltip-icon-button";
 import { GitHubOAuthButton } from "../github/github-oauth-button";
 import { useRouter } from "next/navigation";
 import { LangGraphLogoSVG } from "../icons/langgraph";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTaskPlan } from "../tasks/useTaskPlan";
 import { TaskPlanView } from "../tasks";
 import { OpenPRButton } from "../github/open-pr-button";
@@ -27,7 +33,7 @@ export function NavBar() {
   const { push } = useRouter();
   const stream = useStreamContext();
   const messages = stream.messages;
-  const [threadId, setThreadId] = useQueryState("threadId");
+  const [threadId, _setThreadId] = useQueryState("threadId");
   const isLargeScreen = useMediaQuery("(min-width: 1024px)");
   const [chatHistoryOpen, setChatHistoryOpen] = useQueryState(
     "chatHistoryOpen",
@@ -36,6 +42,8 @@ export function NavBar() {
   const [artifactOpen, closeArtifact] = useArtifactOpen();
   const chatStarted = !!threadId || !!messages.length;
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
+  const [_artifactContext, setArtifactContext] = useArtifactContext();
+  const [taskId, setTaskId] = useQueryState("taskId");
 
   const {
     taskPlan,
@@ -43,6 +51,43 @@ export function NavBar() {
     handleAddPlanItem,
     handleDeletePlanItem,
   } = useTaskPlan();
+
+  const isTaskView = !!taskId;
+  const isThreadView = !!threadId;
+
+  // Track previous states to detect navigation changes
+  const prevTaskId = useRef(taskId);
+  const prevThreadId = useRef(threadId);
+
+  useEffect(() => {
+    const isNavigatingToTask = !prevTaskId.current && taskId;
+    const isNavigatingToThread = !prevThreadId.current && threadId;
+    if ((isNavigatingToTask || isNavigatingToThread) && !chatHistoryOpen) {
+      setChatHistoryOpen(true);
+    }
+    prevTaskId.current = taskId;
+    prevThreadId.current = threadId;
+  }, [taskId, threadId, chatHistoryOpen, setChatHistoryOpen]);
+
+  useEffect(() => {
+    if (taskId && typeof window !== "undefined") {
+      // TaskId format is "${threadId}-${taskIndex}", so we can extract the threadId directly
+      const taskThreadId = taskId.split("-").slice(0, -1).join("-");
+      if (taskThreadId && taskThreadId !== threadId) {
+        _setThreadId(taskThreadId);
+      }
+    }
+  }, [taskId, threadId, _setThreadId]);
+
+  const setThreadId = (id: string | null) => {
+    _setThreadId(id);
+
+    if (id === null) {
+      setTaskId(null);
+      closeArtifact();
+      setArtifactContext({});
+    }
+  };
 
   return (
     <nav>
@@ -207,6 +252,22 @@ export function NavBar() {
           )}
         </motion.div>
       </div>
+
+      <div className="relative flex flex-col border-l">
+        <div className="absolute inset-0 flex min-w-[30vw] flex-col">
+          <div className="grid grid-cols-[1fr_auto] border-b p-4">
+            <ArtifactTitle className="truncate overflow-hidden" />
+            <button
+              onClick={closeArtifact}
+              className="cursor-pointer"
+            >
+              <XIcon className="size-5" />
+            </button>
+          </div>
+          <ArtifactContent className="relative flex-grow" />
+        </div>
+      </div>
+
       <ConfigurationSidebar
         open={configSidebarOpen}
         onClose={() => setConfigSidebarOpen(false)}
