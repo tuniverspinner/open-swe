@@ -53,20 +53,29 @@ export class ThreadPoller {
       const changedThreadIds: string[] = [];
       const errors: string[] = [];
 
-      for (const currentThread of threadsToPool) {
+      // Fetch all thread updates in parallel
+      const threadUpdatePromises = threadsToPool.map(async (currentThread) => {
         try {
           const updatedThread = await this.getThreadFn(currentThread.thread_id);
-          if (updatedThread) {
-            updatedThreads.push(updatedThread);
-
-            if (this.hasThreadChanged(currentThread, updatedThread)) {
-              changedThreadIds.push(updatedThread.thread_id);
-            }
-          }
+          return { currentThread, updatedThread, error: null };
         } catch (error) {
-          errors.push(`Thread ${currentThread.thread_id}: ${error}`);
+          return { currentThread, updatedThread: null, error };
+        }
+      });
 
+      const results = await Promise.all(threadUpdatePromises);
+
+      // Process results
+      for (const { currentThread, updatedThread, error } of results) {
+        if (error) {
+          errors.push(`Thread ${currentThread.thread_id}: ${error}`);
           updatedThreads.push(currentThread);
+        } else if (updatedThread) {
+          updatedThreads.push(updatedThread);
+
+          if (this.hasThreadChanged(currentThread, updatedThread)) {
+            changedThreadIds.push(updatedThread.thread_id);
+          }
         }
       }
 
@@ -95,3 +104,4 @@ export class ThreadPoller {
     );
   }
 }
+
