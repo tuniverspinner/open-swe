@@ -2,9 +2,16 @@ import { AIMessage, ToolMessage } from "@langchain/langgraph-sdk";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
+import { PullRequestButton } from "@/components/ui/pr-button";
 
 function isComplexValue(value: any): boolean {
   return Array.isArray(value) || (typeof value === "object" && value !== null);
+}
+
+function isPullRequestData(
+  data: any,
+): data is { html_url: string; title?: string; number?: number } {
+  return data && typeof data === "object" && typeof data.html_url === "string";
 }
 
 export function ToolCalls({
@@ -93,6 +100,11 @@ export function ToolResult({ message }: { message: ToolMessage }) {
         : contentLines.slice(0, 4).join("\n") + "\n..."
       : contentStr;
 
+  // Check if this is an open_pr tool result with a pull request
+  const isOpenPrTool = message.name === "open_pr";
+  const pullRequest = message.additional_kwargs?.pull_request;
+  const showPrButton = isOpenPrTool && isPullRequestData(pullRequest);
+
   return (
     <div className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2">
       <div className="overflow-hidden rounded-lg border border-gray-200">
@@ -170,6 +182,17 @@ export function ToolResult({ message }: { message: ToolMessage }) {
               </motion.div>
             </AnimatePresence>
           </div>
+
+          {/* PR Button for open_pr tool results */}
+          {showPrButton && (
+            <div className="border-t border-gray-200 p-3">
+              <PullRequestButton
+                pullRequest={pullRequest}
+                className="w-full"
+              />
+            </div>
+          )}
+
           {((shouldTruncate && !isJsonContent) ||
             (isJsonContent &&
               Array.isArray(parsedContent) &&
