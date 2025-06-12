@@ -208,21 +208,42 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      const enhancedThreads: ThreadWithTasks[] = [];
-      for (const thread of threadsResponse) {
+      // Fetch all thread details in parallel
+      const threadDetailsPromises = threadsResponse.map(async (thread) => {
         try {
-          const fullThread = await client.threads.get(thread.thread_id);
-
-          let stateData: { values: GraphState } | null = null;
-          try {
-            stateData = await client.threads.getState(thread.thread_id);
-          } catch (stateError) {
-            console.error("Failed to get state data:", stateError);
-          }
-
-          enhancedThreads.push(enhanceThreadWithTasks(fullThread, stateData));
+          return await client.threads.get(thread.thread_id);
         } catch (error) {
-          console.error(`Failed to enhance thread ${thread.thread_id}:`, error);
+          console.error(`Failed to get thread details for ${thread.thread_id}:`, error);
+          return null;
+        }
+      });
+
+      // Fetch all thread states in parallel
+      const threadStatesPromises = threadsResponse.map(async (thread) => {
+        try {
+          return await client.threads.getState(thread.thread_id);
+        } catch (error) {
+          console.error(`Failed to get state data for ${thread.thread_id}:`, error);
+          return null;
+        }
+      });
+
+      // Execute both sets of operations in parallel
+      const [threadDetails, threadStates] = await Promise.all([
+        Promise.all(threadDetailsPromises),
+        Promise.all(threadStatesPromises)
+      ]);
+
+      // Combine the results and enhance threads
+      const enhancedThreads: ThreadWithTasks[] = [];
+      for (let i = 0; i < threadsResponse.length; i++) {
+        const fullThread = threadDetails[i];
+        const stateData = threadStates[i];
+        
+        if (fullThread) {
+          enhancedThreads.push(enhanceThreadWithTasks(fullThread, stateData));
+        } else {
+          console.error(`Skipping thread ${threadsResponse[i].thread_id} due to failed fetch`);
         }
       }
 
@@ -306,3 +327,4 @@ export function useThreads() {
   }
   return context;
 }
+
