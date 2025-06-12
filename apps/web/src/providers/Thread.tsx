@@ -128,16 +128,17 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
       const client = createClient(apiUrl);
 
       try {
-        const thread = await client.threads.get(threadId);
-
-        // Get the comprehensive state data which contains the plan
-        let stateData: { values: GraphState } | null = null;
-
-        try {
-          stateData = await client.threads.getState(threadId);
-        } catch (stateError) {
-          console.error("Failed to get state data:", stateError);
-        }
+        // Fetch thread details and state data in parallel
+        const [thread, stateData] = await Promise.all([
+          client.threads.get(threadId).catch((error) => {
+            console.error("Failed to fetch thread:", threadId, error);
+            throw error;
+          }),
+          client.threads.getState(threadId).catch((stateError) => {
+            console.error("Failed to get state data:", stateError);
+            return null;
+          })
+        ]);
 
         return enhanceThreadWithTasks(thread, stateData);
       } catch (error) {
@@ -327,4 +328,5 @@ export function useThreads() {
   }
   return context;
 }
+
 
