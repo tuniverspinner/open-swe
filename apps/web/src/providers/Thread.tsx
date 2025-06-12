@@ -15,6 +15,7 @@ import { createClient } from "./client";
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { TaskPlan, GraphState } from "@open-swe/shared/open-swe/types";
 import { useThreadPolling } from "@/hooks/useThreadPolling";
+import { processConcurrently, ConcurrencyConfig, DEFAULT_CONCURRENCY_CONFIG } from "@/lib/concurrency-limiter";
 
 export interface ThreadWithTasks extends Thread {
   threadTitle: string;
@@ -24,6 +25,11 @@ export interface ThreadWithTasks extends Thread {
   totalTasksCount: number;
   tasks: TaskPlan | undefined;
   proposedPlan: string[];
+}
+
+interface ThreadProviderConfig {
+  /** Configuration for concurrency limiting when fetching threads */
+  concurrency?: ConcurrencyConfig;
 }
 
 interface ThreadContextType {
@@ -139,7 +145,10 @@ const fetchThreadWithState = async (
   }
 };
 
-export function ThreadProvider({ children }: { children: ReactNode }) {
+export function ThreadProvider({ 
+  children, 
+  config = {} 
+}: { children: ReactNode; config?: ThreadProviderConfig }) {
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
   const assistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "";
@@ -150,6 +159,9 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   const [recentlyUpdatedThreads, setRecentlyUpdatedThreads] = useState<
     Set<string>
   >(new Set());
+
+  // Merge default concurrency config with provided config
+  const concurrencyConfig = { ...DEFAULT_CONCURRENCY_CONFIG, ...config.concurrency };
 
   const getThread = useCallback(
     async (threadId: string): Promise<ThreadWithTasks | null> => {
@@ -228,26 +240,18 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
         });
       }
 
-      // Parallelize thread data fetching using Promise.all()
-      const threadPromises = threadsResponse.map(async (thread) => {
-        try {
-          // Fetch thread details and state in parallel using Promise.all()
-          const [fullThread, stateData] = await Promise.all([
-            client.threads.get(thread.thread_id),
-            client.threads.getState(thread.thread_id).catch((stateError) => {
-              console.error("Failed to get state data:", stateError);
-              return null;
-            })
-          ]);
-
-          return enhanceThreadWithTasks(fullThread, stateData);
-        } catch (error) {
-          console.error(`Failed to enhance thread ${thread.thread_id}:`, error);
-          return null;
-        }
-      });
-
-      const enhancedThreadsResults = await Promise.all(threadPromises);
+      // Process threads with concurrency limiting
+      const enhancedThreadsResults = await processConcurrently(
+        threadsResponse,
+        async (thread) => {
+          const result = await fetchThreadWithState(client, thread.thread_id);
+          if (!result) {
+            return null;
+          }
+          return enhanceThreadWithTasks(result.thread, result.stateData);
+        },
+        concurrencyConfig
+      );
       const enhancedThreads = enhancedThreadsResults.filter((thread): thread is ThreadWithTasks => thread !== null);
 
       enhancedThreads.sort(
@@ -261,7 +265,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     } finally {
       setThreadsLoading(false);
     }
-  }, [apiUrl, assistantId]);
+  }, [apiUrl, assistantId, concurrencyConfig]);
 
   useEffect(() => {
     refreshThreads();
@@ -330,6 +334,7 @@ export function useThreads() {
   }
   return context;
 }
+
 
 
 
