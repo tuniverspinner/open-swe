@@ -1,4 +1,5 @@
 import { ThreadWithTasks } from "@/providers/Thread";
+import { processConcurrently, ConcurrencyConfig, DEFAULT_CONCURRENCY_CONFIG } from "@/lib/concurrency-limiter";
 
 export interface PollConfig {
   interval: number;
@@ -6,6 +7,7 @@ export interface PollConfig {
     updatedThreads: ThreadWithTasks[],
     changedThreadIds: string[],
   ) => void;
+  concurrency?: ConcurrencyConfig;
 }
 
 export class ThreadPoller {
@@ -14,6 +16,7 @@ export class ThreadPoller {
   private intervalId: NodeJS.Timeout | null = null;
   private threads: ThreadWithTasks[];
   private getThreadFn: (threadId: string) => Promise<ThreadWithTasks | null>;
+  private concurrencyConfig: ConcurrencyConfig;
 
   constructor(
     config: PollConfig,
@@ -23,6 +26,7 @@ export class ThreadPoller {
     this.config = config;
     this.threads = threads;
     this.getThreadFn = getThreadFn;
+    this.concurrencyConfig = { ...DEFAULT_CONCURRENCY_CONFIG, ...config.concurrency };
   }
 
   start(): void {
@@ -49,31 +53,34 @@ export class ThreadPoller {
       const currentThreads = this.threads;
 
       const threadsToPool = currentThreads.slice(0, 10);
-      const updatedThreads: ThreadWithTasks[] = [];
       const changedThreadIds: string[] = [];
 
-      // Process all threads in parallel using Promise.allSettled
-      const threadPromises = threadsToPool.map(async (currentThread) => {
-        const updatedThread = await this.getThreadFn(currentThread.thread_id);
-        return { currentThread, updatedThread };
-      });
+      // Process threads with concurrency limiting
+      const results = await processConcurrently(
+        threadsToPool,
+        async (currentThread) => {
+          const updatedThread = await this.getThreadFn(currentThread.thread_id);
+          return { currentThread, updatedThread };
+        },
+        this.concurrencyConfig
+      );
 
-      const results = await Promise.allSettled(threadPromises);
+      const updatedThreads: ThreadWithTasks[] = [];
 
-      // Process results from parallel execution
-      results.forEach((result, index) => {
-        const currentThread = threadsToPool[index];
-        
-        if (result.status === 'fulfilled' && result.value.updatedThread) {
-          const updatedThread = result.value.updatedThread;
+      // Process results and detect changes
+      results.forEach((result) => {
+        if (result && result.updatedThread) {
+          const { currentThread, updatedThread } = result;
           updatedThreads.push(updatedThread);
 
           if (this.hasThreadChanged(currentThread, updatedThread)) {
             changedThreadIds.push(updatedThread.thread_id);
           }
         } else {
-          // On error or null result, keep the current thread
-          updatedThreads.push(currentThread);
+          // On error or null result, keep the current thread  
+          if (result && result.currentThread) {
+            updatedThreads.push(result.currentThread);
+          }
         }
       });
 
@@ -102,4 +109,5 @@ export class ThreadPoller {
     );
   }
 }
+
 
