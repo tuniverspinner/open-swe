@@ -156,23 +156,14 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
       if (!apiUrl || !assistantId) return null;
       const client = createClient(apiUrl);
 
-      try {
-        const thread = await client.threads.get(threadId);
-
-        // Get the comprehensive state data which contains the plan
-        let stateData: { values: GraphState } | null = null;
-
-        try {
-          stateData = await client.threads.getState(threadId);
-        } catch (stateError) {
-          console.error("Failed to get state data:", stateError);
-        }
-
-        return enhanceThreadWithTasks(thread, stateData);
-      } catch (error) {
-        console.error("Failed to fetch thread:", threadId, error);
+      // Use the helper function to fetch thread data and state in parallel
+      const result = await fetchThreadWithState(client, threadId);
+      
+      if (!result) {
         return null;
       }
+
+      return enhanceThreadWithTasks(result.thread, result.stateData);
     },
     [apiUrl, assistantId],
   );
@@ -339,5 +330,6 @@ export function useThreads() {
   }
   return context;
 }
+
 
 
