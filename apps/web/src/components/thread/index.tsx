@@ -116,8 +116,6 @@ export function Thread() {
     "chatHistoryOpen",
     parseAsBoolean.withDefault(false),
   );
-  const [baseBranch, setBaseBranch] = useQueryState("base-branch");
-
   const [configSidebarOpen, setConfigSidebarOpen] = useState(false);
 
   const isTaskView = !!taskId;
@@ -648,11 +646,6 @@ export function Thread() {
           </div>
         </div>
       </div>
-
-      <ConfigurationSidebar
-        open={configSidebarOpen}
-        onClose={() => setConfigSidebarOpen(false)}
-      />
     </div>
   );
 }
