@@ -2,12 +2,12 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { applyPatch } from "diff";
 import { GraphState } from "@open-swe/shared/open-swe/types";
-import { readFile, writeFile } from "../utils/read-write.js";
+import { readFile, writeFile } from "@open-swe/shared/utils/read-write";
 import { getCurrentTaskInput } from "@langchain/langgraph";
-import { fixGitPatch } from "../utils/diff.js";
-import { createLogger, LogLevel } from "../utils/logger.js";
-import { daytonaClient } from "../utils/sandbox.js";
-import { getRepoAbsolutePath } from "../utils/git.js";
+import { fixGitPatch } from "@open-swe/shared/utils/diff";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
+import { daytonaClient } from "@open-swe/shared/utils/sandbox";
+import { getRepoAbsolutePath } from "@open-swe/shared/utils/git";
 
 const logger = createLogger(LogLevel.INFO, "ApplyPatchTool");
 

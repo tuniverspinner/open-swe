@@ -3,11 +3,11 @@ import { z } from "zod";
 import { Sandbox } from "@daytonaio/sdk";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { getCurrentTaskInput } from "@langchain/langgraph";
-import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
-import { createLogger, LogLevel } from "../utils/logger.js";
-import { daytonaClient } from "../utils/sandbox.js";
+import { getSandboxErrorFields } from "@open-swe/shared/utils/sandbox-error-fields";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
+import { daytonaClient } from "@open-swe/shared/utils/sandbox";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
-import { getRepoAbsolutePath } from "../utils/git.js";
+import { getRepoAbsolutePath } from "@open-swe/shared/utils/git";
 
 const logger = createLogger(LogLevel.INFO, "ShellTool");
 

@@ -47,6 +47,16 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
+    "./open-swe/tools": {
+      "types": "./dist/open-swe/tools/index.d.ts",
+      "import": "./dist/open-swe/tools/index.js",
+      "require": "./dist/open-swe/tools/index.js"
+    },
+    "./utils/*": {
+      "types": "./dist/utils/*.d.ts",
+      "import": "./dist/utils/*.js",
+      "require": "./dist/utils/*.js"
+    },
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",

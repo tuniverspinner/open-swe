@@ -1,4 +1,4 @@
-import { createLogger, LogLevel } from "../utils/logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import {
   GraphState,
   GraphConfig,
@@ -11,8 +11,8 @@ import {
   getBranchName,
   getRepoAbsolutePath,
   pullLatestChanges,
-} from "../utils/git.js";
-import { daytonaClient } from "../utils/sandbox.js";
+} from "@open-swe/shared/utils/git";
+import { daytonaClient } from "@open-swe/shared/utils/sandbox";
 import { SNAPSHOT_NAME } from "@open-swe/shared/constants";
 import { getGitHubTokensFromConfig } from "../utils/github-tokens.js";
 import { getCodebaseTree } from "../utils/tree.js";

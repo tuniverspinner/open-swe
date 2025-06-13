@@ -1,7 +1,7 @@
 import { getCurrentTaskInput } from "@langchain/langgraph";
 import { GraphState } from "@open-swe/shared/open-swe/types";
-import { daytonaClient } from "./sandbox.js";
-import { createLogger, LogLevel } from "./logger.js";
+import { daytonaClient } from "@open-swe/shared/utils/sandbox";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import path from "node:path";
 import { SANDBOX_ROOT_DIR, TIMEOUT_SEC } from "@open-swe/shared/constants";
 

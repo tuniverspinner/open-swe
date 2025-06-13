@@ -8,7 +8,7 @@ import {
 import { loadModel, Task } from "../utils/load-model.js";
 import { AIMessage, BaseMessage } from "@langchain/core/messages";
 import { formatPlanPrompt } from "../utils/plan-prompt.js";
-import { createLogger, LogLevel } from "../utils/logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { getMessageString } from "../utils/message/content.js";
 import { removeLastTaskMessages } from "../utils/message/modify-array.js";

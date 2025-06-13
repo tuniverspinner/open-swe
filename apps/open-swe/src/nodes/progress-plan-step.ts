@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createLogger, LogLevel } from "../utils/logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import {
   GraphConfig,
   GraphState,

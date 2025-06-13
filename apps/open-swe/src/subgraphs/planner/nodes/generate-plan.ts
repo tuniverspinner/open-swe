@@ -3,13 +3,13 @@ import {
   isHumanMessage,
   ToolMessage,
 } from "@langchain/core/messages";
-import { sessionPlanTool } from "../../../tools/index.js";
+import { sessionPlanTool } from "@open-swe/shared/open-swe/tools";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { loadModel, Task } from "../../../utils/load-model.js";
 import { PlannerGraphState, PlannerGraphUpdate } from "../types.js";
 import { getUserRequest } from "../../../utils/user-request.js";
 import { formatFollowupMessagePrompt } from "../utils/followup-prompt.js";
-import { stopSandbox } from "../../../utils/sandbox.js";
+import { stopSandbox } from "@open-swe/shared/utils/sandbox";
 
 const systemPrompt = `You are operating as a terminal-based agentic coding assistant built by LangChain. It wraps LLM models to enable natural language interaction with a local codebase. You are expected to be precise, safe, and helpful.
 {FOLLOWUP_MESSAGE_PROMPT}

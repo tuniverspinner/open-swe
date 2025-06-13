@@ -9,11 +9,11 @@ import {
   createApplyPatchTool,
   requestHumanHelpTool,
   updatePlanTool,
-} from "../../tools/index.js";
-import { getRepoAbsolutePath } from "../../utils/git.js";
+} from "@open-swe/shared/open-swe/tools";
+import { getRepoAbsolutePath } from "@open-swe/shared/utils/git";
 import { formatPlanPrompt } from "../../utils/plan-prompt.js";
-import { stopSandbox } from "../../utils/sandbox.js";
-import { createLogger, LogLevel } from "../../utils/logger.js";
+import { stopSandbox } from "@open-swe/shared/utils/sandbox";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import { getCurrentPlanItem } from "../../utils/current-task.js";
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";

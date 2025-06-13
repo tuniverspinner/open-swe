@@ -10,14 +10,14 @@ import {
   getBranchName,
   getChangedFilesStatus,
   getRepoAbsolutePath,
-} from "../utils/git.js";
-import { createLogger, LogLevel } from "../utils/logger.js";
+} from "@open-swe/shared/utils/git";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import { z } from "zod";
 import { loadModel, Task } from "../utils/load-model.js";
 import { formatPlanPromptWithSummaries } from "../utils/plan-prompt.js";
 import { getUserRequest } from "../utils/user-request.js";
 import { ToolMessage } from "@langchain/core/messages";
-import { daytonaClient, deleteSandbox } from "../utils/sandbox.js";
+import { daytonaClient, deleteSandbox } from "@open-swe/shared/utils/sandbox";
 import { getGitHubTokensFromConfig } from "../utils/github-tokens.js";
 import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";
 

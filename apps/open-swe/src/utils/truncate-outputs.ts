@@ -1,4 +1,4 @@
-import { createLogger, LogLevel } from "./logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 
 const logger = createLogger(LogLevel.INFO, "TruncateOutputs");
 

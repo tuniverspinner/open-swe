@@ -17,7 +17,7 @@ import {
 } from "@langchain/core/messages";
 import { getMessageString } from "../utils/message/content.js";
 import { formatPlanPrompt } from "../utils/plan-prompt.js";
-import { createLogger, LogLevel } from "../utils/logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 
 const logger = createLogger(LogLevel.INFO, "UpdatePlanNode");
 

@@ -7,7 +7,7 @@ import {
 import { loadModel, Task } from "../utils/load-model.js";
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { getMessageString } from "../utils/message/content.js";
-import { createLogger, LogLevel } from "../utils/logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import { getUserRequest } from "../utils/user-request.js";
 import {
   completeTask,

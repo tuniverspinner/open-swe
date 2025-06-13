@@ -5,7 +5,7 @@ import {
   HumanInterrupt,
   HumanResponse,
 } from "@langchain/langgraph/prebuilt";
-import { startSandbox } from "../utils/sandbox.js";
+import { startSandbox } from "@open-swe/shared/utils/sandbox";
 import { createNewTask } from "@open-swe/shared/open-swe/tasks";
 import { getUserRequest } from "../utils/user-request.js";
 import {

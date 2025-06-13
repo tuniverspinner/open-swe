@@ -1,6 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import { Endpoints } from "@octokit/types";
-import { createLogger, LogLevel } from "../utils/logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 
 const logger = createLogger(LogLevel.INFO, "GithubAuth");
 

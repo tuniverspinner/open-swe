@@ -14,7 +14,7 @@ import { getMessageString } from "../utils/message/content.js";
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { loadModel, Task } from "../utils/load-model.js";
 import { z } from "zod";
-import { createLogger, LogLevel } from "../utils/logger.js";
+import { createLogger, LogLevel } from "@open-swe/shared/utils/logger";
 import {
   getCompletedPlanItems,
   getCurrentPlanItem,
