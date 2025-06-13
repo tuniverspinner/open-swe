@@ -45,6 +45,9 @@ GOOGLE_API_KEY=""
 
 # Daytona API key for accessing and modifying the code in the cloud sandbox.
 DAYTONA_API_KEY=""
+
+# Encryption key for GitHub access tokens (must be 32 characters or longer)
+GITHUB_TOKEN_ENCRYPTION_KEY=""
 ```
 
 And the web `.env` file should contain the following variables:
@@ -139,3 +142,4 @@ Once you've accepted the plan, it will begin the execution flow. When the agent 
 ## Accessing Changes
 
 Open SWE will automatically create a branch whenever you create a new thread with a naming format of `open-swe/<threadId>`. Every time a file is created, modified, or deleted, the changes will be committed to this branch. You can access the changes in the repository by checking out this branch.
+
