@@ -201,9 +201,9 @@ export const GraphConfigurationMetadata: {
   maxContextActions: {
     x_open_swe_ui_config: {
       type: "number",
-      default: 10,
+      default: 75,
       min: 1,
-      max: 50,
+      max: 100,
       description:
         "Maximum number of context gathering actions during planning",
     },
@@ -463,3 +463,4 @@ export type GraphConfig = LangGraphRunnableConfig<
     assistant_id: string;
   }
 >;
+
