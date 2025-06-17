@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, ForwardedRef, useState, useEffect } from "react";
+import { forwardRef, ForwardedRef, useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ConfigField } from "@/components/configuration-sidebar/config-field";
 import { ConfigSection } from "@/components/configuration-sidebar/config-section";
@@ -14,6 +14,7 @@ import { PanelRightOpen } from "lucide-react";
 import { GraphConfigurationMetadata } from "@open-swe/shared/open-swe/types";
 import { useQueryState } from "nuqs";
 import { useStreamContext } from "@/providers/Stream";
+import { Input } from "@/components/ui/input";
 
 /**
  * Extract configuration metadata from the GraphConfiguration Zod schema
@@ -45,6 +46,13 @@ function extractConfigurationsFromSchema(
   return configurations;
 }
 
+// Model providers that support API keys
+const MODEL_PROVIDERS = [
+  { key: "anthropic", label: "Anthropic" },
+  { key: "openai", label: "OpenAI" },
+  { key: "google-genai", label: "Google GenAI" },
+] as const;
+
 export interface AIConfigPanelProps {
   className?: string;
   open: boolean;
@@ -63,6 +71,46 @@ export const ConfigurationSidebar = forwardRef<
   const [configurations, setConfigurations] = useState<
     ConfigurableFieldUIMetadata[]
   >([]);
+  const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+
+  // Load API keys from localStorage on mount
+  useEffect(() => {
+    const loadedApiKeys: Record<string, string> = {};
+    MODEL_PROVIDERS.forEach(({ key }) => {
+      const storedKey = localStorage.getItem(`open-swe-api-key-${key}`);
+      if (storedKey) {
+        loadedApiKeys[key] = storedKey;
+      }
+    });
+    setApiKeys(loadedApiKeys);
+  }, []);
+
+  // Save API key to localStorage
+  const saveApiKey = useCallback((provider: string, apiKey: string) => {
+    if (apiKey.trim()) {
+      localStorage.setItem(`open-swe-api-key-${provider}`, apiKey);
+    } else {
+      localStorage.removeItem(`open-swe-api-key-${provider}`);
+    }
+    setApiKeys(prev => ({
+      ...prev,
+      [provider]: apiKey,
+    }));
+  }, []);
+
+  // Handle API key input change
+  const handleApiKeyChange = useCallback((provider: string, value: string) => {
+    setApiKeys(prev => ({
+      ...prev,
+      [provider]: value,
+    }));
+  }, []);
+
+  // Handle API key input blur (save to localStorage)
+  const handleApiKeyBlur = useCallback((provider: string) => {
+    saveApiKey(provider, apiKeys[provider] || '');
+  }, [apiKeys, saveApiKey]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -131,6 +179,7 @@ export const ConfigurationSidebar = forwardRef<
           >
             <TabsList className="flex-shrink-0 justify-start bg-transparent px-4 pt-2">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="api-keys">API Keys</TabsTrigger>
             </TabsList>
 
             <ScrollArea className="flex-1 overflow-y-auto">
@@ -167,6 +216,37 @@ export const ConfigurationSidebar = forwardRef<
                   )}
                 </ConfigSection>
               </TabsContent>
+
+              <TabsContent
+                value="api-keys"
+                className="m-0 p-4"
+              >
+                <ConfigSection title="API Keys">
+                  <div className="space-y-4">
+                    <p className="text-xs text-gray-500">
+                      Provide custom API keys for model providers. These are stored locally in your browser and used when invoking the agent.
+                    </p>
+                    {MODEL_PROVIDERS.map(({ key, label }) => (
+                      <div key={key} className="space-y-2">
+                        <label
+                          htmlFor={`api-key-${key}`}
+                          className="text-sm font-medium"
+                        >
+                          {label} API Key
+                        </label>
+                        <Input
+                          id={`api-key-${key}`}
+                          type="password"
+                          value={apiKeys[key] || ''}
+                          onChange={(e) => handleApiKeyChange(key, e.target.value)}
+                          onBlur={() => handleApiKeyBlur(key)}
+                          placeholder={`Enter your ${label} API key`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </ConfigSection>
+              </TabsContent>
             </ScrollArea>
           </Tabs>
         </div>
@@ -176,3 +256,4 @@ export const ConfigurationSidebar = forwardRef<
 });
 
 ConfigurationSidebar.displayName = "ConfigurationSidebar";
+
