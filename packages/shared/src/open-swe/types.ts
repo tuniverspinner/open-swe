@@ -318,6 +318,13 @@ export const GraphConfigurationMetadata: {
       type: "hidden",
     },
   },
+  apiKeyMap: {
+    x_open_swe_ui_config: {
+      type: "hidden",
+      description:
+        "Map of model providers to their API keys (anthropic, openai, google-genai)",
+    },
+  },
 };
 
 export const GraphConfiguration = z.object({
@@ -455,6 +462,14 @@ export const GraphConfiguration = z.object({
     .langgraph.metadata(
       GraphConfigurationMetadata[GITHUB_INSTALLATION_TOKEN_COOKIE],
     ),
+  /**
+   * Map of model providers to their API keys.
+   * Keys should be provider names (anthropic, openai, google-genai).
+   */
+  apiKeyMap: z
+    .record(z.string(), z.string())
+    .optional()
+    .langgraph.metadata(GraphConfigurationMetadata.apiKeyMap),
 });
 
 export type GraphConfig = LangGraphRunnableConfig<
@@ -463,3 +478,4 @@ export type GraphConfig = LangGraphRunnableConfig<
     assistant_id: string;
   }
 >;
+
