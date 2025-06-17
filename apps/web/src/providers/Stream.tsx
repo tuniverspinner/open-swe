@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { GitHubSVG } from "@/components/icons/github";
 import { useGitHubToken } from "@/hooks/useGitHubToken";
 import { GraphState, GraphUpdate } from "@open-swe/shared/open-swe/types";
+import { getApiKeysFromLocalStorage } from "@/utils/api-keys";
 
 const useTypedStream = useStream<
   GraphState,
@@ -52,6 +53,17 @@ const StreamSession = ({
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { refreshThreads, setThreads } = useThreads();
+  
+  // Get API keys from localStorage and format them as headers
+  const getApiKeyHeaders = () => {
+    const apiKeys = getApiKeysFromLocalStorage();
+    const headers: Record<string, string> = {};
+    Object.entries(apiKeys).forEach(([provider, apiKey]) => {
+      headers[`x-api-key-${provider}`] = apiKey;
+    });
+    return headers;
+  };
+  
   const streamValue = useTypedStream({
     apiUrl,
     assistantId,
@@ -72,6 +84,7 @@ const StreamSession = ({
         refreshThreads().catch(console.error);
       });
     },
+    headers: getApiKeyHeaders(),
   });
 
   return (
@@ -371,3 +384,4 @@ export const useStreamContext = (): StreamContextType => {
 };
 
 export default StreamContext;
+
