@@ -46,6 +46,25 @@ async function getGitHubInstallationTokenOrThrow(
   return encryptGitHubToken(token, encryptionKey);
 }
 
+function extractAndEncryptApiKeys(
+  req: NextRequest,
+  encryptionKey: string,
+): Record<string, string> {
+  const apiKeyMap: Record<string, string> = {};
+  const supportedProviders = ['anthropic', 'openai', 'google-genai'];
+  
+  supportedProviders.forEach(provider => {
+    const headerName = `x-api-key-${provider}`;
+    const apiKey = req.headers.get(headerName);
+    if (apiKey) {
+      // Encrypt the API key using the same method as GitHub tokens
+      apiKeyMap[provider] = encryptGitHubToken(apiKey, encryptionKey);
+    }
+  });
+  
+  return apiKeyMap;
+}
+
 // This file acts as a proxy for requests to your LangGraph server.
 // Read the [Going to Production](https://github.com/langchain-ai/agent-chat-ui?tab=readme-ov-file#going-to-production) section for more information.
 
@@ -54,6 +73,43 @@ export const { GET, POST, PUT, PATCH, DELETE, OPTIONS, runtime } =
     apiUrl: process.env.LANGGRAPH_API_URL ?? "http://localhost:2024",
     runtime: "edge", // default
     disableWarningLog: true,
+    transformRequestBody: async (req, body) => {
+      const encryptionKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
+      if (!encryptionKey) {
+        throw new Error(
+          "GITHUB_TOKEN_ENCRYPTION_KEY environment variable is required",
+        );
+      }
+
+      // Extract and encrypt API keys from headers
+      const apiKeyMap = extractAndEncryptApiKeys(req, encryptionKey);
+      
+      // If we have a request body, parse it and add the apiKeyMap to configurable
+      if (body) {
+        try {
+          const parsedBody = JSON.parse(body);
+          
+          // Add apiKeyMap to configurable if we have API keys
+          if (Object.keys(apiKeyMap).length > 0) {
+            if (!parsedBody.config) {
+              parsedBody.config = {};
+            }
+            if (!parsedBody.config.configurable) {
+              parsedBody.config.configurable = {};
+            }
+            parsedBody.config.configurable.apiKeyMap = apiKeyMap;
+          }
+          
+          return JSON.stringify(parsedBody);
+        } catch (error) {
+          // If parsing fails, return original body
+          console.warn("Failed to parse request body for API key injection:", error);
+          return body;
+        }
+      }
+      
+      return body;
+    },
     headers: async (req) => {
       const encryptionKey = process.env.GITHUB_TOKEN_ENCRYPTION_KEY;
       if (!encryptionKey) {
@@ -69,3 +125,4 @@ export const { GET, POST, PUT, PATCH, DELETE, OPTIONS, runtime } =
       };
     },
   });
+
