@@ -20,6 +20,12 @@ import {
 import { withLangGraph } from "@langchain/langgraph/zod";
 import { BaseMessage } from "@langchain/core/messages";
 
+export type ModelProvider = "anthropic" | "openai" | "google-genai";
+
+export type ApiKeyMap = {
+  [K in ModelProvider]?: string;
+};
+
 export type PlanItem = {
   /**
    * The index of the plan item. This is the order in which
@@ -318,6 +324,12 @@ export const GraphConfigurationMetadata: {
       type: "hidden",
     },
   },
+  apiKeyMap: {
+    x_open_swe_ui_config: {
+      type: "hidden",
+      description: "Custom API keys for model providers",
+    },
+  },
 };
 
 export const GraphConfiguration = z.object({
@@ -455,6 +467,14 @@ export const GraphConfiguration = z.object({
     .langgraph.metadata(
       GraphConfigurationMetadata[GITHUB_INSTALLATION_TOKEN_COOKIE],
     ),
+  /**
+   * Custom API keys for model providers (anthropic, openai, google-genai).
+   * Maps model provider names to their respective API keys.
+   */
+  apiKeyMap: z
+    .custom<ApiKeyMap>()
+    .optional()
+    .langgraph.metadata(GraphConfigurationMetadata.apiKeyMap),
 });
 
 export type GraphConfig = LangGraphRunnableConfig<
@@ -463,3 +483,4 @@ export type GraphConfig = LangGraphRunnableConfig<
     assistant_id: string;
   }
 >;
+
