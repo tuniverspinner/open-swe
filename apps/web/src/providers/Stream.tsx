@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { GitHubSVG } from "@/components/icons/github";
 import { useGitHubToken } from "@/hooks/useGitHubToken";
 import { GraphState, GraphUpdate } from "@open-swe/shared/open-swe/types";
+import { useGitHubApp } from "@/hooks/useGitHubApp";
 
 const useTypedStream = useStream<
   GraphState,
@@ -52,6 +53,7 @@ const StreamSession = ({
 }) => {
   const [threadId, setThreadId] = useQueryState("threadId");
   const { refreshThreads, setThreads } = useThreads();
+  const { selectedRepository, selectedBranch } = useGitHubApp();
   const streamValue = useTypedStream({
     apiUrl,
     assistantId,
@@ -71,6 +73,20 @@ const StreamSession = ({
       sleep().then(() => {
         refreshThreads().catch(console.error);
       });
+    },
+    onConnect: (options) => {
+      // Set initial targetRepository when connecting to a new thread
+      if (selectedRepository) {
+        const targetRepository = {
+          owner: selectedRepository.owner,
+          repo: selectedRepository.repo,
+          branch: selectedBranch || undefined,
+        };
+        options.mutate((prev) => ({
+          ...prev,
+          targetRepository,
+        }));
+      }
     },
   });
 
@@ -371,3 +387,4 @@ export const useStreamContext = (): StreamContextType => {
 };
 
 export default StreamContext;
+
