@@ -1,155 +1,280 @@
-# Open SWE
+<div align="center">
+  <h1>🤖 Open SWE</h1>
+  <p><strong>Open-source cloud-based coding agent powered by LangChain</strong></p>
+  
+  <p>
+    <a href="#quick-start">Quick Start</a> •
+    <a href="#features">Features</a> •
+    <a href="#architecture">Architecture</a> •
+    <a href="#contributing">Contributing</a> •
+    <a href="#license">License</a>
+  </p>
+  
+  <p>
+    <img src="https://img.shields.io/github/license/langchain-ai/open-swe" alt="License">
+    <img src="https://img.shields.io/github/stars/langchain-ai/open-swe" alt="Stars">
+    <img src="https://img.shields.io/github/issues/langchain-ai/open-swe" alt="Issues">
+  </p>
+</div>
+
+---
 
 > [!WARNING]
 > Open SWE is under active development and is not yet ready for production use.
 
-Open SWE is an open-source cloud based coding agent.
+## 🚀 What is Open SWE?
 
-## Usage
+Open SWE is an intelligent coding agent that understands your codebase, plans changes, and automatically creates pull requests. Built on LangChain and LangGraph, it combines the power of large language models with robust software engineering practices.
 
-First, clone the repository:
+### ✨ Key Features
+
+- **🧠 Intelligent Planning**: Analyzes your codebase and creates detailed execution plans
+- **🔄 Interactive Workflow**: Review and modify plans before execution
+- **🛠️ Multi-Model Support**: Works with Anthropic, OpenAI, and Google models
+- **🔒 Secure Integration**: GitHub App integration with proper authentication
+- **☁️ Cloud Sandboxes**: Powered by Daytona for isolated development environments
+- **📊 Real-time Monitoring**: Built-in tracing and observability with LangSmith
+
+## 🏗️ Architecture
+
+Open SWE consists of three main components:
+
+- **🤖 Agent (`apps/open-swe`)**: LangGraph-powered coding agent with planning and execution capabilities
+- **🌐 Web Interface (`apps/web`)**: Next.js frontend for interacting with the agent
+- **📦 Shared Package (`packages/shared`)**: Common utilities and types
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ 
+- Yarn 3.5+
+- GitHub App (for repository access)
+- API keys for your preferred LLM provider
+
+### 1. Clone and Install
 
 ```bash
 git clone https://github.com/langchain-ai/open-swe.git
 cd open-swe
-```
-
-Next, install dependencies:
-
-```bash
 yarn install
 ```
 
-Copy the `.env.example` files to `.env` in their respective packages, and fill in the values:
+### 2. Environment Setup
+
+Copy the example environment files:
 
 ```bash
-# Agent .env file
+# Agent environment
 cp ./apps/open-swe/.env.example ./apps/open-swe/.env
-# Web .env file
+
+# Web app environment  
 cp ./apps/web/.env.example ./apps/web/.env
 ```
 
-The open-swe `.env` file should contain the following variables:
+### 3. Configure API Keys
+
+#### Agent Configuration (`apps/open-swe/.env`)
 
 ```bash
-# ------------------LangSmith tracing------------------
-LANGCHAIN_PROJECT="default"
-LANGCHAIN_API_KEY=""
+# LangSmith (optional, for tracing)
+LANGCHAIN_PROJECT="open-swe"
+LANGCHAIN_API_KEY="your-langsmith-key"
 LANGCHAIN_TRACING_V2=true
-# -----------------------------------------------------
 
-# Defaults to Anthropic models, OpenAI & Google keys are optional, unless using those models
-ANTHROPIC_API_KEY=""
-OPENAI_API_KEY=""
-GOOGLE_API_KEY=""
+# LLM Provider (choose one or more)
+ANTHROPIC_API_KEY="your-anthropic-key"  # Recommended
+OPENAI_API_KEY="your-openai-key"        # Optional
+GOOGLE_API_KEY="your-google-key"        # Optional
 
-# Daytona API key for accessing and modifying the code in the cloud sandbox.
-DAYTONA_API_KEY=""
+# Daytona (for cloud sandboxes)
+DAYTONA_API_KEY="your-daytona-key"
 
-# Encryption key for GitHub tokens (32-byte hex string for AES-256)
-# Should be the same value as the one used in the web app.
-# Can be generated via: `openssl rand -hex 32`
-GITHUB_TOKEN_ENCRYPTION_KEY=""
-# Used for setting the git user name & email for commits.
-GITHUB_APP_NAME="open-swe-dev"
+# GitHub Integration
+GITHUB_TOKEN_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+GITHUB_APP_NAME="your-app-name"
 ```
 
-And the web `.env` file should contain the following variables:
+#### Web App Configuration (`apps/web/.env`)
 
 ```bash
-# Change both to production URLs when deployed
+# API URLs (adjust for production)
 NEXT_PUBLIC_API_URL="http://localhost:3000/api"
 LANGGRAPH_API_URL="http://localhost:2024"
 NEXT_PUBLIC_ASSISTANT_ID="open-swe"
 
-# For the GitHub OAuth flow
-GITHUB_APP_CLIENT_ID=""
-GITHUB_APP_CLIENT_SECRET=""
+# GitHub OAuth
+GITHUB_APP_CLIENT_ID="your-client-id"
+GITHUB_APP_CLIENT_SECRET="your-client-secret"
 GITHUB_APP_REDIRECT_URI="http://localhost:3000/api/auth/github/callback"
 
-GITHUB_APP_NAME="open-swe-dev"
-GITHUB_APP_ID=""
-GITHUB_APP_PRIVATE_KEY=""
+# GitHub App Details
+GITHUB_APP_NAME="your-app-name"
+GITHUB_APP_ID="your-app-id"
+GITHUB_APP_PRIVATE_KEY="your-private-key"
 
-# Encryption key for GitHub tokens (32-byte hex string for AES-256)
-# Should be the same value as the one used in the open-swe app.
-# Can be generated via: `openssl rand -hex 32`
-GITHUB_TOKEN_ENCRYPTION_KEY=""
+# Must match the agent's encryption key
+GITHUB_TOKEN_ENCRYPTION_KEY="same-as-agent-key"
 ```
 
-**REMINDER**: The `GITHUB_TOKEN_ENCRYPTION_KEY` environment variable must be the same in both the web and open-swe apps.
+### 4. GitHub App Setup
 
-To get the GitHub App secrets, first create a new GitHub app (note: this is not the same as the OAuth app) in [the developer settings](https://github.com/settings/apps/new).
+1. Create a new GitHub App at [github.com/settings/apps/new](https://github.com/settings/apps/new)
+2. Configure the app with these settings:
+   - **Callback URL**: `http://localhost:3000/api/auth/github/callback`
+   - **Repository permissions**:
+     - Contents: Read & Write
+     - Metadata: Read & Write  
+     - Pull requests: Read & Write
+     - Issues: Read & Write
+   - **Installation**: Any account
+3. Generate and configure the required keys in your `.env` files
 
-Give the app a name and description.
-
-Under `Callback URL`, set it to: `http://localhost:3000/api/auth/github/callback` for local development. Then, uncheck `Expire user authorization tokens`, and check `Request user authorization (OAuth) during installation`.
-
-Under `Post installation`, check `Redirect on update`.
-
-Under `Webhook`, uncheck `Active`.
-
-Under `Repository permissions`, give the app the following permissions:
-
-- `Contents` - `Read & Write`
-- `Metadata` - `Read & Write`
-- `Pull requests` - `Read & Write`
-- `Issues` - `Read & Write`
-
-Finally, under `Where can this GitHub App be installed?` ensure `Any account` is selected.
-
-After creating the app, you will be taken to the app's settings page. Copy/generate the following fields for your environment variables:
-
-`App ID` - `GITHUB_APP_ID`
-`Client ID` - `GITHUB_APP_CLIENT_ID`
-`Client secrets` - Generate a new secret key, and set it under `GITHUB_APP_CLIENT_SECRET`
-Scroll down to `Private keys`, and generate a new private key. This will download a file. Set the contents of this file under `GITHUB_APP_PRIVATE_KEY`.
-Set `GITHUB_APP_REDIRECT_URI` to `http://localhost:3000/api/auth/github/callback` for local development.
-Set `GITHUB_APP_NAME` to the name of your app.
-
-That's it! You can now authenticate users with GitHub, and generate tokens for them.
-
-## Running the graph
-
-> [!INFO]
-> Since Open SWE is still under development, the following requires hard coding the repository information. This will be changed before the release.
-
-To run the graph, first you must set which repository you want Open SWE to make changes to inside the `web` package. To do this, search for instances of `repo: "open-swe",` inside the `apps/web` directory. This should yield _7_ results in _5_ files. Go through each of these, and modify the `owner` and `repo` properties to match the repository you want Open SWE to make changes to. (ensure your GitHub PAT has access to this repository).
-
-After updating these values, you should start the web server:
+### 5. Start the Application
 
 ```bash
-# Inside `apps/web`
+# Terminal 1: Start the agent
+cd apps/open-swe
+yarn dev
+
+# Terminal 2: Start the web interface
+cd apps/web  
 yarn dev
 ```
 
-And the agent server:
+🎉 **You're ready!** Open [http://localhost:3000](http://localhost:3000) to start using Open SWE.
 
-```bash
-# Inside `apps/open-swe`
-yarn dev
+## 📖 Usage Guide
+
+### Basic Workflow
+
+1. **🔗 Connect Repository**: Authenticate with GitHub and select your repository
+2. **💬 Describe Task**: Tell the agent what you want to accomplish
+3. **📋 Review Plan**: The agent will create a detailed execution plan
+4. **✅ Approve & Execute**: Accept the plan or provide feedback
+5. **🔄 Pull Request**: The agent automatically creates a PR with the changes
+
+### Example Prompts
+
+- "Add TypeScript support to the existing JavaScript files"
+- "Implement user authentication with JWT tokens"
+- "Fix the memory leak in the data processing module"
+- "Add comprehensive error handling to the API endpoints"
+
+### Plan Interaction
+
+When the agent presents a plan, you can:
+- ✅ **Accept**: Proceed with execution
+- ✏️ **Edit**: Modify the plan before execution  
+- 💬 **Provide Feedback**: Ask for plan revisions
+- 🔄 **Start Over**: Create a new chat for major changes
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+open-swe/
+├── apps/
+│   ├── open-swe/          # LangGraph agent
+│   │   ├── src/
+│   │   │   ├── nodes/     # Graph nodes
+│   │   │   ├── subgraphs/ # Nested graphs
+│   │   │   ├── tools/     # Agent tools
+│   │   │   └── utils/     # Utilities
+│   │   └── scripts/       # Development scripts
+│   └── web/               # Next.js frontend
+│       ├── src/
+│       │   ├── app/       # App router pages
+│       │   ├── components/# React components
+│       │   └── lib/       # Client utilities
+│       └── public/        # Static assets
+├── packages/
+│   └── shared/            # Shared utilities
+└── .github/               # CI/CD workflows
 ```
 
-You can now open the web app at `http://localhost:3000` and send a request.
+### Available Scripts
 
-Sending a request will trigger the agent, which first enters the planning subgraph. This will run for just under a minute, and once it's finished, it'll interrupt the graph with the proposed plan.
+```bash
+# Development
+yarn dev          # Start all services
+yarn build        # Build all packages
+yarn lint         # Run linting
+yarn format       # Format code
 
-To start the agent execution flow, you can:
-- accept the plan as is
-- edit & submit the plan
+# Testing
+yarn test         # Run unit tests
+yarn test:int     # Run integration tests
+```
 
-Both of these actions will trigger the agent to start the execution flow with the plan.
+### Adding New Features
 
-If you are not happy with the plan, you can also send a response. This will cause the agent to rewrite the plan according to the instructions you provided.
+1. **Agent Nodes**: Add new capabilities in `apps/open-swe/src/nodes/`
+2. **Tools**: Extend agent tools in `apps/open-swe/src/tools/`
+3. **UI Components**: Add React components in `apps/web/src/components/`
+4. **Shared Utilities**: Common code goes in `packages/shared/src/`
 
-> [!TIP]
-> Responding to the plan interrupt will not trigger the agent to re-enter the planning subgraph, so it will not be able to gather more information than it already has. If you want the agent to start over and gather new context, you must create a new chat and send an updated prompt.
+## 🤝 Contributing
 
-Once you've accepted the plan, it will begin the execution flow. When the agent finishes, a pull request will automatically be opened in the repository.
+We welcome contributions! Here's how to get started:
 
-> [!NOTE]
-> The chat UI is very buggy at the moment, so I recommend also having the agent server terminal window open so you can inspect the logs as the agent runs.
+1. **🍴 Fork** the repository
+2. **🌿 Create** a feature branch: `git checkout -b feature/amazing-feature`
+3. **💻 Make** your changes
+4. **✅ Test** your changes: `yarn test && yarn lint`
+5. **📝 Commit** your changes: `git commit -m 'Add amazing feature'`
+6. **🚀 Push** to your branch: `git push origin feature/amazing-feature`
+7. **🔄 Create** a Pull Request
 
-## Accessing Changes
+### Development Guidelines
 
-Open SWE will automatically create a branch whenever you create a new thread with a naming format of `open-swe/<threadId>`. Every time a file is created, modified, or deleted, the changes will be committed to this branch. You can access the changes in the repository by checking out this branch.
+- Follow the existing code style and conventions
+- Add tests for new functionality
+- Update documentation as needed
+- Ensure CI passes before submitting PRs
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Agent not starting?**
+- Check that all required environment variables are set
+- Verify your API keys are valid
+- Ensure Node.js version is 18+
+
+**GitHub authentication failing?**
+- Verify your GitHub App configuration
+- Check that callback URLs match exactly
+- Ensure the encryption key is the same in both apps
+
+**Plan execution stuck?**
+- Check the agent terminal for detailed logs
+- Verify Daytona API key and sandbox access
+- Review LangSmith traces if enabled
+
+### Getting Help
+
+- 📖 Check the [documentation](https://github.com/langchain-ai/open-swe/wiki)
+- 🐛 Report bugs via [GitHub Issues](https://github.com/langchain-ai/open-swe/issues)
+- 💬 Join discussions in [GitHub Discussions](https://github.com/langchain-ai/open-swe/discussions)
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [LangChain](https://langchain.com) and [LangGraph](https://langchain-ai.github.io/langgraph/)
+- Powered by [Daytona](https://daytona.io) cloud sandboxes
+- UI components from [shadcn/ui](https://ui.shadcn.com)
+
+---
+
+<div align="center">
+  <p>Made with ❤️ by the LangChain team</p>
+  <p>
+    <a href="https://github.com/langchain-ai/open-swe">⭐ Star us on GitHub</a> •
+    <a href="https://twitter.com/langchainai">🐦 Follow on Twitter</a>
+  </p>
+</div>
