@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { StatusIndicator } from "@/components/status-indicator";
 import { GitHubSVG } from "./icons/github";
 import { useQueryState } from "nuqs";
+import { useGitHubAppProvider } from "@/providers/GitHubApp";
 import { Thread } from "@langchain/langgraph-sdk";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { getThreadTasks, getThreadTitle } from "@/lib/thread";
@@ -47,6 +48,7 @@ export const ThreadItem = memo(function ThreadItem({
 }: ThreadItemProps) {
   const [threadId] = useQueryState("threadId");
   const { recentlyUpdatedThreads } = useThreads();
+  const { selectedRepository, selectedBranch } = useGitHubAppProvider();
   const isSelected = thread.thread_id === threadId;
   const isSidebar = variant === "sidebar";
   const isRecentlyUpdated = recentlyUpdatedThreads.has(thread.thread_id);
@@ -54,6 +56,12 @@ export const ThreadItem = memo(function ThreadItem({
   const displayDate = formatRelativeDate(thread.created_at);
 
   const { totalTasks, completedTasks } = getThreadTasks(thread);
+
+  // Prioritize thread.values.targetRepository, but fall back to GitHubAppProvider context
+  const displayRepo = thread.values?.targetRepository?.repo || 
+    (selectedRepository ? `${selectedRepository.owner}/${selectedRepository.repo}` : "x");
+  const displayBranch = thread.values?.targetRepository?.branch || 
+    selectedBranch || "x";
 
   return (
     <div
@@ -86,12 +94,12 @@ export const ThreadItem = memo(function ThreadItem({
                 className="flex-shrink-0"
               />
               <span className="max-w-[90px] truncate">
-                {thread.values?.targetRepository?.repo || "x"}
+                {displayRepo}
               </span>
               <span>/</span>
               <GitBranch className="size-2.5 flex-shrink-0" />
               <span className="max-w-[70px] truncate">
-                {thread.values?.targetRepository?.branch || "x"}
+                {displayBranch}
               </span>
             </div>
 
@@ -129,3 +137,4 @@ export const ThreadItem = memo(function ThreadItem({
     </div>
   );
 });
+
