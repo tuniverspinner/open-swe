@@ -12,6 +12,8 @@ import {
   MessageSquare,
   FileText,
 } from "lucide-react";
+import { SyntaxHighlighter } from "../thread/syntax-highlighter";
+import { detectLanguageForShellOutput } from "../../lib/language-detection";
 
 // Common props for all action types
 type BaseActionProps = {
@@ -156,10 +158,27 @@ export function ActionStep(props: ActionStepProps) {
 
     if (props.actionType === "shell" && props.output) {
       return (
-        <div className="overflow-x-auto bg-gray-900 p-2 text-gray-200">
-          <pre className="text-xs font-normal whitespace-pre-wrap">
-            {props.output}
-          </pre>
+        <div className="overflow-x-auto bg-gray-900 text-gray-200">
+          {(() => {
+            const detectedLanguage = detectLanguageForShellOutput(props.command, props.output);
+            
+            if (detectedLanguage) {
+              return (
+                <SyntaxHighlighter 
+                  language={detectedLanguage}
+                  className="text-xs font-normal"
+                >
+                  {props.output}
+                </SyntaxHighlighter>
+              );
+            } else {
+              return (
+                <pre className="text-xs font-normal whitespace-pre-wrap p-2">
+                  {props.output}
+                </pre>
+              );
+            }
+          })()}
           {props.errorCode !== undefined && !props.success && (
             <div className="mt-1 text-xs text-red-400">
               Exit code: {props.errorCode}
@@ -278,3 +297,4 @@ function formatDiff(diff: string) {
     })
     .join("\n");
 }
+
