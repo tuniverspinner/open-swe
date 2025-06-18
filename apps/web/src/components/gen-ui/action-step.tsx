@@ -13,7 +13,7 @@ import {
   FileText,
 } from "lucide-react";
 import { SyntaxHighlighter } from "../thread/syntax-highlighter";
-import { detectLanguageForShellOutput } from "../../lib/language-detection";
+import { detectLanguageForShellOutput, detectLanguageForPatch } from "../../lib/language-detection";
 
 // Common props for all action types
 type BaseActionProps = {
@@ -297,4 +297,5 @@ function formatDiff(diff: string) {
     })
     .join("\n");
 }
+
 
