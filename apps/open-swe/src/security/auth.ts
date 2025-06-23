@@ -128,9 +128,21 @@ export const auth = new Auth()
     // Proceed with normal metadata creation
     return createWithOwnerMetadata(value, user);
   })
-  .on("threads:create_run", ({ value, user }) =>
-    createWithOwnerMetadata(value, user),
-  )
+  .on("threads:create_run", async ({ value, user }) => {
+    // Skip rate limiting for studio users and exempt users
+    if (!isStudioUser(user.identity) && !RATE_LIMIT_EXEMPT_USERS.includes(user.display_name)) {
+      // Check if user has exceeded rate limit
+      if (await checkRateLimit(user.identity)) {
+        throw new HTTPException(429, "You are out of free credits. Please upgrade your plan to continue.");
+      }
+      
+      // Increment user's request count
+      await incrementUserRequestCount(user.identity);
+    }
+    
+    // Proceed with normal metadata creation
+    return createWithOwnerMetadata(value, user);
+  })
 
   // THREADS: read, update, delete, search operations
   .on("threads:read", ({ user }) => createOwnerFilter(user))
@@ -153,5 +165,6 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
 
 
