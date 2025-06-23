@@ -8,6 +8,9 @@ import { decryptGitHubToken } from "@open-swe/shared/crypto";
 
 const STUDIO_USER_ID = "langgraph-studio-user";
 
+// Array of display names for users who should bypass rate limiting
+const RATE_LIMIT_EXEMPT_USERS: string[] = [];
+
 // Helper function to check if user is studio user
 const isStudioUser = (userIdentity: string): boolean => {
   return userIdentity === STUDIO_USER_ID;
@@ -137,3 +140,4 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
