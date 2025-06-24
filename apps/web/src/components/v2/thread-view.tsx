@@ -1,14 +1,15 @@
 "use client";
-
 import { v4 as uuidv4 } from "uuid";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
   GitBranch,
   Send,
+  Terminal,
+  Clock,
   User,
   Bot,
   Copy,
@@ -275,6 +276,18 @@ export function ThreadView({
                           setSelectedTab={setSelectedTab}
                         />
                       )}
+                    {!(
+                      plannerThreadId &&
+                      plannerRunId &&
+                      PLANNER_ASSISTANT_ID
+                    ) && (
+                      <div className="flex items-center justify-center gap-2 py-8">
+                        <Clock className="text-muted-foreground size-4" />
+                        <span className="text-muted-foreground text-sm">
+                          No planner session
+                        </span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -289,8 +302,11 @@ export function ThreadView({
                       />
                     )}
                     {!programmerSession && (
-                      <div className="text-muted-foreground text-xs">
-                        No programmer session
+                      <div className="flex items-center justify-center gap-2 py-8">
+                        <Terminal className="text-muted-foreground size-4" />
+                        <span className="text-muted-foreground text-sm">
+                          No programmer session
+                        </span>
                       </div>
                     )}
                   </CardContent>
