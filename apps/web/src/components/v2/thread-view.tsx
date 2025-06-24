@@ -1,14 +1,15 @@
 "use client";
-
 import { v4 as uuidv4 } from "uuid";
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
   GitBranch,
   Send,
+  Terminal,
+  Clock,
   User,
   Bot,
   Copy,
@@ -308,38 +309,53 @@ export function ThreadView({
                     </TabsList>
                     <TabsContent value="planner">
                       <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
-                        <CardContent className="space-y-2 p-3 pt-0">
-                          {plannerThreadId &&
-                            plannerRunId &&
-                            PLANNER_ASSISTANT_ID && (
-                              <ActionsRenderer<PlannerGraphState>
-                                graphId={PLANNER_ASSISTANT_ID}
-                                threadId={plannerThreadId}
-                                runId={plannerRunId}
-                                setProgrammerSession={setProgrammerSession}
-                                programmerSession={programmerSession}
-                                setSelectedTab={setSelectedTab}
-                              />
-                            )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    <TabsContent value="programmer">
-                      <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
-                        <CardContent className="space-y-2 p-3 pt-0">
-                          {programmerSession && PROGRAMMER_ASSISTANT_ID && (
-                            <ActionsRenderer<GraphState>
-                              graphId={PROGRAMMER_ASSISTANT_ID}
-                              threadId={programmerSession.threadId}
-                              runId={programmerSession.runId}
-                            />
-                          )}
-                          {!programmerSession && (
-                            <div className="text-muted-foreground text-xs">
-                              No programmer session
-                            </div>
-                          )}
-                        </CardContent>
+            <CardContent className="space-y-2 p-3 pt-0">
+                    {plannerThreadId &&
+                      plannerRunId &&
+                      PLANNER_ASSISTANT_ID && (
+                        <ActionsRenderer<PlannerGraphState>
+                          graphId={PLANNER_ASSISTANT_ID}
+                          threadId={plannerThreadId}
+                          runId={plannerRunId}
+                          setProgrammerSession={setProgrammerSession}
+                          programmerSession={programmerSession}
+                          setSelectedTab={setSelectedTab}
+                        />
+                      )}
+                    {!(
+                      plannerThreadId &&
+                      plannerRunId &&
+                      PLANNER_ASSISTANT_ID
+                    ) && (
+                      <div className="flex items-center justify-center gap-2 py-8">
+                        <Clock className="text-muted-foreground size-4" />
+                        <span className="text-muted-foreground text-sm">
+                          No planner session
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="programmer">
+                <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
+                  <CardContent className="space-y-2 p-3 pt-0">
+                    {programmerSession && PROGRAMMER_ASSISTANT_ID && (
+                      <ActionsRenderer<GraphState>
+                        graphId={PROGRAMMER_ASSISTANT_ID}
+                        threadId={programmerSession.threadId}
+                        runId={programmerSession.runId}
+                      />
+                    )}
+                    {!programmerSession && (
+                      <div className="flex items-center justify-center gap-2 py-8">
+                        <Terminal className="text-muted-foreground size-4" />
+                        <span className="text-muted-foreground text-sm">
+                          No programmer session
+                        </span>
+                      </div>
+                    )}
+                  </CardContent>
                       </Card>
                     </TabsContent>
                   </Tabs>
