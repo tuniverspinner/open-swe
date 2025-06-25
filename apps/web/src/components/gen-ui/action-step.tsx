@@ -101,9 +101,7 @@ function ActionItem(props: ActionItemProps) {
   const getStatusIcon = () => {
     switch (props.status) {
       case "loading":
-        return (
-          <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
-        );
+        return null; // Don't show duplicate spinner, left side already has one
       case "generating":
         return (
           <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
@@ -119,7 +117,7 @@ function ActionItem(props: ActionItemProps) {
 
   const getStatusText = () => {
     if (props.status === "loading") {
-      return "Agent is thinking...";
+      return "";
     }
 
     if (props.status === "generating") {
@@ -165,7 +163,9 @@ function ActionItem(props: ActionItemProps) {
 
   const renderHeaderIcon = () => {
     if (props.status === "loading" || !("actionType" in props)) {
-      return <Loader2 className="text-muted-foreground mr-2 size-3.5 animate-spin" />;
+      return (
+        <Loader2 className="text-muted-foreground mr-2 size-3.5 animate-spin" />
+      );
     }
 
     if (props.actionType === "planner_notes") {
@@ -184,8 +184,8 @@ function ActionItem(props: ActionItemProps) {
   const renderHeaderContent = () => {
     if (props.status === "loading" || !("actionType" in props)) {
       return (
-        <span className="text-foreground/80 text-xs font-normal animate-pulse">
-          Agent is thinking...
+        <span className="text-foreground/80 animate-pulse text-xs font-normal">
+          Processing...
         </span>
       );
     }

@@ -87,7 +87,7 @@ export async function takeAction(
   const getToolActionDescription = (toolCall: any): string => {
     switch (toolCall.name) {
       case "shell": {
-        const command = Array.isArray(toolCall.args?.command) 
+        const command = Array.isArray(toolCall.args?.command)
           ? toolCall.args.command.join(" ")
           : toolCall.args?.command || "command";
         return `Running: ${command}`;
@@ -104,7 +104,7 @@ export async function takeAction(
   };
 
   // Emit start events for all tools immediately (like InitializeStep)
-  const toolExecutionActions = toolCalls.map(toolCall => {
+  const toolExecutionActions = toolCalls.map((toolCall) => {
     const actionId = uuidv4();
     const baseAction: CustomNodeEvent = {
       nodeId: "TOOL_EXECUTION",
@@ -122,63 +122,68 @@ export async function takeAction(
     return { actionId, baseAction, toolCall };
   });
 
-  const toolCallResultsPromise = toolExecutionActions.map(async ({ baseAction, toolCall }) => {
-    const tool = toolsMap[toolCall.name];
+  const toolCallResultsPromise = toolExecutionActions.map(
+    async ({ baseAction, toolCall }) => {
+      const tool = toolsMap[toolCall.name];
 
-    if (!tool) {
-      logger.error(`Unknown tool: ${toolCall.name}`);
+      if (!tool) {
+        logger.error(`Unknown tool: ${toolCall.name}`);
+        const toolMessage = new ToolMessage({
+          tool_call_id: toolCall.id ?? "",
+          content: `Unknown tool: ${toolCall.name}`,
+          name: toolCall.name,
+          status: "error",
+        });
+        return toolMessage;
+      }
+
+      let result = "";
+      let toolCallStatus: "success" | "error" = "success";
+      try {
+        const toolResult: { result: string; status: "success" | "error" } =
+          // @ts-expect-error tool.invoke types are weird here...
+          await tool.invoke(toolCall.args);
+        result = toolResult.result;
+        toolCallStatus = toolResult.status;
+      } catch (e) {
+        toolCallStatus = "error";
+        if (
+          e instanceof Error &&
+          e.message === "Received tool input did not match expected schema"
+        ) {
+          logger.error("Received tool input did not match expected schema", {
+            toolCall,
+            expectedSchema: zodSchemaToString(tool.schema),
+          });
+          result = formatBadArgsError(tool.schema, toolCall.args);
+        } else {
+          logger.error("Failed to call tool", {
+            ...(e instanceof Error
+              ? { name: e.name, message: e.message, stack: e.stack }
+              : { error: e }),
+          });
+          const errMessage = e instanceof Error ? e.message : "Unknown error";
+          result = `FAILED TO CALL TOOL: "${toolCall.name}"\n\nError: ${errMessage}`;
+        }
+      }
+
       const toolMessage = new ToolMessage({
         tool_call_id: toolCall.id ?? "",
-        content: `Unknown tool: ${toolCall.name}`,
+        content: truncateOutput(result),
         name: toolCall.name,
-        status: "error",
+        status: toolCallStatus,
       });
+
+      // Emit completion event (like InitializeStep)
+      emitStepEvent(
+        baseAction,
+        toolCallStatus === "success" ? "success" : "error",
+        toolCallStatus === "error" ? result : undefined,
+      );
+
       return toolMessage;
-    }
-
-    let result = "";
-    let toolCallStatus: "success" | "error" = "success";
-    try {
-      const toolResult: { result: string; status: "success" | "error" } =
-        // @ts-expect-error tool.invoke types are weird here...
-        await tool.invoke(toolCall.args);
-      result = toolResult.result;
-      toolCallStatus = toolResult.status;
-    } catch (e) {
-      toolCallStatus = "error";
-      if (
-        e instanceof Error &&
-        e.message === "Received tool input did not match expected schema"
-      ) {
-        logger.error("Received tool input did not match expected schema", {
-          toolCall,
-          expectedSchema: zodSchemaToString(tool.schema),
-        });
-        result = formatBadArgsError(tool.schema, toolCall.args);
-      } else {
-        logger.error("Failed to call tool", {
-          ...(e instanceof Error
-            ? { name: e.name, message: e.message, stack: e.stack }
-            : { error: e }),
-        });
-        const errMessage = e instanceof Error ? e.message : "Unknown error";
-        result = `FAILED TO CALL TOOL: "${toolCall.name}"\n\nError: ${errMessage}`;
-      }
-    }
-
-    const toolMessage = new ToolMessage({
-      tool_call_id: toolCall.id ?? "",
-      content: truncateOutput(result),
-      name: toolCall.name,
-      status: toolCallStatus,
-    });
-
-    // Emit completion event (like InitializeStep)
-    emitStepEvent(baseAction, toolCallStatus === "success" ? "success" : "error", 
-      toolCallStatus === "error" ? result : undefined);
-
-    return toolMessage;
-  });
+    },
+  );
 
   const toolCallResults = await Promise.all(toolCallResultsPromise);
 

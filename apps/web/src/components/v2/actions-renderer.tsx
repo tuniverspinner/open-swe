@@ -12,10 +12,10 @@ import {
 import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
 import { Message } from "@langchain/langgraph-sdk";
 import { InitializeStep } from "../gen-ui/initialize-step";
-import { ActionExecutionStep } from "../gen-ui/action-execution-step";
 import { ActionStep } from "../gen-ui/action-step";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import { GraphState } from "@open-swe/shared/open-swe/types";
+import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 interface ActionsRendererProps {
   graphId: string;
@@ -76,6 +76,9 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
   const initializeEvents = customNodeEvents.filter(
     (e) => e.nodeId === INITIALIZE_NODE_ID,
   );
+  const toolExecutionEvents = customNodeEvents.filter(
+    (e) => e.nodeId === "TOOL_EXECUTION",
+  );
   const steps = mapCustomEventsToSteps(initializeEvents);
   const allSuccess =
     steps.length > 0 && steps.every((s) => s.status === "success");
@@ -128,9 +131,15 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
     }
   }, [stream.values]);
 
-  // Only show loading ActionStep AFTER initialization is complete
-  const showLoadingActionStep = stream.isLoading && 
-    (initStatus === "done" || initializeEvents.length === 0);
+  // Check if we have tool execution data to show instead of generic loading
+  const toolSteps = mapCustomEventsToSteps(toolExecutionEvents);
+  const hasToolExecutionData = toolSteps.length > 0;
+
+  // Only show loading ActionStep AFTER initialization is complete AND if no tool execution data
+  const showLoadingActionStep =
+    stream.isLoading &&
+    (initStatus === "done" || initializeEvents.length === 0) &&
+    !hasToolExecutionData;
 
   return (
     <div className="flex w-full flex-col gap-2">
@@ -142,37 +151,66 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
           collapse={initStatus === "done" && allSuccess}
         />
       )}
-      
-             {/* 2. Show loading ActionStep ONLY after init is done and when loading with no messages */}
-       {showLoadingActionStep && (!filteredMessages || filteredMessages.length === 0) && (
-         <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
-           <ActionStep
-             actions={[{ status: "loading" }]}
-             reasoningText="Agent is thinking..."
-           />
-         </div>
-       )}
-       
-       {/* 3. Existing AI messages */}
-       {filteredMessages?.map((m) => (
-         <AssistantMessage
-           key={m.id}
-           thread={stream as UseStream<Record<string, unknown>>}
-           message={m}
-           isLoading={stream.isLoading}
-           handleRegenerate={() => {}}
-         />
-       ))}
-       
-       {/* 4. Show loading ActionStep after messages if still loading */}
-       {showLoadingActionStep && filteredMessages && filteredMessages.length > 0 && (
-         <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
-           <ActionStep
-             actions={[{ status: "loading" }]}
-             reasoningText="Agent is thinking..."
-           />
-         </div>
-       )}
+
+      {/* 2. Show loading ActionStep ONLY after init is done and when loading with no messages */}
+      {showLoadingActionStep &&
+        (!filteredMessages || filteredMessages.length === 0) && (
+          <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+            <ActionStep
+              actions={[{ status: "loading" }]}
+              reasoningText="Agent is thinking..."
+            />
+          </div>
+        )}
+
+      {/* 3. Existing AI messages */}
+      {filteredMessages?.map((m) => (
+        <AssistantMessage
+          key={m.id}
+          thread={stream as UseStream<Record<string, unknown>>}
+          message={m}
+          isLoading={stream.isLoading}
+          handleRegenerate={() => {}}
+        />
+      ))}
+
+      {/* 4. Show tool execution progress if available */}
+      {hasToolExecutionData && stream.isLoading && (
+        <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+          <div className="bg-card rounded-lg border p-4 shadow-sm">
+            <h3 className="mb-3 text-sm font-medium">Executing Tools</h3>
+            <div className="space-y-2">
+              {toolSteps.map((step, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  {step.status === "success" ? (
+                    <CheckCircle className="size-3.5 text-green-500" />
+                  ) : step.status === "error" ? (
+                    <XCircle className="size-3.5 text-red-500" />
+                  ) : (
+                    <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
+                  )}
+                  <span className="text-foreground/80">{step.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Show loading ActionStep when no tool execution data available */}
+      {showLoadingActionStep &&
+        filteredMessages &&
+        filteredMessages.length > 0 && (
+          <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+            <ActionStep
+              actions={[{ status: "loading" }]}
+              reasoningText="Agent is thinking..."
+            />
+          </div>
+        )}
     </div>
   );
 }
