@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Repository } from "@/utils/github";
+import { OrganizationSelector } from "@/components/github/organization-selector";
 
 export default function GitHubPage() {
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -84,7 +85,9 @@ export default function GitHubPage() {
       ) : (
         <div className="mb-6 rounded-lg bg-white p-6 shadow-md">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Your Repositories</h2>
+            <h2 className="text-xl font-semibold">
+              GitHub Organizations & Repositories
+            </h2>
             <button
               onClick={handleRefreshRepositories}
               disabled={loading}
@@ -92,6 +95,13 @@ export default function GitHubPage() {
             >
               {loading ? "Refreshing..." : "Refresh"}
             </button>
+          </div>
+
+          <div className="mb-4">
+            <label className="mb-2 block text-sm font-medium">
+              Select Organization:
+            </label>
+            <OrganizationSelector />
           </div>
 
           {repositories.length === 0 ? (

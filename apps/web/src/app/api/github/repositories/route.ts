@@ -12,10 +12,18 @@ import { GITHUB_INSTALLATION_ID_COOKIE } from "@open-swe/shared/constants";
  */
 export async function GET(request: NextRequest) {
   try {
-    // Get the installation ID from cookies
-    const installationId = request.cookies.get(
-      GITHUB_INSTALLATION_ID_COOKIE,
-    )?.value;
+    // Get pagination and installation parameters from query string
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const perPage = 30; // Fixed at 30 repositories per page
+
+    // Check for installation ID in query params first, then fallback to cookies
+    let installationId: string | null = searchParams.get("installation_id");
+
+    if (!installationId) {
+      installationId =
+        request.cookies.get(GITHUB_INSTALLATION_ID_COOKIE)?.value || null;
+    }
 
     if (!installationId) {
       return NextResponse.json(
@@ -26,11 +34,6 @@ export async function GET(request: NextRequest) {
         { status: 401 },
       );
     }
-
-    // Get pagination parameters from query string
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const perPage = 30; // Fixed at 30 repositories per page
 
     // Validate page parameter
     if (page < 1 || isNaN(page)) {

@@ -1,5 +1,6 @@
 import { BranchSelector } from "./branch-selector";
 import { RepositorySelector } from "./repository-selector";
+import { OrganizationSelector } from "../organization-selector";
 import { useQueryState } from "nuqs";
 
 export function RepositoryBranchSelectors() {
@@ -12,6 +13,17 @@ export function RepositoryBranchSelectors() {
 
   return (
     <div className="flex items-center gap-2">
+      <div className="flex items-center gap-0">
+        <span className="-mr-2 text-gray-500">(</span>
+        <OrganizationSelector
+          disabled={chatStarted}
+          buttonClassName={
+            defaultButtonStyles +
+            (chatStarted ? " " + defaultStylesChatStarted : "")
+          }
+        />
+        <span className="-ml-2 text-gray-500">)</span>
+      </div>
       <div className="flex items-center gap-0">
         <span className="-mr-2 text-gray-500">(</span>
         <RepositorySelector

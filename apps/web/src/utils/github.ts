@@ -283,3 +283,45 @@ export async function getPullRequest(inputs: {
     return null;
   }
 }
+
+/**
+ * Fetches all GitHub App installations accessible to the user
+ */
+export async function getUserInstallations(): Promise<{
+  installations: GitHubInstallation[];
+}> {
+  const response = await fetch(`${getBaseApiUrl()}github/installations`, {
+    headers: {
+      Accept: "application/vnd.github.v3+json",
+      "User-Agent": "OpenSWE-Agent",
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(
+      `Failed to fetch installations: ${JSON.stringify(errorData)}`,
+    );
+  }
+
+  const data = await response.json();
+  return data;
+}
+
+/**
+ * GitHubInstallation interface representing a GitHub App installation
+ */
+export interface GitHubInstallation {
+  id: number;
+  account: {
+    login: string;
+    id: number;
+    avatar_url: string;
+    type: "User" | "Organization";
+  };
+  app_id: number;
+  target_type: "User" | "Organization";
+  permissions: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}

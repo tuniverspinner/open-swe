@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQueryState } from "nuqs";
-import { Repository, getRepositoryBranches, Branch } from "@/utils/github";
+import {
+  Repository,
+  getRepositoryBranches,
+  Branch,
+  getUserInstallations,
+  GitHubInstallation,
+} from "@/utils/github";
 import { getRepository } from "@/utils/github";
 import type { TargetRepository } from "@open-swe/shared/open-swe/types";
 
@@ -48,6 +54,14 @@ interface UseGitHubAppReturn {
   isLoading: boolean;
   error: string | null;
 
+  // Installation management
+  installations: GitHubInstallation[];
+  selectedInstallation: GitHubInstallation | null;
+  setSelectedInstallation: (installation: GitHubInstallation | null) => void;
+  installationsLoading: boolean;
+  installationsError: string | null;
+  refreshInstallations: () => Promise<void>;
+
   // Repository state and pagination
   repositories: Repository[];
   repositoriesPage: number;
@@ -86,6 +100,15 @@ export function useGitHubApp(): UseGitHubAppReturn {
   const [isInstalled, setIsInstalled] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Installation management state
+  const [installations, setInstallations] = useState<GitHubInstallation[]>([]);
+  const [selectedInstallation, setSelectedInstallation] =
+    useState<GitHubInstallation | null>(null);
+  const [installationsLoading, setInstallationsLoading] = useState(false);
+  const [installationsError, setInstallationsError] = useState<string | null>(
+    null,
+  );
 
   // Repository state and pagination
   const [repositories, setRepositories] = useState<Repository[]>([]);
@@ -163,6 +186,32 @@ export function useGitHubApp(): UseGitHubAppReturn {
     setSelectedBranchParam(branch);
   };
 
+  // Installation management functions
+  const fetchInstallations = useCallback(async () => {
+    setInstallationsLoading(true);
+    setInstallationsError(null);
+
+    try {
+      const data = await getUserInstallations();
+      setInstallations(data.installations);
+
+      // Auto-select first installation if none selected
+      if (data.installations.length > 0 && !selectedInstallation) {
+        setSelectedInstallation(data.installations[0]);
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch installations";
+      setInstallationsError(errorMessage);
+    } finally {
+      setInstallationsLoading(false);
+    }
+  }, [selectedInstallation]);
+
+  const refreshInstallations = useCallback(async () => {
+    await fetchInstallations();
+  }, [fetchInstallations]);
+
   const checkInstallation = async (
     page: number = 1,
     append: boolean = false,
@@ -172,7 +221,13 @@ export function useGitHubApp(): UseGitHubAppReturn {
     setError(null);
 
     try {
-      const response = await fetch(`/api/github/repositories?page=${page}`);
+      // Build URL with installation ID if selected
+      let url = `/api/github/repositories?page=${page}`;
+      if (selectedInstallation) {
+        url += `&installation_id=${selectedInstallation.id}`;
+      }
+
+      const response = await fetch(url);
 
       if (response.ok) {
         const data = await response.json();
@@ -269,7 +324,20 @@ export function useGitHubApp(): UseGitHubAppReturn {
   }, [branchesHasMore, branchesLoadingMore, branchesPage, fetchBranches]);
 
   useEffect(() => {
-    checkInstallation();
+    fetchInstallations();
+  }, [fetchInstallations]);
+
+  useEffect(() => {
+    if (selectedInstallation) {
+      checkInstallation();
+    }
+  }, [selectedInstallation]);
+
+  useEffect(() => {
+    // Only run initial check if no installation is selected yet
+    if (!selectedInstallation && installations.length === 0) {
+      checkInstallation();
+    }
   }, []);
 
   useEffect(() => {
@@ -396,6 +464,14 @@ export function useGitHubApp(): UseGitHubAppReturn {
     isInstalled,
     isLoading,
     error,
+
+    // Installation management
+    installations,
+    selectedInstallation,
+    setSelectedInstallation,
+    installationsLoading,
+    installationsError,
+    refreshInstallations,
 
     // Repository state and pagination
     repositories,
