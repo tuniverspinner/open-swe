@@ -101,7 +101,9 @@ function ActionItem(props: ActionItemProps) {
   const getStatusIcon = () => {
     switch (props.status) {
       case "loading":
-        return <div className="border-border size-3.5 rounded-full border" />;
+        return (
+          <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
+        );
       case "generating":
         return (
           <Loader2 className="text-muted-foreground size-3.5 animate-spin" />
@@ -117,7 +119,7 @@ function ActionItem(props: ActionItemProps) {
 
   const getStatusText = () => {
     if (props.status === "loading") {
-      return "Preparing action...";
+      return "Agent is thinking...";
     }
 
     if (props.status === "generating") {
@@ -143,7 +145,6 @@ function ActionItem(props: ActionItemProps) {
     return "";
   };
 
-  // Determine if we should show the content toggle button
   const shouldShowToggle = () => {
     if (props.status !== "done") return false;
 
@@ -162,11 +163,9 @@ function ActionItem(props: ActionItemProps) {
     return false;
   };
 
-  // Render the header icon based on action type
   const renderHeaderIcon = () => {
     if (props.status === "loading" || !("actionType" in props)) {
-      // In loading state, we don't know the type yet, use a generic icon
-      return <Loader2 className="text-muted-foreground mr-2 size-3.5" />;
+      return <Loader2 className="text-muted-foreground mr-2 size-3.5 animate-spin" />;
     }
 
     if (props.actionType === "planner_notes") {
@@ -182,12 +181,11 @@ function ActionItem(props: ActionItemProps) {
     }
   };
 
-  // Render the header content based on action type
   const renderHeaderContent = () => {
     if (props.status === "loading" || !("actionType" in props)) {
       return (
-        <span className="text-foreground/80 text-xs font-normal">
-          Preparing action...
+        <span className="text-foreground/80 text-xs font-normal animate-pulse">
+          Agent is thinking...
         </span>
       );
     }

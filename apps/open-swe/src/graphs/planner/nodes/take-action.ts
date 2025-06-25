@@ -17,12 +17,14 @@ import {
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { daytonaClient } from "../../../utils/sandbox.js";
 import { createPlannerNotesTool } from "../../../tools/planner-notes.js";
+import { v4 as uuidv4 } from "uuid";
+import { CustomNodeEvent } from "@open-swe/shared/open-swe/custom-node-events";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
 
 export async function takeActions(
   state: PlannerGraphState,
-  _config: GraphConfig,
+  config: GraphConfig,
 ): Promise<PlannerGraphUpdate> {
   const { messages } = state;
   const lastMessage = messages[messages.length - 1];
@@ -30,6 +32,8 @@ export async function takeActions(
   if (!isAIMessage(lastMessage) || !lastMessage.tool_calls?.length) {
     throw new Error("Last message is not an AI message with tool calls.");
   }
+
+
 
   const shellTool = createShellTool(state);
   const rgTool = createRgTool(state);
@@ -45,7 +49,68 @@ export async function takeActions(
     throw new Error("No tool calls found.");
   }
 
-  const toolCallResultsPromise = toolCalls.map(async (toolCall) => {
+  // Emit custom events following InitializeStep pattern
+  const events: CustomNodeEvent[] = [];
+  const emitStepEvent = (
+    base: CustomNodeEvent,
+    status: "pending" | "success" | "error" | "skipped",
+    error?: string,
+  ) => {
+    const event = {
+      ...base,
+      createdAt: new Date().toISOString(),
+      data: {
+        ...base.data,
+        status,
+        ...(error ? { error } : {}),
+      },
+    };
+    events.push(event);
+    try {
+      config.writer?.(event);
+    } catch (err) {
+      logger.error("Failed to emit custom event", { event, err });
+    }
+  };
+
+  // Helper function to get tool action description
+  const getToolActionDescription = (toolCall: any): string => {
+    switch (toolCall.name) {
+      case "shell": {
+        const command = Array.isArray(toolCall.args?.command) 
+          ? toolCall.args.command.join(" ")
+          : toolCall.args?.command || "command";
+        return `Running: ${command}`;
+      }
+      case "rg":
+        return `Searching for: ${toolCall.args?.pattern || "pattern"}`;
+      case "take_notes":
+        return `Taking notes`;
+      default:
+        return `Executing ${toolCall.name}`;
+    }
+  };
+
+  // Emit start events for all tools immediately (like InitializeStep)
+  const toolExecutionActions = toolCalls.map(toolCall => {
+    const actionId = uuidv4();
+    const baseAction: CustomNodeEvent = {
+      nodeId: "TOOL_EXECUTION",
+      createdAt: new Date().toISOString(),
+      actionId,
+      action: getToolActionDescription(toolCall),
+      data: {
+        status: "pending",
+        toolName: toolCall.name,
+        toolCallId: toolCall.id,
+        args: toolCall.args,
+      },
+    };
+    emitStepEvent(baseAction, "pending");
+    return { actionId, baseAction, toolCall };
+  });
+
+  const toolCallResultsPromise = toolExecutionActions.map(async ({ baseAction, toolCall }) => {
     const tool = toolsMap[toolCall.name];
     if (!tool) {
       logger.error(`Unknown tool: ${toolCall.name}`);
@@ -102,6 +167,11 @@ export async function takeActions(
       name: toolCall.name,
       status: toolCallStatus,
     });
+
+    // Emit completion event (like InitializeStep)
+    emitStepEvent(baseAction, toolCallStatus === "success" ? "success" : "error", 
+      toolCallStatus === "error" ? result : undefined);
+
     return toolMessage;
   });
 

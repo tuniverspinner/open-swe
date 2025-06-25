@@ -22,6 +22,8 @@ import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { shouldDiagnoseError } from "../utils/tool-message-error.js";
 import { createInstallDependenciesTool } from "../../../tools/install-dependencies.js";
 import { createRgTool } from "../../../tools/rg.js";
+import { v4 as uuidv4 } from "uuid";
+import { CustomNodeEvent } from "@open-swe/shared/open-swe/custom-node-events";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
 
@@ -57,7 +59,70 @@ export async function takeAction(
     throw new Error("No tool calls found.");
   }
 
-  const toolCallResultsPromise = toolCalls.map(async (toolCall) => {
+  // Emit custom events following InitializeStep pattern
+  const events: CustomNodeEvent[] = [];
+  const emitStepEvent = (
+    base: CustomNodeEvent,
+    status: "pending" | "success" | "error" | "skipped",
+    error?: string,
+  ) => {
+    const event = {
+      ...base,
+      createdAt: new Date().toISOString(),
+      data: {
+        ...base.data,
+        status,
+        ...(error ? { error } : {}),
+      },
+    };
+    events.push(event);
+    try {
+      config.writer?.(event);
+    } catch (err) {
+      logger.error("Failed to emit custom event", { event, err });
+    }
+  };
+
+  // Helper function to get tool action description
+  const getToolActionDescription = (toolCall: any): string => {
+    switch (toolCall.name) {
+      case "shell": {
+        const command = Array.isArray(toolCall.args?.command) 
+          ? toolCall.args.command.join(" ")
+          : toolCall.args?.command || "command";
+        return `Running: ${command}`;
+      }
+      case "apply_patch":
+        return `Applying patch to ${toolCall.args?.file_path || "file"}`;
+      case "rg":
+        return `Searching for: ${toolCall.args?.pattern || "pattern"}`;
+      case "install_dependencies":
+        return `Installing dependencies`;
+      default:
+        return `Executing ${toolCall.name}`;
+    }
+  };
+
+  // Emit start events for all tools immediately (like InitializeStep)
+  const toolExecutionActions = toolCalls.map(toolCall => {
+    const actionId = uuidv4();
+    const baseAction: CustomNodeEvent = {
+      nodeId: "TOOL_EXECUTION",
+      createdAt: new Date().toISOString(),
+      actionId,
+      action: getToolActionDescription(toolCall),
+      data: {
+        status: "pending",
+        toolName: toolCall.name,
+        toolCallId: toolCall.id,
+        args: toolCall.args,
+      },
+    };
+    emitStepEvent(baseAction, "pending");
+    return { actionId, baseAction, toolCall };
+  });
+
+  const toolCallResultsPromise = toolExecutionActions.map(async ({ baseAction, toolCall }) => {
     const tool = toolsMap[toolCall.name];
 
     if (!tool) {
@@ -107,6 +172,10 @@ export async function takeAction(
       name: toolCall.name,
       status: toolCallStatus,
     });
+
+    // Emit completion event (like InitializeStep)
+    emitStepEvent(baseAction, toolCallStatus === "success" ? "success" : "error", 
+      toolCallStatus === "error" ? result : undefined);
 
     return toolMessage;
   });

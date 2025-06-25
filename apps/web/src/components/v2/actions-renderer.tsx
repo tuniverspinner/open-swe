@@ -12,6 +12,8 @@ import {
 import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
 import { Message } from "@langchain/langgraph-sdk";
 import { InitializeStep } from "../gen-ui/initialize-step";
+import { ActionExecutionStep } from "../gen-ui/action-execution-step";
+import { ActionStep } from "../gen-ui/action-step";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 
@@ -126,6 +128,10 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
     }
   }, [stream.values]);
 
+  // Only show loading ActionStep AFTER initialization is complete
+  const showLoadingActionStep = stream.isLoading && 
+    (initStatus === "done" || initializeEvents.length === 0);
+
   return (
     <div className="flex w-full flex-col gap-2">
       {initializeEvents.length > 0 && steps.length > 0 && (
@@ -136,15 +142,37 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
           collapse={initStatus === "done" && allSuccess}
         />
       )}
-      {filteredMessages?.map((m) => (
-        <AssistantMessage
-          key={m.id}
-          thread={stream as UseStream<Record<string, unknown>>}
-          message={m}
-          isLoading={false}
-          handleRegenerate={() => {}}
-        />
-      ))}
+      
+             {/* 2. Show loading ActionStep ONLY after init is done and when loading with no messages */}
+       {showLoadingActionStep && (!filteredMessages || filteredMessages.length === 0) && (
+         <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+           <ActionStep
+             actions={[{ status: "loading" }]}
+             reasoningText="Agent is thinking..."
+           />
+         </div>
+       )}
+       
+       {/* 3. Existing AI messages */}
+       {filteredMessages?.map((m) => (
+         <AssistantMessage
+           key={m.id}
+           thread={stream as UseStream<Record<string, unknown>>}
+           message={m}
+           isLoading={stream.isLoading}
+           handleRegenerate={() => {}}
+         />
+       ))}
+       
+       {/* 4. Show loading ActionStep after messages if still loading */}
+       {showLoadingActionStep && filteredMessages && filteredMessages.length > 0 && (
+         <div className="animate-in fade-in-0 slide-in-from-top-2 duration-300">
+           <ActionStep
+             actions={[{ status: "loading" }]}
+             reasoningText="Agent is thinking..."
+           />
+         </div>
+       )}
     </div>
   );
 }
