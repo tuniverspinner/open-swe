@@ -114,7 +114,6 @@ export function ThreadView({
     useState<UseStream<GraphState> | null>(null);
   const [streamStopped, setStreamStopped] = useState(false);
 
-  // Memoized callbacks to prevent infinite loops
   const handlePlannerStreamReady = useCallback(
     (stream: UseStream<PlannerGraphState>) => {
       setPlannerStream(stream);
@@ -138,14 +137,6 @@ export function ThreadView({
       prevMessageLength.current = stream.messages.length;
     }
   }, [stream.messages]);
-
-  useEffect(() => {
-    // Auto-scroll to bottom when tab switches (requirement fulfilled)
-    // StickToBottom handles the actual scrolling via scrollToBottom()
-  }, [selectedTab]);
-
-  // Don't early return for empty messages - show loading/empty state instead
-  // This prevents blank pages when navigating to existing threads
 
   const handleSendMessage = () => {
     if (chatInput.trim()) {
@@ -344,7 +335,6 @@ export function ThreadView({
                         <TabsTrigger value="programmer">Programmer</TabsTrigger>
                       </TabsList>
 
-                      {/* Stream Stop Buttons */}
                       <div className="flex gap-2">
                         {selectedTab === "planner" &&
                           plannerThreadId &&
@@ -371,17 +361,14 @@ export function ThreadView({
                                     }
                                   }
                                 } catch (error) {
-                                  // Handle expected cancellation errors gracefully
                                   if (
                                     error instanceof Error &&
                                     (error.name === "AbortError" ||
                                       error.message.includes("aborted") ||
                                       error.message.includes("cancelled"))
                                   ) {
-                                    // Expected behavior when user cancels - no need to log
                                     return;
                                   }
-                                  // Log unexpected errors only
                                   console.error(
                                     "Error cancelling planner run:",
                                     error,
@@ -433,17 +420,14 @@ export function ThreadView({
                                     }
                                   }
                                 } catch (error) {
-                                  // Handle expected cancellation errors gracefully
                                   if (
                                     error instanceof Error &&
                                     (error.name === "AbortError" ||
                                       error.message.includes("aborted") ||
                                       error.message.includes("cancelled"))
                                   ) {
-                                    // Expected behavior when user cancels - no need to log
                                     return;
                                   }
-                                  // Log unexpected errors only
                                   console.error(
                                     "Error cancelling programmer run:",
                                     error,
