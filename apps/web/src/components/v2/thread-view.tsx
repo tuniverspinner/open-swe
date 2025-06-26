@@ -371,6 +371,17 @@ export function ThreadView({
                                     }
                                   }
                                 } catch (error) {
+                                  // Handle expected cancellation errors gracefully
+                                  if (
+                                    error instanceof Error &&
+                                    (error.name === "AbortError" ||
+                                      error.message.includes("aborted") ||
+                                      error.message.includes("cancelled"))
+                                  ) {
+                                    // Expected behavior when user cancels - no need to log
+                                    return;
+                                  }
+                                  // Log unexpected errors only
                                   console.error(
                                     "Error cancelling planner run:",
                                     error,
@@ -422,6 +433,17 @@ export function ThreadView({
                                     }
                                   }
                                 } catch (error) {
+                                  // Handle expected cancellation errors gracefully
+                                  if (
+                                    error instanceof Error &&
+                                    (error.name === "AbortError" ||
+                                      error.message.includes("aborted") ||
+                                      error.message.includes("cancelled"))
+                                  ) {
+                                    // Expected behavior when user cancels - no need to log
+                                    return;
+                                  }
+                                  // Log unexpected errors only
                                   console.error(
                                     "Error cancelling programmer run:",
                                     error,
