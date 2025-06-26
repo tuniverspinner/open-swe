@@ -24,6 +24,7 @@ interface ActionsRendererProps {
   ) => void;
   programmerSession?: ManagerGraphState["programmerSession"];
   setSelectedTab?: Dispatch<SetStateAction<"planner" | "programmer">>;
+  onStreamReady?: (stream: UseStream<any>) => void;
 }
 
 const getCustomNodeEventsFromMessages = (
@@ -55,6 +56,7 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
   setProgrammerSession,
   programmerSession,
   setSelectedTab,
+  onStreamReady,
 }: ActionsRendererProps) {
   const [customNodeEvents, setCustomNodeEvents] = useState<CustomNodeEvent[]>(
     [],
@@ -125,6 +127,13 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
       setSelectedTab?.("programmer");
     }
   }, [stream.values]);
+
+  // Pass the stream back to parent for stop functionality (only once when stream is ready)
+  useEffect(() => {
+    if (stream && onStreamReady) {
+      onStreamReady(stream);
+    }
+  }, [onStreamReady]); // Only depend on onStreamReady, not stream to avoid infinite calls
 
   return (
     <div className="flex w-full flex-col gap-2">
