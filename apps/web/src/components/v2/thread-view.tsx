@@ -273,7 +273,8 @@ export function ThreadView({
                 onClick={handleSendMessage}
                 disabled={!chatInput.trim()}
                 size="sm"
-                className="bg-muted hover:bg-muted/80 h-10 w-10 self-end p-0 dark:bg-gray-700 hover:dark:bg-gray-600"
+                variant={chatInput.trim() ? "default" : "secondary"}
+                className="h-10 w-10 self-end p-0 transition-all duration-200 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </Button>
