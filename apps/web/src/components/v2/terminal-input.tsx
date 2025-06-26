@@ -156,11 +156,7 @@ export function TerminalInput({
           onClick={handleSend}
           disabled={disabled || !message.trim() || !selectedRepository}
           size="sm"
-          variant={
-            !disabled && message.trim() && selectedRepository
-              ? "default"
-              : "secondary"
-          }
+          variant="brand"
           className="h-7 w-7 self-end p-0 transition-all duration-200 disabled:opacity-50"
         >
           {loading ? (
