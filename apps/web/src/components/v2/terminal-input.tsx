@@ -156,7 +156,8 @@ export function TerminalInput({
           onClick={handleSend}
           disabled={disabled || !message.trim() || !selectedRepository}
           size="sm"
-          className="bg-muted-foreground/20 hover:bg-muted-foreground/30 h-7 w-7 self-end p-0 dark:bg-gray-700 hover:dark:bg-gray-600"
+          variant="brand"
+          className="h-8 w-8s self-start mt-1 mr-1 p-0 transition-all duration-200 disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="size-3 animate-spin" />
