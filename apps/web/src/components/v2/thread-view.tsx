@@ -37,7 +37,6 @@ import {
 } from "../../utils/scroll-utils";
 import { cn } from "@/lib/utils";
 
-
 const PROGRAMMER_ASSISTANT_ID = process.env.NEXT_PUBLIC_PROGRAMMER_ASSISTANT_ID;
 const PLANNER_ASSISTANT_ID = process.env.NEXT_PUBLIC_PLANNER_ASSISTANT_ID;
 
@@ -269,8 +268,7 @@ export function ThreadView({
                   </>
                 }
                 footer={
-
-                  <div className="absolute right-0 left-0 bottom-4 flex justify-center w-full">
+                  <div className="absolute right-0 bottom-4 left-0 flex w-full justify-center">
                     <ScrollToBottom className="animate-in fade-in-0 zoom-in-95" />
                   </div>
                 }
@@ -313,7 +311,6 @@ export function ThreadView({
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-
               </Button>
             </div>
             <div className="text-muted-foreground mt-2 text-xs">
@@ -486,7 +483,6 @@ export function ThreadView({
                                 programmerSession={programmerSession}
                                 setSelectedTab={setSelectedTab}
                                 onStreamReady={handlePlannerStreamReady}
-
                               />
                             )}
                           {!(
@@ -513,7 +509,6 @@ export function ThreadView({
                               threadId={programmerSession.threadId}
                               runId={programmerSession.runId}
                               onStreamReady={handleProgrammerStreamReady}
-
                             />
                           )}
                           {!programmerSession && (
@@ -530,7 +525,7 @@ export function ThreadView({
                   </Tabs>
                 }
                 footer={
-                  <div className="absolute right-0 left-0 bottom-4 flex justify-center w-full">
+                  <div className="absolute right-0 bottom-4 left-0 flex w-full justify-center">
                     <ScrollToBottom className="animate-in fade-in-0 zoom-in-95" />
                   </div>
                 }
