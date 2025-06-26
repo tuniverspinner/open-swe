@@ -14,6 +14,7 @@ import {
   Bot,
   Copy,
   CopyCheck,
+  Loader2,
 } from "lucide-react";
 import { TooltipIconButton } from "@/components/ui/tooltip-icon-button";
 import { getMessageContentString } from "@open-swe/shared/messages";
@@ -34,6 +35,7 @@ import {
   StickyToBottomContent,
   ScrollToBottom,
 } from "../../utils/scroll-utils";
+import { cn } from "@/lib/utils";
 
 const PROGRAMMER_ASSISTANT_ID = process.env.NEXT_PUBLIC_PROGRAMMER_ASSISTANT_ID;
 const PLANNER_ASSISTANT_ID = process.env.NEXT_PUBLIC_PLANNER_ASSISTANT_ID;
@@ -270,13 +272,25 @@ export function ThreadView({
                 }}
               />
               <Button
-                onClick={handleSendMessage}
-                disabled={!chatInput.trim()}
+                onClick={
+                  stream.isLoading ? () => stream.stop() : handleSendMessage
+                }
+                disabled={stream.isLoading ? false : !chatInput.trim()}
                 size="sm"
-                variant="brand"
-                className="h-10 w-10 self-end p-0 transition-all duration-200 disabled:opacity-50"
+                variant={stream.isLoading ? "destructive" : "brand"}
+                className={cn(
+                  "self-end transition-all duration-200 disabled:opacity-50",
+                  stream.isLoading ? "h-12 px-4 py-2" : "h-10 w-10 p-0",
+                )}
               >
-                <Send className="h-4 w-4" />
+                {stream.isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Cancel
+                  </>
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
             <div className="text-muted-foreground mt-2 text-xs">
