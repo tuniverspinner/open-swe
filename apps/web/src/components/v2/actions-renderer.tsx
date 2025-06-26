@@ -128,12 +128,11 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
     }
   }, [stream.values]);
 
-  // Pass the stream back to parent for stop functionality (only once when stream is ready)
   useEffect(() => {
     if (stream && onStreamReady) {
       onStreamReady(stream);
     }
-  }, [onStreamReady]); // Only depend on onStreamReady, not stream to avoid infinite calls
+  }, [stream.isLoading, onStreamReady]);
 
   return (
     <div className="flex w-full flex-col gap-2">

@@ -112,20 +112,21 @@ export function ThreadView({
     useState<UseStream<PlannerGraphState> | null>(null);
   const [programmerStream, setProgrammerStream] =
     useState<UseStream<GraphState> | null>(null);
+  const [streamStopped, setStreamStopped] = useState(false);
 
   // Memoized callbacks to prevent infinite loops
   const handlePlannerStreamReady = useCallback(
     (stream: UseStream<PlannerGraphState>) => {
       setPlannerStream(stream);
     },
-    [],
+    [plannerThreadId],
   );
 
   const handleProgrammerStreamReady = useCallback(
     (stream: UseStream<GraphState>) => {
       setProgrammerStream(stream);
     },
-    [],
+    [programmerSession],
   );
 
   const prevMessageLength = useRef(0);
@@ -350,26 +351,98 @@ export function ThreadView({
                           plannerRunId &&
                           plannerStream?.isLoading && (
                             <Button
-                              onClick={() => plannerStream?.stop()}
+                              onClick={async () => {
+                                try {
+                                  if (plannerThreadId && plannerRunId) {
+                                    const apiUrl =
+                                      process.env.NEXT_PUBLIC_API_URL ?? "";
+                                    const response = await fetch(
+                                      `${apiUrl}/threads/${plannerThreadId}/runs/${plannerRunId}/cancel`,
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                      },
+                                    );
+
+                                    if (response.ok) {
+                                      setStreamStopped(true);
+                                    }
+                                  }
+                                } catch (error) {
+                                  console.error(
+                                    "Error cancelling planner run:",
+                                    error,
+                                  );
+                                }
+                              }}
                               size="sm"
-                              variant="destructive"
+                              variant={
+                                streamStopped ? "secondary" : "destructive"
+                              }
                               className="h-8 px-3 text-xs"
+                              disabled={streamStopped}
                             >
-                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                              Stop Planner
+                              {streamStopped ? (
+                                "Stopped"
+                              ) : (
+                                <>
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  Stop Planner
+                                </>
+                              )}
                             </Button>
                           )}
+
                         {selectedTab === "programmer" &&
                           programmerSession &&
                           programmerStream?.isLoading && (
                             <Button
-                              onClick={() => programmerStream?.stop()}
+                              onClick={async () => {
+                                try {
+                                  if (
+                                    programmerSession?.threadId &&
+                                    programmerSession?.runId
+                                  ) {
+                                    const apiUrl =
+                                      process.env.NEXT_PUBLIC_API_URL ?? "";
+                                    const response = await fetch(
+                                      `${apiUrl}/threads/${programmerSession.threadId}/runs/${programmerSession.runId}/cancel`,
+                                      {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                        },
+                                      },
+                                    );
+
+                                    if (response.ok) {
+                                      setStreamStopped(true);
+                                    }
+                                  }
+                                } catch (error) {
+                                  console.error(
+                                    "Error cancelling programmer run:",
+                                    error,
+                                  );
+                                }
+                              }}
                               size="sm"
-                              variant="destructive"
+                              variant={
+                                streamStopped ? "secondary" : "destructive"
+                              }
                               className="h-8 px-3 text-xs"
+                              disabled={streamStopped}
                             >
-                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                              Stop Programmer
+                              {streamStopped ? (
+                                "Stopped"
+                              ) : (
+                                <>
+                                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                  Stop Programmer
+                                </>
+                              )}
                             </Button>
                           )}
                       </div>
