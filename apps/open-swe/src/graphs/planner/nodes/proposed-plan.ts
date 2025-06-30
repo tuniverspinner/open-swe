@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { Command, END, interrupt } from "@langchain/langgraph";
+import { AIMessage } from "@langchain/core/messages";
 import { GraphUpdate, GraphConfig } from "@open-swe/shared/open-swe/types";
 import {
   ActionRequest,
@@ -14,6 +15,7 @@ import {
   GITHUB_TOKEN_COOKIE,
   GITHUB_USER_ID_HEADER,
   GITHUB_USER_LOGIN_HEADER,
+  DO_NOT_RENDER_ID_PREFIX,
   PLAN_INTERRUPT_ACTION_TITLE,
   PLAN_INTERRUPT_DELIMITER,
 } from "@open-swe/shared/constants";
@@ -21,6 +23,10 @@ import {
   PlannerGraphState,
   PlannerGraphUpdate,
 } from "@open-swe/shared/open-swe/planner/types";
+import {
+  CustomNodeEvent,
+  ACCEPTED_PLAN_NODE_ID,
+} from "@open-swe/shared/open-swe/custom-node-events";
 import { createLangGraphClient } from "../../../utils/langgraph-client.js";
 import { addTaskPlanToIssue } from "../../../utils/github/issue-task.js";
 
@@ -91,6 +97,31 @@ export async function interruptProposedPlan(
   // TODO: UPDATE ISSUE WITH TASK PLAN
   const programmerThreadId = uuidv4();
 
+  // Create accepted plan event for UI rendering
+  const acceptedPlanEvent: CustomNodeEvent = {
+    nodeId: ACCEPTED_PLAN_NODE_ID,
+    actionId: uuidv4(),
+    action: "Plan accepted",
+    createdAt: new Date().toISOString(),
+    data: {
+      status: "success",
+      planTitle: state.proposedPlanTitle,
+      planItems: interruptRes.type === "accept" ? proposedPlan : 
+        (interruptRes.args as ActionRequest).args.plan
+          .split(PLAN_INTERRUPT_DELIMITER)
+          .map((step: string) => step.trim()),
+    },
+  };
+
+  const acceptedPlanMessage = new AIMessage({
+    id: `${DO_NOT_RENDER_ID_PREFIX}${uuidv4()}`,
+    content: "",
+    additional_kwargs: {
+      hidden: true,
+      customNodeEvents: [acceptedPlanEvent],
+    },
+  });
+
   if (interruptRes.type === "accept") {
     const planItems = proposedPlan.map((p, index) => ({
       index,
@@ -156,7 +187,9 @@ export async function interruptProposedPlan(
       threadId: programmerThreadId,
       runId: run.run_id,
     },
+    messages: [acceptedPlanMessage],
     sandboxSessionId: runInput.sandboxSessionId,
     taskPlan: runInput.taskPlan,
   };
 }
+
