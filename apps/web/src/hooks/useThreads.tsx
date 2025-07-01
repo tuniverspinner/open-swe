@@ -1,6 +1,7 @@
 import { createClient } from "@/providers/client";
 import { Thread } from "@langchain/langgraph-sdk";
 import { useCallback, useEffect, useState } from "react";
+import { useThreadPolling } from "./useThreadPolling";
 
 export function useThreads<State extends Record<string, any>>(
   assistantId?: string,
@@ -53,6 +54,27 @@ export function useThreads<State extends Record<string, any>>(
       setThreads(threads ?? []);
     });
   }, [getThreads]);
+
+  // Add polling to automatically update thread titles when TaskPlans are created
+  const handlePollingUpdate = useCallback(
+    (updatedThreads: Thread<any>[], changedThreadIds: string[]) => {
+      setThreads((currentThreads) => {
+        const updatedMap = new Map(updatedThreads.map((t) => [t.thread_id, t]));
+        return currentThreads.map(
+          (thread) => updatedMap.get(thread.thread_id) || thread,
+        );
+      });
+    },
+    [],
+  );
+
+  // Enable polling for automatic updates (cast types for compatibility)
+  useThreadPolling({
+    threads: threads as Thread<any>[],
+    getThread: getThread as (threadId: string) => Promise<Thread<any> | null>,
+    onUpdate: handlePollingUpdate,
+    enabled: true,
+  });
 
   return { threads, setThreads, getThread, getThreads, threadsLoading };
 }

@@ -13,7 +13,7 @@ import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
 import { Message } from "@langchain/langgraph-sdk";
 import { InitializeStep } from "../gen-ui/initialize-step";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
-import { GraphState } from "@open-swe/shared/open-swe/types";
+import { GraphState, TaskPlan } from "@open-swe/shared/open-swe/types";
 
 interface ActionsRendererProps {
   graphId: string;
@@ -24,6 +24,7 @@ interface ActionsRendererProps {
   ) => void;
   programmerSession?: ManagerGraphState["programmerSession"];
   setSelectedTab?: Dispatch<SetStateAction<"planner" | "programmer">>;
+  setPlannerTaskPlan?: Dispatch<SetStateAction<TaskPlan | undefined>>;
 }
 
 const getCustomNodeEventsFromMessages = (
@@ -55,6 +56,7 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
   setProgrammerSession,
   programmerSession,
   setSelectedTab,
+  setPlannerTaskPlan,
 }: ActionsRendererProps) {
   const [customNodeEvents, setCustomNodeEvents] = useState<CustomNodeEvent[]>(
     [],
@@ -125,6 +127,16 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
       setSelectedTab?.("programmer");
     }
   }, [stream.values]);
+
+  useEffect(() => {
+    if (
+      "taskPlan" in stream.values &&
+      stream.values.taskPlan &&
+      setPlannerTaskPlan
+    ) {
+      setPlannerTaskPlan(stream.values.taskPlan);
+    }
+  }, [stream.values, setPlannerTaskPlan]);
 
   return (
     <div className="flex w-full flex-col gap-2">

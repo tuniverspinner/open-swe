@@ -1,7 +1,7 @@
 "use client";
 
 import { v4 as uuidv4 } from "uuid";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, GitBranch, Terminal, Clock } from "lucide-react";
@@ -11,7 +11,7 @@ import { ThreadDisplayInfo } from "./types";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
-import { GraphState } from "@open-swe/shared/open-swe/types";
+import { GraphState, TaskPlan } from "@open-swe/shared/open-swe/types";
 import { ActionsRenderer } from "./actions-renderer";
 import { ThemeToggle } from "../theme-toggle";
 import { HumanMessage } from "@langchain/core/messages";
@@ -26,6 +26,7 @@ import {
   ScrollToBottom,
 } from "../../utils/scroll-utils";
 import { ManagerChat } from "./manager-chat";
+import { getActiveTask } from "@open-swe/shared/open-swe/tasks";
 
 interface ThreadViewProps {
   stream: ReturnType<typeof useStream<ManagerGraphState>>;
@@ -48,6 +49,38 @@ export function ThreadView({
   const plannerRunId = stream.values?.plannerSession?.runId;
   const [programmerSession, setProgrammerSession] =
     useState<ManagerGraphState["programmerSession"]>();
+
+  // State to hold TaskPlan from planner stream
+  const [plannerTaskPlan, setPlannerTaskPlan] = useState<TaskPlan | undefined>();
+
+  // Get the current title from planner TaskPlan when available, fallback to displayThread.title
+  const getCurrentTitle = (): string => {
+    // First try to get title from planner TaskPlan (where TaskPlan is created)
+    if (plannerTaskPlan?.tasks?.length) {
+      try {
+        const activeTask = getActiveTask(plannerTaskPlan);
+        if (activeTask?.title?.trim()) {
+          return activeTask.title;
+        }
+      } catch (error) {
+        // Fall back if there's an error getting active task
+      }
+    }
+
+    // Fallback to manager stream TaskPlan (in case it gets updated there later)
+    if (stream.values?.taskPlan?.tasks?.length) {
+      try {
+        const activeTask = getActiveTask(stream.values.taskPlan);
+        if (activeTask?.title?.trim()) {
+          return activeTask.title;
+        }
+      } catch (error) {
+        // Fall back if there's an error getting active task
+      }
+    }
+
+    return displayThread.title;
+  };
 
   const handleSendMessage = () => {
     if (chatInput.trim()) {
@@ -99,7 +132,7 @@ export function ThreadView({
               }`}
             ></div>
             <span className="text-muted-foreground max-w-[500px] truncate font-mono text-sm">
-              {displayThread.title}
+              {getCurrentTitle()}
             </span>
             {displayThread.repository && (
               <>
@@ -162,6 +195,7 @@ export function ThreadView({
                               setProgrammerSession={setProgrammerSession}
                               programmerSession={programmerSession}
                               setSelectedTab={setSelectedTab}
+                              setPlannerTaskPlan={setPlannerTaskPlan}
                             />
                           )}
                           {!(plannerThreadId && plannerRunId) && (
