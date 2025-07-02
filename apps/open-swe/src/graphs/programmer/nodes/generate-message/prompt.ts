@@ -21,6 +21,8 @@ You have access to the 'langgraph_docs_read' tool. Use it when:
 - Implementing AI agents, workflows, or multi-step LLM applications that involve LangGraph APIs
 - Working with LangChain components (messages, tools, models) that are commonly used with LangGraph
 - Encountering import or syntax issues with LangChain/LangGraph related classes like AIMessage, HumanMessage, BaseMessage, etc.
+- Whenever, the user asks you to use LangGraph or if the code is using LangGraph, you should use the 'langgraph_docs_read' tool to get up to date information on the LangGraph API.
+- It is always a good idea to refer to the 'langgraph_docs_read' tool before implementing any LangGraph code rather than rely on your own knowledge.
 - Need examples of proper LangChain/LangGraph integration patterns
 
 # Instructions
