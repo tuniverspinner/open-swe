@@ -6,7 +6,6 @@ import { LANGGRAPH_DOCUMENTATION } from "@open-swe/shared/constants";
 import { loadModel, Task } from "../utils/load-model.js";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 
-
 const LANGGRAPH_DOCS_SYSTEM_PROMPT = `You are a LangGraph documentation assistant. Your role is to provide accurate, specific answers about LangGraph APIs, syntax, patterns, and implementation details based solely on the provided documentation.
 
 ## LangGraph Documentation:
@@ -35,46 +34,45 @@ const LANGGRAPH_DOCS_USER_PROMPT = `Based on the LangGraph documentation provide
 
 Provide accurate syntax, specific method calls, and practical examples that can be implemented directly.`;
 
-
 const logger = createLogger(LogLevel.INFO, "LangGraphDocsReadTool");
 
-export function createLangGraphDocsReadTool(
-  config: GraphConfig
-) {
+export function createLangGraphDocsReadTool(config: GraphConfig) {
   const langGraphDocsReadTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
         logger.info("Querying LangGraph documentation", { query: input.query });
 
-        const model = await loadModel(config, Task.SUMMARIZER)
+        const model = await loadModel(config, Task.SUMMARIZER);
 
         const formattedSystemPrompt = LANGGRAPH_DOCS_SYSTEM_PROMPT.replaceAll(
-            "{LANGGRAPH_DOCUMENTATION}",
-            LANGGRAPH_DOCUMENTATION
-          );
-          
-          const formattedUserPrompt = LANGGRAPH_DOCS_USER_PROMPT.replaceAll(
-            "{USER_QUERY}",
-            input.query
-          );
+          "{LANGGRAPH_DOCUMENTATION}",
+          LANGGRAPH_DOCUMENTATION,
+        );
+
+        const formattedUserPrompt = LANGGRAPH_DOCS_USER_PROMPT.replaceAll(
+          "{USER_QUERY}",
+          input.query,
+        );
         const response = await model.invoke([
-            {
-                role: "system",
-                content: formattedSystemPrompt
-            },
-            {
-                role: "user",
-                content: formattedUserPrompt
-            }
-        ])
+          {
+            role: "system",
+            content: formattedSystemPrompt,
+          },
+          {
+            role: "user",
+            content: formattedUserPrompt,
+          },
+        ]);
 
         if (response.content.length === 0) {
-            throw new Error("FAILED TO QUERY LANGGRAPH DOCS: No response from model");
+          throw new Error(
+            "FAILED TO QUERY LANGGRAPH DOCS: No response from model",
+          );
         }
 
-        logger.info("LangGraph docs query completed", { 
-          query: input.query, 
-          responseLength: response.content.length 
+        logger.info("LangGraph docs query completed", {
+          query: input.query,
+          responseLength: response.content.length,
         });
 
         return {
@@ -85,12 +83,12 @@ export function createLangGraphDocsReadTool(
         logger.error(
           "Failed to query LangGraph docs: " +
             (e instanceof Error ? e.message : "Unknown error"),
-          { error: e, query: input.query }
+          { error: e, query: input.query },
         );
-        
+
         throw new Error(
           "FAILED TO QUERY LANGGRAPH DOCS: " +
-            (e instanceof Error ? e.message : "Unknown error")
+            (e instanceof Error ? e.message : "Unknown error"),
         );
       }
     },

@@ -154,7 +154,9 @@ function ActionItem(props: ActionItemProps) {
       } else if (props.actionType === "planner_notes") {
         return props.success ? "Notes saved" : "Failed to save notes";
       } else if (props.actionType === "langgraph_docs_read") {
-        return props.success ? "Documentation read" : "Failed to read documentation";
+        return props.success
+          ? "Documentation read"
+          : "Failed to read documentation";
       }
     }
 
