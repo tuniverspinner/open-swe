@@ -20,7 +20,6 @@ export const PROGRAMMER_GRAPH_ID = "programmer";
 export const GITHUB_USER_ID_HEADER = "x-github-user-id";
 export const GITHUB_USER_LOGIN_HEADER = "x-github-user-login";
 
-
 export const LANGGRAPH_DOCUMENTATION = `# LangGraph Technical Reference
 
 ## What is LangGraph

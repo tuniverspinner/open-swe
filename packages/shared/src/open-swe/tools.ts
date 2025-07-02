@@ -286,10 +286,9 @@ export function createLangGraphDocsReadFields() {
       "Query the LangGraph documentation for specific API information, syntax, or examples. " +
       "Use this tool when you need to understand LangGraph APIs, patterns, state management, " +
       "graph structures, tool integration, or implementation details." +
-      "This should be used when you come across codebase that uses LangGraph, or you think the requested implementation requires LangGraph."
+      "This should be used when you come across codebase that uses LangGraph, or you think the requested implementation requires LangGraph.",
   };
 }
-
 
 export function createDiagnoseErrorToolFields() {
   const diagnoseErrorToolSchema = z.object({
