@@ -1,5 +1,4 @@
 import { initChatModel } from "langchain/chat_models/universal";
-import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { createLogger, LogLevel } from "./logger.js";
 
 const logger = createLogger(LogLevel.INFO, "LLM_FALLBACK");
@@ -167,4 +166,5 @@ export function createLLMFallbackWrapper(
     },
   });
 }
+
 
