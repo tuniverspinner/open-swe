@@ -67,19 +67,22 @@ export class LLMFallbackWrapper implements ModelLike {
   }
 
   async invoke(messages: any[], options?: any): Promise<any> {
-    const providers = [this.config.originalProvider, ...PROVIDER_ORDER.filter(p => p !== this.config.originalProvider)];
-    
+    const providers = [
+      this.config.originalProvider,
+      ...PROVIDER_ORDER.filter((p) => p !== this.config.originalProvider),
+    ];
+
     for (let i = 0; i < providers.length; i++) {
       const provider = providers[i];
-      
+
       try {
-        const model = i === 0 
-          ? this.primaryModel 
-          : await this.getFallbackModel(provider);
-        
-        const modelWithConfig = Object.keys(this.currentConfig).length > 0 
-          ? model.withConfig(this.currentConfig) 
-          : model;
+        const model =
+          i === 0 ? this.primaryModel : await this.getFallbackModel(provider);
+
+        const modelWithConfig =
+          Object.keys(this.currentConfig).length > 0
+            ? model.withConfig(this.currentConfig)
+            : model;
 
         logger.info(`Attempting LLM invoke with provider: ${provider}`, {
           attempt: i + 1,
@@ -88,14 +91,14 @@ export class LLMFallbackWrapper implements ModelLike {
         });
 
         const result = await modelWithConfig.invoke(messages, options);
-        
+
         if (i > 0) {
           logger.info(`Fallback successful with provider: ${provider}`, {
             failedProvider: this.config.originalProvider,
             successfulProvider: provider,
           });
         }
-        
+
         return result;
       } catch (error) {
         logger.error(`LLM invoke failed with provider: ${provider}`, {
@@ -103,7 +106,7 @@ export class LLMFallbackWrapper implements ModelLike {
           attempt: i + 1,
           totalProviders: providers.length,
         });
-        
+
         if (i === providers.length - 1) {
           logger.error("All LLM providers exhausted", {
             originalProvider: this.config.originalProvider,
@@ -125,18 +128,20 @@ export class LLMFallbackWrapper implements ModelLike {
   }
 
   bindTools(tools: any[]): LLMFallbackWrapper {
-    const wrappedPrimary = this.primaryModel.bindTools ? this.primaryModel.bindTools(tools) : this.primaryModel;
+    const wrappedPrimary = this.primaryModel.bindTools
+      ? this.primaryModel.bindTools(tools)
+      : this.primaryModel;
     const wrapper = new LLMFallbackWrapper(wrappedPrimary, this.config);
     wrapper.models = new Map();
     wrapper.currentConfig = this.currentConfig;
-    
+
     // Pre-bind tools to cached fallback models
     for (const [provider, model] of this.models.entries()) {
       if (provider !== this.config.originalProvider && model.bindTools) {
         wrapper.models.set(provider, model.bindTools(tools));
       }
     }
-    
+
     return wrapper;
   }
 
@@ -150,21 +155,19 @@ export function createLLMFallbackWrapper(
   config: FallbackConfig,
 ): LLMFallbackWrapper {
   const wrapper = new LLMFallbackWrapper(primaryModel, config);
-  
+
   return new Proxy(wrapper, {
     get(target, prop, receiver) {
       if (prop in target) {
         return Reflect.get(target, prop, receiver);
       }
-      
+
       // Forward unknown properties to the primary model
       const primaryValue = Reflect.get(target.primaryModel, prop);
-      if (typeof primaryValue === 'function') {
+      if (typeof primaryValue === "function") {
         return primaryValue.bind(target.primaryModel);
       }
       return primaryValue;
     },
   });
 }
-
-
