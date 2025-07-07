@@ -33,11 +33,20 @@ const ThreadContext = createContext<ThreadContextType | undefined>(undefined);
 
 function getThreadSearchMetadata(
   assistantId: string,
-): { graph_id: string } | { assistant_id: string } {
+  installationName?: string,
+): { graph_id: string; installation_name?: string } | { assistant_id: string; installation_name?: string } {
+  const baseMetadata = validate(assistantId)
+    ? { assistant_id: assistantId }
+    : { graph_id: assistantId };
+
   if (validate(assistantId)) {
-    return { assistant_id: assistantId };
+    return installationName 
+      ? { assistant_id: assistantId, installation_name: installationName }
+      : { assistant_id: assistantId };
   } else {
-    return { graph_id: assistantId };
+    return installationName
+      ? { graph_id: assistantId, installation_name: installationName }
+      : { graph_id: assistantId };
   }
 }
 
@@ -172,3 +181,4 @@ export function useThreadsContext() {
   }
   return context;
 }
+
