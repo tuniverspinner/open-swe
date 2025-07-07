@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createClient } from "./client";
 import { GraphState } from "@open-swe/shared/open-swe/types";
+import { useGitHubAppProvider } from "./GitHubApp";
 import { useThreadPolling } from "@/hooks/useThreadPolling";
 
 interface ThreadContextType {
@@ -54,6 +55,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
   const assistantId: string | undefined =
     process.env.NEXT_PUBLIC_ASSISTANT_ID ?? "";
+  const { selectedRepository } = useGitHubAppProvider();
 
   const [threads, setThreads] = useState<Thread<GraphState>[]>([]);
   const [threadsLoading, setThreadsLoading] = useState(false);
@@ -83,10 +85,13 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     setThreadsLoading(true);
     const client = createClient(apiUrl);
 
+    // Get installation name from selected repository owner
+    const installationName = selectedRepository?.owner;
+
     try {
       const searchParams = {
         limit: 100,
-        metadata: getThreadSearchMetadata(assistantId),
+        metadata: getThreadSearchMetadata(assistantId, installationName),
       };
 
       let threadsResponse =
@@ -113,7 +118,7 @@ export function ThreadProvider({ children }: { children: ReactNode }) {
     } finally {
       setThreadsLoading(false);
     }
-  }, [apiUrl, assistantId]);
+  }, [apiUrl, assistantId, selectedRepository?.owner]);
 
   useEffect(() => {
     refreshThreads();
@@ -181,4 +186,5 @@ export function useThreadsContext() {
   }
   return context;
 }
+
 
