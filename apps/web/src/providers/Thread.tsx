@@ -38,10 +38,6 @@ function getThreadSearchMetadata(
 ):
   | { graph_id: string; installation_name?: string }
   | { assistant_id: string; installation_name?: string } {
-  const baseMetadata = validate(assistantId)
-    ? { assistant_id: assistantId }
-    : { graph_id: assistantId };
-
   if (validate(assistantId)) {
     return installationName
       ? { assistant_id: assistantId, installation_name: installationName }
@@ -188,3 +184,4 @@ export function useThreadsContext() {
   }
   return context;
 }
+
