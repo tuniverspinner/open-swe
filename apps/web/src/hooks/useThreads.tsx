@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 export function useThreads<State extends Record<string, any>>(
   assistantId?: string,
+  installationName?: string,
 ) {
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
   const [threads, setThreads] = useState<Thread<State>[]>([]);
@@ -32,9 +33,12 @@ export function useThreads<State extends Record<string, any>>(
 
     try {
       const searchArgs = assistantId
-        ? {
-            metadata: {
-              graph_id: assistantId,
+        ? installationName
+          ? {
+              metadata: {
+                graph_id: assistantId,
+                installation_name: installationName,
+              },
             },
           }
         : undefined;
@@ -46,7 +50,7 @@ export function useThreads<State extends Record<string, any>>(
     } finally {
       setThreadsLoading(false);
     }
-  }, [apiUrl]);
+  }, [apiUrl, assistantId, installationName]);
 
   useEffect(() => {
     getThreads().then((threads) => {
@@ -56,3 +60,4 @@ export function useThreads<State extends Record<string, any>>(
 
   return { threads, setThreads, getThread, getThreads, threadsLoading };
 }
+
