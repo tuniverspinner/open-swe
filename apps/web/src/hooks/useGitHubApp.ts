@@ -81,7 +81,10 @@ interface UseGitHubAppReturn {
   defaultBranch: string | null;
 }
 
-export function useGitHubApp(): UseGitHubAppReturn {
+export function useGitHubApp(
+  selectedInstallationId?: string | null,
+): UseGitHubAppReturn {
+  // Installation and general state
   // Installation and general state
   const [isInstalled, setIsInstalled] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -430,3 +433,4 @@ export function useGitHubApp(): UseGitHubAppReturn {
     defaultBranch,
   };
 }
+
