@@ -39,8 +39,12 @@ export function useThreads<State extends Record<string, any>>(
                 graph_id: assistantId,
                 installation_name: installationName,
               },
-            },
-          }
+            }
+          : {
+              metadata: {
+                graph_id: assistantId,
+              },
+            }
         : undefined;
       const threads = await client.threads.search<State>(searchArgs);
       return threads;
@@ -60,4 +64,5 @@ export function useThreads<State extends Record<string, any>>(
 
   return { threads, setThreads, getThread, getThreads, threadsLoading };
 }
+
 
