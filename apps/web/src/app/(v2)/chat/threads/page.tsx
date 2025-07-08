@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search, Filter } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ThreadDisplayInfo, threadToDisplayInfo } from "@/components/v2/types";
+import { useGitHubAppProvider } from "@/providers/GitHubApp";
 import { useThreads } from "@/hooks/useThreads";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { ThreadCard, ThreadCardLoading } from "@/components/v2/thread-card";
@@ -18,7 +19,11 @@ type FilterStatus = "all" | "running" | "completed" | "failed" | "pending";
 
 export default function AllThreadsPage() {
   const router = useRouter();
-  const { threads, threadsLoading } = useThreads<GraphState>(MANAGER_GRAPH_ID);
+  const { selectedRepository } = useGitHubAppProvider();
+  const { threads, threadsLoading } = useThreads<GraphState>(
+    MANAGER_GRAPH_ID,
+    selectedRepository?.owner
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
 
@@ -206,3 +211,4 @@ export default function AllThreadsPage() {
     </div>
   );
 }
+
