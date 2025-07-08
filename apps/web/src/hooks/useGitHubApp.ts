@@ -170,12 +170,22 @@ export function useGitHubApp(
     page: number = 1,
     append: boolean = false,
   ) => {
+    // Skip if no installation ID is provided
+    if (!selectedInstallationId) {
+      setIsInstalled(false);
+      setIsLoading(false);
+      setError("No installation selected");
+      return;
+    }
+
     if (!append) setIsLoading(true);
     if (append) setRepositoriesLoadingMore(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/github/repositories?page=${page}`);
+      const response = await fetch(
+        `/api/github/repositories?page=${page}&installationId=${selectedInstallationId}`,
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -433,4 +443,5 @@ export function useGitHubApp(
     defaultBranch,
   };
 }
+
 
