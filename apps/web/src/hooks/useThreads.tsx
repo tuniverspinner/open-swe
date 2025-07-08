@@ -64,5 +64,3 @@ export function useThreads<State extends Record<string, any>>(
 
   return { threads, setThreads, getThread, getThreads, threadsLoading };
 }
-
-
