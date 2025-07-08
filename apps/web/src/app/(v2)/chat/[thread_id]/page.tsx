@@ -3,6 +3,7 @@
 import { ThreadView } from "@/components/v2/thread-view";
 import { ThreadViewLoading } from "@/components/v2/thread-view-loading";
 import { ThreadDisplayInfo, threadToDisplayInfo } from "@/components/v2/types";
+import { useGitHubAppProvider } from "@/providers/GitHubApp";
 import { useThreads } from "@/hooks/useThreads";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
@@ -23,6 +24,7 @@ export default function ThreadPage({
 }) {
   const router = useRouter();
   const { thread_id } = use(params);
+  const { selectedRepository } = useGitHubAppProvider();
   const stream = useStream<ManagerGraphState>({
     apiUrl: process.env.NEXT_PUBLIC_API_URL ?? "",
     assistantId: MANAGER_GRAPH_ID,
@@ -30,7 +32,10 @@ export default function ThreadPage({
     reconnectOnMount: true,
   });
 
-  const { threads, threadsLoading } = useThreads<GraphState>(MANAGER_GRAPH_ID);
+  const { threads, threadsLoading } = useThreads<GraphState>(
+    MANAGER_GRAPH_ID,
+    selectedRepository?.owner
+  );
   // Find the thread by ID
   const thread = threads.find((t) => t.thread_id === thread_id);
 
@@ -57,3 +62,4 @@ export default function ThreadPage({
     </div>
   );
 }
+
