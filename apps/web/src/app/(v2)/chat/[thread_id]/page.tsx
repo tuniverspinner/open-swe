@@ -34,7 +34,7 @@ export default function ThreadPage({
 
   const { threads, threadsLoading } = useThreads<GraphState>(
     MANAGER_GRAPH_ID,
-    selectedRepository?.owner
+    selectedRepository?.owner,
   );
   // Find the thread by ID
   const thread = threads.find((t) => t.thread_id === thread_id);
@@ -62,4 +62,3 @@ export default function ThreadPage({
     </div>
   );
 }
-

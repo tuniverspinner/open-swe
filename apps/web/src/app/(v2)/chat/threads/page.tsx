@@ -22,7 +22,7 @@ export default function AllThreadsPage() {
   const { selectedRepository } = useGitHubAppProvider();
   const { threads, threadsLoading } = useThreads<GraphState>(
     MANAGER_GRAPH_ID,
-    selectedRepository?.owner
+    selectedRepository?.owner,
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
@@ -211,4 +211,3 @@ export default function AllThreadsPage() {
     </div>
   );
 }
-
