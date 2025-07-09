@@ -30,7 +30,7 @@ export default function ThreadPage({
     reconnectOnMount: true,
   });
 
-  const { threads, threadsLoading } = useThreads<GraphState>(MANAGER_GRAPH_ID);
+  const { threads, threadsLoading } = useThreads(MANAGER_GRAPH_ID);
   // Find the thread by ID
   const thread = threads.find((t) => t.thread_id === thread_id);
 
