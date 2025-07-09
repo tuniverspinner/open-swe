@@ -20,6 +20,7 @@ import {
   PROGRAMMER_GRAPH_ID,
   PLANNER_GRAPH_ID,
 } from "@open-swe/shared/constants";
+import { useThreadStatus } from "@/hooks/useThreadStatus";
 import { StickToBottom } from "use-stick-to-bottom";
 import {
   StickyToBottomContent,
@@ -49,6 +50,14 @@ export function ThreadView({
   const plannerRunId = stream.values?.plannerSession?.runId;
   const [programmerSession, setProgrammerSession] =
     useState<ManagerGraphState["programmerSession"]>();
+
+  // Re-enable real-time status now that cookies are confirmed present
+  const { status: realTimeStatus, isLoading: statusLoading } = useThreadStatus(
+    displayThread.id,
+  );
+
+  // Use real-time status if available, fallback to sync status during loading
+  const headerStatus = statusLoading ? displayThread.status : realTimeStatus;
 
   const plannerCancelRef = useRef<(() => void) | null>(null);
   const programmerCancelRef = useRef<(() => void) | null>(null);
@@ -100,11 +109,17 @@ export function ThreadView({
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div
               className={`size-2 flex-shrink-0 rounded-full ${
-                displayThread.status === "running"
+                headerStatus === "running"
                   ? "bg-blue-500"
-                  : displayThread.status === "completed"
+                  : headerStatus === "completed"
                     ? "bg-green-500"
-                    : "bg-red-500"
+                    : headerStatus === "paused"
+                      ? "bg-yellow-500"
+                      : headerStatus === "error"
+                        ? "bg-red-500"
+                        : headerStatus === "idle"
+                          ? "bg-gray-500"
+                          : "bg-gray-500"
               }`}
             ></div>
             <span className="text-muted-foreground max-w-[500px] truncate font-mono text-sm">

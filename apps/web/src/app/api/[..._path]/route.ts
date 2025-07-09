@@ -110,7 +110,10 @@ async function getInstallationNameFromReq(
     if (isNewRunRequest(req.url, req.method)) {
       return await getInstallationName(installationId);
     }
-    return "";
+
+    // For all other requests (like GET /threads/{id}), also get installation name
+    // This ensures the GitHub installation name header is always present
+    return await getInstallationName(installationId);
   } catch {
     return "";
   }

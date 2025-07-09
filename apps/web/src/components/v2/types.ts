@@ -6,7 +6,14 @@ import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 export interface ThreadDisplayInfo {
   id: string;
   title: string;
-  status: "running" | "completed" | "failed" | "pending";
+  status:
+    | "running"
+    | "completed"
+    | "failed"
+    | "pending"
+    | "error"
+    | "idle"
+    | "paused";
   lastActivity: string;
   taskCount: number;
   repository: string;
@@ -34,22 +41,44 @@ export function threadToDisplayInfo(
 
   // Determine UI status from thread status and task completion
   let uiStatus: ThreadDisplayInfo["status"];
-  switch (thread.status) {
-    case "busy":
-      uiStatus = "running";
-      break;
-    case "idle":
-      uiStatus =
-        completedTasksLen === activePlanItems.length ? "completed" : "pending";
-      break;
-    case "error":
-      uiStatus = "failed";
-      break;
-    case "interrupted":
-      uiStatus = "pending";
-      break;
-    default:
-      uiStatus = "pending";
+  // Priority 1: Manager is running
+  if (thread.status === "busy") {
+    uiStatus = "running";
+  }
+  // Priority 2: Manager has error
+  else if (thread.status === "error") {
+    uiStatus = "error";
+  }
+  // Priority 3: No planner session - manager is idle
+  else if (!values?.plannerSession) {
+    uiStatus = "idle";
+  }
+  // Priority 4: Planner session exists but we can't determine planner/programmer status synchronously
+  // For synchronous operation, we need to make reasonable assumptions based on available data
+  else {
+    // If manager is interrupted, it likely means planner was interrupted
+    if (thread.status === "interrupted") {
+      uiStatus = "paused";
+    }
+    // If manager is idle and we have a planner session, check task completion
+    else if (thread.status === "idle") {
+      // Check if all tasks are completed
+      const allTasksCompleted =
+        activePlanItems.length > 0 &&
+        completedTasksLen === activePlanItems.length;
+
+      if (allTasksCompleted) {
+        uiStatus = "completed";
+      } else {
+        // If we have tasks but they're not all completed, assume work is ongoing
+        // This is a reasonable fallback since we can't check planner/programmer status synchronously
+        uiStatus = activePlanItems.length > 0 ? "running" : "idle";
+      }
+    }
+    // Default fallback
+    else {
+      uiStatus = "idle";
+    }
   }
 
   // Calculate time since last update

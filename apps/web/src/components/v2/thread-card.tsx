@@ -4,6 +4,8 @@ import {
   GitBranch,
   GitPullRequest,
   Loader2,
+  AlertCircle,
+  Pause,
   XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -12,9 +14,18 @@ import { useRouter } from "next/navigation";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
+import { useThreadStatus } from "@/hooks/useThreadStatus";
 
 export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
   const router = useRouter();
+
+  // Re-enable real-time status now that cookies are confirmed present
+  const { status: realTimeStatus, isLoading: statusLoading } = useThreadStatus(
+    thread.id,
+  );
+
+  // Use real-time status if available, fallback to sync status during loading
+  const displayStatus = statusLoading ? thread.status : realTimeStatus;
 
   const getStatusColor = (status: ThreadDisplayInfo["status"]) => {
     switch (status) {
@@ -22,6 +33,12 @@ export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
         return "dark:bg-blue-950 bg-blue-100 dark:text-blue-400 text-blue-700";
       case "completed":
         return "dark:bg-green-950 bg-green-100 dark:text-green-400 text-green-700";
+      case "error":
+        return "dark:bg-red-950 bg-red-100 dark:text-red-400 text-red-700";
+      case "idle":
+        return "dark:bg-gray-800 bg-gray-200 dark:text-gray-400 text-gray-700";
+      case "paused":
+        return "dark:bg-yellow-950 bg-yellow-100 dark:text-yellow-400 text-yellow-700";
       case "failed":
         return "dark:bg-red-950 bg-red-100 dark:text-red-400 text-red-700";
       case "pending":
@@ -37,6 +54,12 @@ export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
         return <Loader2 className="h-4 w-4 animate-spin" />;
       case "completed":
         return <CheckCircle className="h-4 w-4" />;
+      case "error":
+        return <AlertCircle className="h-4 w-4" />;
+      case "idle":
+        return <AlertCircle className="h-4 w-4" />;
+      case "paused":
+        return <Pause className="h-4 w-4" />;
       case "failed":
         return <XCircle className="h-4 w-4" />;
       default:
@@ -82,11 +105,11 @@ export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
           </div>
           <Badge
             variant="secondary"
-            className={`${getStatusColor(thread.status)} text-xs`}
+            className={`${getStatusColor(displayStatus)} text-xs`}
           >
             <div className="flex items-center gap-1">
-              {getStatusIcon(thread.status)}
-              <span className="capitalize">{thread.status}</span>
+              {getStatusIcon(displayStatus)}
+              <span className="capitalize">{displayStatus}</span>
             </div>
           </Badge>
         </div>
