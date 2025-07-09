@@ -12,7 +12,6 @@ import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 export default function ChatPage() {
   const { threads, isLoading: threadsLoading } = useThreadsSWR<GraphState>({
     assistantId: MANAGER_GRAPH_ID,
-    refreshInterval: 15000, // Poll every 15 seconds
   });
   if (!threads) {
     return <div>No threads</div>;

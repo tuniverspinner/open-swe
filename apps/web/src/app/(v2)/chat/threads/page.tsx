@@ -20,7 +20,6 @@ export default function AllThreadsPage() {
   const router = useRouter();
   const { threads, isLoading: threadsLoading } = useThreadsSWR<GraphState>({
     assistantId: MANAGER_GRAPH_ID,
-    refreshInterval: 15000, // Poll every 15 seconds
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");

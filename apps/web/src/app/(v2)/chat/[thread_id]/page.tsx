@@ -3,7 +3,7 @@
 import { ThreadView } from "@/components/v2/thread-view";
 import { ThreadViewLoading } from "@/components/v2/thread-view-loading";
 import { ThreadDisplayInfo, threadToDisplayInfo } from "@/components/v2/types";
-import { useThreads } from "@/hooks/useThreads";
+import { useThreadsSWR } from "@/hooks/useThreadsSWR";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
@@ -30,7 +30,9 @@ export default function ThreadPage({
     reconnectOnMount: true,
   });
 
-  const { threads, threadsLoading } = useThreads(MANAGER_GRAPH_ID);
+  const { threads, isLoading: threadsLoading } = useThreadsSWR<GraphState>({
+    assistantId: MANAGER_GRAPH_ID,
+  });
   // Find the thread by ID
   const thread = threads.find((t) => t.thread_id === thread_id);
 

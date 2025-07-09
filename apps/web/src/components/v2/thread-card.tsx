@@ -15,8 +15,9 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
+import { ThreadStatusErrorBoundary } from "@/components/error-boundary";
 
-export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
+function ThreadCardContent({ thread }: { thread: ThreadDisplayInfo }) {
   const router = useRouter();
 
   // Re-enable real-time status now that cookies are confirmed present
@@ -158,6 +159,14 @@ export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
+  return (
+    <ThreadStatusErrorBoundary>
+      <ThreadCardContent thread={thread} />
+    </ThreadStatusErrorBoundary>
   );
 }
 

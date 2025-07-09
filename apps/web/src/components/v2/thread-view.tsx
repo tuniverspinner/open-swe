@@ -21,6 +21,7 @@ import {
   PLANNER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
+import { ThreadStatusErrorBoundary } from "@/components/error-boundary";
 import { StickToBottom } from "use-stick-to-bottom";
 import {
   StickyToBottomContent,
@@ -36,7 +37,7 @@ interface ThreadViewProps {
   onBackToHome: () => void;
 }
 
-export function ThreadView({
+function ThreadViewContent({
   stream,
   displayThread,
   allDisplayThreads,
@@ -273,5 +274,23 @@ export function ThreadView({
         </div>
       </div>
     </div>
+  );
+}
+
+export function ThreadView({
+  stream,
+  displayThread,
+  allDisplayThreads,
+  onBackToHome,
+}: ThreadViewProps) {
+  return (
+    <ThreadStatusErrorBoundary>
+      <ThreadViewContent
+        stream={stream}
+        displayThread={displayThread}
+        allDisplayThreads={allDisplayThreads}
+        onBackToHome={onBackToHome}
+      />
+    </ThreadStatusErrorBoundary>
   );
 }
