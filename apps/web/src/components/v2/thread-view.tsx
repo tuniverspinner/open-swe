@@ -21,7 +21,7 @@ import {
   PLANNER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
-import { ThreadStatusErrorBoundary } from "@/components/error-boundary";
+
 import { StickToBottom } from "use-stick-to-bottom";
 import {
   StickyToBottomContent,
@@ -53,12 +53,15 @@ function ThreadViewContent({
     useState<ManagerGraphState["programmerSession"]>();
 
   // Re-enable real-time status now that cookies are confirmed present
-  const { status: realTimeStatus, isLoading: statusLoading } = useThreadStatus(
-    displayThread.id,
-  );
+  const {
+    status: realTimeStatus,
+    isLoading: statusLoading,
+    error,
+  } = useThreadStatus(displayThread.id);
 
-  // Use real-time status if available, fallback to sync status during loading
-  const headerStatus = statusLoading ? displayThread.status : realTimeStatus;
+  // Use real-time status if available, fallback to sync status during loading or error
+  const headerStatus =
+    statusLoading || error ? displayThread.status : realTimeStatus;
 
   const plannerCancelRef = useRef<(() => void) | null>(null);
   const programmerCancelRef = useRef<(() => void) | null>(null);
@@ -284,13 +287,11 @@ export function ThreadView({
   onBackToHome,
 }: ThreadViewProps) {
   return (
-    <ThreadStatusErrorBoundary>
-      <ThreadViewContent
-        stream={stream}
-        displayThread={displayThread}
-        allDisplayThreads={allDisplayThreads}
-        onBackToHome={onBackToHome}
-      />
-    </ThreadStatusErrorBoundary>
+    <ThreadViewContent
+      stream={stream}
+      displayThread={displayThread}
+      allDisplayThreads={allDisplayThreads}
+      onBackToHome={onBackToHome}
+    />
   );
 }

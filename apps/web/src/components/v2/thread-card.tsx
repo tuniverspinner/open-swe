@@ -15,18 +15,18 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
-import { ThreadStatusErrorBoundary } from "@/components/error-boundary";
-
 function ThreadCardContent({ thread }: { thread: ThreadDisplayInfo }) {
   const router = useRouter();
 
   // Re-enable real-time status now that cookies are confirmed present
-  const { status: realTimeStatus, isLoading: statusLoading } = useThreadStatus(
-    thread.id,
-  );
+  const {
+    status: realTimeStatus,
+    isLoading: statusLoading,
+    error,
+  } = useThreadStatus(thread.id);
 
-  // Use real-time status if available, fallback to sync status during loading
-  const displayStatus = statusLoading ? thread.status : realTimeStatus;
+  // Use real-time status if available, fallback to sync status during loading or error
+  const displayStatus = statusLoading || error ? thread.status : realTimeStatus;
 
   const getStatusColor = (status: ThreadDisplayInfo["status"]) => {
     switch (status) {
@@ -163,11 +163,7 @@ function ThreadCardContent({ thread }: { thread: ThreadDisplayInfo }) {
 }
 
 export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
-  return (
-    <ThreadStatusErrorBoundary>
-      <ThreadCardContent thread={thread} />
-    </ThreadStatusErrorBoundary>
-  );
+  return <ThreadCardContent thread={thread} />;
 }
 
 export function ThreadCardLoading() {
