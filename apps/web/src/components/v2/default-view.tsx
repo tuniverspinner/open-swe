@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { FilePlus2, Archive, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ThreadDisplayInfo } from "./types";
+import { ThreadMetadata } from "./types";
 import { TerminalInput } from "./terminal-input";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { cn } from "@/lib/utils";
@@ -26,7 +26,7 @@ import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { TooltipIconButton } from "../ui/tooltip-icon-button";
 
 interface DefaultViewProps {
-  threads: ThreadDisplayInfo[];
+  threads: ThreadMetadata[];
   threadsLoading: boolean;
 }
 

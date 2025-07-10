@@ -9,13 +9,14 @@ import {
   XCircle,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { ThreadDisplayInfo } from "./types";
 import { useRouter } from "next/navigation";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
-function ThreadCardContent({ thread }: { thread: ThreadDisplayInfo }) {
+import { ThreadMetadata } from "./types";
+import { ThreadDisplayStatus } from "@/lib/schemas/thread-status";
+function ThreadCardContent({ thread }: { thread: ThreadMetadata }) {
   const router = useRouter();
 
   // Re-enable real-time status now that cookies are confirmed present
@@ -25,10 +26,12 @@ function ThreadCardContent({ thread }: { thread: ThreadDisplayInfo }) {
     error,
   } = useThreadStatus(thread.id);
 
-  // Use real-time status if available, fallback to sync status during loading or error
-  const displayStatus = statusLoading || error ? thread.status : realTimeStatus;
+  // Use real-time status, only fallback to idle if there's an actual error (not during loading)
+  const displayStatus = error
+    ? ("idle" as ThreadDisplayStatus)
+    : realTimeStatus;
 
-  const getStatusColor = (status: ThreadDisplayInfo["status"]) => {
+  const getStatusColor = (status: ThreadDisplayStatus) => {
     switch (status) {
       case "running":
         return "dark:bg-blue-950 bg-blue-100 dark:text-blue-400 text-blue-700";
@@ -49,7 +52,7 @@ function ThreadCardContent({ thread }: { thread: ThreadDisplayInfo }) {
     }
   };
 
-  const getStatusIcon = (status: ThreadDisplayInfo["status"]) => {
+  const getStatusIcon = (status: ThreadDisplayStatus) => {
     switch (status) {
       case "running":
         return <Loader2 className="h-4 w-4 animate-spin" />;
@@ -162,7 +165,7 @@ function ThreadCardContent({ thread }: { thread: ThreadDisplayInfo }) {
   );
 }
 
-export function ThreadCard({ thread }: { thread: ThreadDisplayInfo }) {
+export function ThreadCard({ thread }: { thread: ThreadMetadata }) {
   return <ThreadCardContent thread={thread} />;
 }
 

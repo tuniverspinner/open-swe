@@ -87,12 +87,29 @@ export class ThreadStatusService {
     ]);
 
     let status: ThreadDisplayStatus;
-    if (plannerRun.status === "running") {
+
+    // First check if the thread itself is interrupted (plan waiting for approval)
+    if (plannerThread.status === "interrupted") {
+      status = "paused";
+    }
+    // Then check if the thread has interrupts (plan waiting for approval)
+    else if (
+      plannerThread.interrupts &&
+      Array.isArray(plannerThread.interrupts) &&
+      plannerThread.interrupts.length > 0
+    ) {
+      status = "paused";
+    } else if (plannerRun.status === "running") {
       status = "running";
     } else if (plannerRun.status === "interrupted") {
       status = "paused";
     } else if (plannerRun.status === "timeout") {
       status = "error";
+    } else if (
+      plannerRun.status === "success" &&
+      !plannerThread.values?.programmerSession
+    ) {
+      status = "idle";
     } else {
       status = "idle";
     }
@@ -154,31 +171,37 @@ export class StatusResolver {
   ): ThreadPollingResponseSchema {
     // Priority 1: Manager is running or has error
     if (manager.status === "running" || manager.status === "error") {
-      return manager;
+      const result = manager;
+      return result;
     }
 
     // Priority 2: No planner session - manager is idle
     if (!planner) {
-      return manager;
+      const result = manager;
+      return result;
     }
 
-    // Priority 3: Planner is running or paused
+    // Priority 3: Planner is running or paused (interrupted)
     if (planner.status === "running" || planner.status === "paused") {
-      return planner;
+      const result = planner;
+      return result;
     }
 
     // Priority 4: Planner has error
     if (planner.status === "error") {
-      return planner;
+      const result = planner;
+      return result;
     }
 
     // Priority 5: No programmer session - planner is idle
     if (!programmer) {
-      return planner;
+      const result = planner;
+      return result;
     }
 
     // Priority 6: Return programmer status (running, completed, idle, or error)
-    return programmer;
+    const result = programmer;
+    return result;
   }
 }
 
@@ -191,11 +214,17 @@ export async function fetchThreadStatus(
 ): Promise<ThreadPollingResponseSchema> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+    if (!apiUrl) {
+      console.error("[fetchThreadStatus] Missing API URL");
+      throw new Error("API URL not configured");
+    }
+
     const service = new ThreadStatusService(apiUrl);
     const resolver = new StatusResolver();
 
     // Step 1: Get manager status
     const managerStatus = await service.getManagerStatus(threadId);
+
     const managerThread =
       await service.client.threads.get<ManagerGraphState>(threadId);
 
@@ -204,17 +233,20 @@ export async function fetchThreadStatus(
       managerStatus.status === "running" ||
       managerStatus.status === "error"
     ) {
-      return resolver.resolve(managerStatus);
+      const result = resolver.resolve(managerStatus);
+      return result;
     }
 
     if (!managerThread.values?.plannerSession) {
-      return resolver.resolve(managerStatus);
+      const result = resolver.resolve(managerStatus);
+      return result;
     }
 
     // Step 2: Get planner status
     const plannerStatus = await service.getPlannerStatus(
       managerThread.values.plannerSession,
     );
+
     const plannerThread = await service.client.threads.get<PlannerGraphState>(
       managerThread.values.plannerSession.threadId,
     );
@@ -225,11 +257,13 @@ export async function fetchThreadStatus(
       plannerStatus.status === "paused" ||
       plannerStatus.status === "error"
     ) {
-      return resolver.resolve(managerStatus, plannerStatus);
+      const result = resolver.resolve(managerStatus, plannerStatus);
+      return result;
     }
 
     if (!plannerThread.values?.programmerSession) {
-      return resolver.resolve(managerStatus, plannerStatus);
+      const result = resolver.resolve(managerStatus, plannerStatus);
+      return result;
     }
 
     // Step 3: Get programmer status
@@ -238,8 +272,15 @@ export async function fetchThreadStatus(
     );
 
     // Return final resolved status
-    return resolver.resolve(managerStatus, plannerStatus, programmerStatus);
+    const result = resolver.resolve(
+      managerStatus,
+      plannerStatus,
+      programmerStatus,
+    );
+    return result;
   } catch (error) {
+    console.error(`[fetchThreadStatus] Error for thread ${threadId}:`, error);
+
     // Return error status with fallback information
     const graph = lastPollingState?.graph || "manager";
     const runId = lastPollingState?.runId || "";

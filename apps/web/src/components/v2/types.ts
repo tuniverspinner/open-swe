@@ -2,18 +2,12 @@ import { getThreadTitle } from "@/lib/thread";
 import { Thread } from "@langchain/langgraph-sdk";
 import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
+import { ThreadDisplayStatus } from "@/lib/schemas/thread-status";
 
-export interface ThreadDisplayInfo {
+// Thread metadata without status (status comes from useThreadStatus hook)
+export interface ThreadMetadata {
   id: string;
   title: string;
-  status:
-    | "running"
-    | "completed"
-    | "failed"
-    | "pending"
-    | "error"
-    | "idle"
-    | "paused";
   lastActivity: string;
   taskCount: number;
   repository: string;
@@ -29,57 +23,19 @@ export interface ThreadDisplayInfo {
   };
 }
 
-// Utility functions to convert between Thread and ThreadDisplayInfo
-export function threadToDisplayInfo(
+// Complete thread display info (metadata + status)
+export interface ThreadDisplayInfo extends ThreadMetadata {
+  status: ThreadDisplayStatus;
+}
+
+// Utility function to extract metadata from Thread (no status logic)
+export function threadToMetadata(
   thread: Thread<ManagerGraphState>,
-): ThreadDisplayInfo {
+): ThreadMetadata {
   const values = thread.values;
   const activePlanItems = values?.taskPlan
     ? getActivePlanItems(values.taskPlan)
     : [];
-  const completedTasksLen = activePlanItems.filter((t) => t.completed).length;
-
-  // Determine UI status from thread status and task completion
-  let uiStatus: ThreadDisplayInfo["status"];
-  // Priority 1: Manager is running
-  if (thread.status === "busy") {
-    uiStatus = "running";
-  }
-  // Priority 2: Manager has error
-  else if (thread.status === "error") {
-    uiStatus = "error";
-  }
-  // Priority 3: No planner session - manager is idle
-  else if (!values?.plannerSession) {
-    uiStatus = "idle";
-  }
-  // Priority 4: Planner session exists but we can't determine planner/programmer status synchronously
-  // For synchronous operation, we need to make reasonable assumptions based on available data
-  else {
-    // If manager is interrupted, it likely means planner was interrupted
-    if (thread.status === "interrupted") {
-      uiStatus = "paused";
-    }
-    // If manager is idle and we have a planner session, check task completion
-    else if (thread.status === "idle") {
-      // Check if all tasks are completed
-      const allTasksCompleted =
-        activePlanItems.length > 0 &&
-        completedTasksLen === activePlanItems.length;
-
-      if (allTasksCompleted) {
-        uiStatus = "completed";
-      } else {
-        // If we have tasks but they're not all completed, assume work is ongoing
-        // This is a reasonable fallback since we can't check planner/programmer status synchronously
-        uiStatus = activePlanItems.length > 0 ? "running" : "idle";
-      }
-    }
-    // Default fallback
-    else {
-      uiStatus = "idle";
-    }
-  }
 
   // Calculate time since last update
   const lastUpdate = new Date(thread.updated_at);
@@ -103,18 +59,41 @@ export function threadToDisplayInfo(
   return {
     id: thread.thread_id,
     title: getThreadTitle(thread),
-    status: uiStatus,
     lastActivity,
     taskCount: values?.taskPlan?.tasks.length ?? 0,
     repository: values?.targetRepository
       ? `${values.targetRepository.owner}/${values.targetRepository.repo}`
       : "",
-    branch: values?.targetRepository.branch || "main",
+    branch: values?.targetRepository?.branch || "main",
     githubIssue: values?.githubIssueId
       ? {
           number: values?.githubIssueId,
-          url: `https://github.com/${values?.targetRepository.owner}/${values?.targetRepository.repo}/issues/${values?.githubIssueId}`,
+          url: `https://github.com/${values?.targetRepository?.owner}/${values?.targetRepository?.repo}/issues/${values?.githubIssueId}`,
         }
       : undefined,
+  };
+}
+
+// Legacy function for backward compatibility (DEPRECATED - use threadToMetadata + useThreadStatus)
+export function threadToDisplayInfo(
+  thread: Thread<ManagerGraphState>,
+): ThreadDisplayInfo {
+  const metadata = threadToMetadata(thread);
+
+  // Fallback status logic for backward compatibility
+  // This should be replaced with useThreadStatus hook
+  let fallbackStatus: ThreadDisplayStatus = "idle";
+
+  if (thread.status === "busy") {
+    fallbackStatus = "running";
+  } else if (thread.status === "error") {
+    fallbackStatus = "error";
+  } else if (thread.status === "interrupted") {
+    fallbackStatus = "paused";
+  }
+
+  return {
+    ...metadata,
+    status: fallbackStatus,
   };
 }

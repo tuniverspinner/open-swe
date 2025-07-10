@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, GitBranch, Terminal, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreadSwitcher } from "./thread-switcher";
-import { ThreadDisplayInfo } from "./types";
+import { ThreadDisplayInfo, ThreadMetadata } from "./types";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
@@ -33,7 +33,7 @@ import { CancelStreamButton } from "./cancel-stream-button";
 interface ThreadViewProps {
   stream: ReturnType<typeof useStream<ManagerGraphState>>;
   displayThread: ThreadDisplayInfo;
-  allDisplayThreads: ThreadDisplayInfo[];
+  allDisplayThreads: ThreadMetadata[];
   onBackToHome: () => void;
 }
 
@@ -58,10 +58,6 @@ function ThreadViewContent({
     isLoading: statusLoading,
     error,
   } = useThreadStatus(displayThread.id);
-
-  // Use real-time status if available, fallback to sync status during loading or error
-  const headerStatus =
-    statusLoading || error ? displayThread.status : realTimeStatus;
 
   const plannerCancelRef = useRef<(() => void) | null>(null);
   const programmerCancelRef = useRef<(() => void) | null>(null);
@@ -113,15 +109,15 @@ function ThreadViewContent({
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div
               className={`size-2 flex-shrink-0 rounded-full ${
-                headerStatus === "running"
+                realTimeStatus === "running"
                   ? "bg-blue-500"
-                  : headerStatus === "completed"
+                  : realTimeStatus === "completed"
                     ? "bg-green-500"
-                    : headerStatus === "paused"
+                    : realTimeStatus === "paused"
                       ? "bg-yellow-500"
-                      : headerStatus === "error"
+                      : realTimeStatus === "error"
                         ? "bg-red-500"
-                        : headerStatus === "idle"
+                        : realTimeStatus === "idle"
                           ? "bg-gray-500"
                           : "bg-gray-500"
               }`}
