@@ -16,6 +16,7 @@ import { Skeleton } from "../ui/skeleton";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
 import { ThreadMetadata } from "./types";
 import { ThreadDisplayStatus } from "@/lib/schemas/thread-status";
+
 function ThreadCardContent({ thread }: { thread: ThreadMetadata }) {
   const router = useRouter();
 
