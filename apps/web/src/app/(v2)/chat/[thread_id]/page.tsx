@@ -38,7 +38,6 @@ export default function ThreadPage({
   // Find the thread by ID
   const thread = threads.find((t) => t.thread_id === thread_id);
 
-  // Call hooks before any early returns
   // We need a thread object for the hook, so use a dummy if not found
   const dummyThread = thread || {
     thread_id: thread_id,

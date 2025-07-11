@@ -7,6 +7,7 @@ import {
   AlertCircle,
   Pause,
   XCircle,
+  Clock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,6 @@ import { ThreadDisplayStatus } from "@/lib/schemas/thread-status";
 function ThreadCardContent({ thread }: { thread: ThreadMetadata }) {
   const router = useRouter();
 
-  // Re-enable real-time status now that cookies are confirmed present
   const {
     status: realTimeStatus,
     isLoading: statusLoading,
@@ -40,8 +40,6 @@ function ThreadCardContent({ thread }: { thread: ThreadMetadata }) {
         return "dark:bg-green-950 bg-green-100 dark:text-green-400 text-green-700";
       case "error":
         return "dark:bg-red-950 bg-red-100 dark:text-red-400 text-red-700";
-      case "idle":
-        return "dark:bg-gray-800 bg-gray-200 dark:text-gray-400 text-gray-700";
       case "paused":
         return "dark:bg-yellow-950 bg-yellow-100 dark:text-yellow-400 text-yellow-700";
       case "failed":
@@ -62,7 +60,7 @@ function ThreadCardContent({ thread }: { thread: ThreadMetadata }) {
       case "error":
         return <AlertCircle className="h-4 w-4" />;
       case "idle":
-        return <AlertCircle className="h-4 w-4" />;
+        return <Clock className="h-4 w-4" />;
       case "paused":
         return <Pause className="h-4 w-4" />;
       case "failed":
