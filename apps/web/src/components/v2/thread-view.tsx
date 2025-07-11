@@ -21,6 +21,7 @@ import {
   PLANNER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
+import { cn } from "@/lib/utils";
 
 import { StickToBottom } from "use-stick-to-bottom";
 import {
@@ -37,7 +38,7 @@ interface ThreadViewProps {
   onBackToHome: () => void;
 }
 
-function ThreadViewContent({
+export function ThreadView({
   stream,
   displayThread,
   allDisplayThreads,
@@ -52,12 +53,26 @@ function ThreadViewContent({
   const [programmerSession, setProgrammerSession] =
     useState<ManagerGraphState["programmerSession"]>();
 
-  // Re-enable real-time status now that cookies are confirmed present
   const {
     status: realTimeStatus,
     isLoading: statusLoading,
     error,
   } = useThreadStatus(displayThread.id);
+
+  const getStatusDotColor = (status: string) => {
+    switch (status) {
+      case "running":
+        return "bg-blue-500";
+      case "completed":
+        return "bg-green-500";
+      case "paused":
+        return "bg-yellow-500";
+      case "error":
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
 
   const plannerCancelRef = useRef<(() => void) | null>(null);
   const programmerCancelRef = useRef<(() => void) | null>(null);
@@ -108,19 +123,10 @@ function ThreadViewContent({
           </Button>
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div
-              className={`size-2 flex-shrink-0 rounded-full ${
-                realTimeStatus === "running"
-                  ? "bg-blue-500"
-                  : realTimeStatus === "completed"
-                    ? "bg-green-500"
-                    : realTimeStatus === "paused"
-                      ? "bg-yellow-500"
-                      : realTimeStatus === "error"
-                        ? "bg-red-500"
-                        : realTimeStatus === "idle"
-                          ? "bg-gray-500"
-                          : "bg-gray-500"
-              }`}
+              className={cn(
+                "size-2 flex-shrink-0 rounded-full",
+                getStatusDotColor(realTimeStatus),
+              )}
             ></div>
             <span className="text-muted-foreground max-w-[500px] truncate font-mono text-sm">
               {displayThread.title}
@@ -273,21 +279,5 @@ function ThreadViewContent({
         </div>
       </div>
     </div>
-  );
-}
-
-export function ThreadView({
-  stream,
-  displayThread,
-  allDisplayThreads,
-  onBackToHome,
-}: ThreadViewProps) {
-  return (
-    <ThreadViewContent
-      stream={stream}
-      displayThread={displayThread}
-      allDisplayThreads={allDisplayThreads}
-      onBackToHome={onBackToHome}
-    />
   );
 }

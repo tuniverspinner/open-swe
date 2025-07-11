@@ -6,7 +6,6 @@ import { useMemo } from "react";
 
 /**
  * Hook that combines thread metadata with real-time status
- * Replaces the synchronous threadToDisplayInfo function
  */
 export function useThreadDisplayInfo(thread: Thread<ManagerGraphState>): {
   displayInfo: ThreadDisplayInfo;

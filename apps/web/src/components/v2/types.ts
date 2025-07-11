@@ -4,7 +4,6 @@ import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { ThreadDisplayStatus } from "@/lib/schemas/thread-status";
 
-// Thread metadata without status (status comes from useThreadStatus hook)
 export interface ThreadMetadata {
   id: string;
   title: string;
@@ -23,12 +22,10 @@ export interface ThreadMetadata {
   };
 }
 
-// Complete thread display info (metadata + status)
 export interface ThreadDisplayInfo extends ThreadMetadata {
   status: ThreadDisplayStatus;
 }
 
-// Utility function to extract metadata from Thread (no status logic)
 export function threadToMetadata(
   thread: Thread<ManagerGraphState>,
 ): ThreadMetadata {
@@ -37,7 +34,6 @@ export function threadToMetadata(
     ? getActivePlanItems(values.taskPlan)
     : [];
 
-  // Calculate time since last update
   const lastUpdate = new Date(thread.updated_at);
   const now = new Date();
   const diffMs = now.getTime() - lastUpdate.getTime();
@@ -71,29 +67,5 @@ export function threadToMetadata(
           url: `https://github.com/${values?.targetRepository?.owner}/${values?.targetRepository?.repo}/issues/${values?.githubIssueId}`,
         }
       : undefined,
-  };
-}
-
-// Legacy function for backward compatibility (DEPRECATED - use threadToMetadata + useThreadStatus)
-export function threadToDisplayInfo(
-  thread: Thread<ManagerGraphState>,
-): ThreadDisplayInfo {
-  const metadata = threadToMetadata(thread);
-
-  // Fallback status logic for backward compatibility
-  // This should be replaced with useThreadStatus hook
-  let fallbackStatus: ThreadDisplayStatus = "idle";
-
-  if (thread.status === "busy") {
-    fallbackStatus = "running";
-  } else if (thread.status === "error") {
-    fallbackStatus = "error";
-  } else if (thread.status === "interrupted") {
-    fallbackStatus = "paused";
-  }
-
-  return {
-    ...metadata,
-    status: fallbackStatus,
   };
 }
