@@ -15,8 +15,17 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { InstallationSelector } from "@/components/github/installation-selector";
 import { GitHubAppProvider } from "@/providers/GitHubApp";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
+import { useThreadsStatus } from "@/hooks/useThreadsStatus";
 
-type FilterStatus = "all" | "running" | "completed" | "failed" | "pending";
+type FilterStatus =
+  | "all"
+  | "running"
+  | "completed"
+  | "failed"
+  | "pending"
+  | "idle"
+  | "paused"
+  | "error";
 
 function AllThreadsPageContent() {
   const router = useRouter();
@@ -26,39 +35,53 @@ function AllThreadsPageContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
 
-  if (!threads) {
-    return <div>No threads</div>;
-  }
+  const threadMetadata: ThreadMetadata[] = threads?.map(threadToMetadata) ?? [];
+  const threadIds = threadMetadata.map((thread) => thread.id);
 
-  // Convert Thread objects to ThreadMetadata for UI
-  // Real-time status will be handled by individual ThreadCard components
-  const threadMetadata: ThreadMetadata[] = threads.map(threadToMetadata);
+  // Get real thread statuses
+  const {
+    statusMap,
+    statusCounts,
+    groupedThreads,
+    isLoading: statusLoading,
+  } = useThreadsStatus(threadIds);
 
   // Filter and search threads
   const filteredThreads = threadMetadata.filter((thread) => {
     const matchesSearch =
       thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       thread.repository.toLowerCase().includes(searchQuery.toLowerCase());
-    // Note: Status filtering will be handled by individual ThreadCard components using useThreadStatus
-    // For now, we'll show all threads when searching, and let the real-time status be displayed
-    return matchesSearch;
+
+    // Filter by status if not "all"
+    const matchesStatus =
+      statusFilter === "all" || statusMap[thread.id] === statusFilter;
+
+    return matchesSearch && matchesStatus;
   });
 
-  // Group threads by status placeholder - actual status will be determined by useThreadStatus in ThreadCard
-  const groupedThreads = {
-    running: filteredThreads,
-    completed: filteredThreads,
-    failed: filteredThreads,
-    pending: filteredThreads,
-  };
-
-  // Status counts placeholder - in a real implementation, this would need to aggregate useThreadStatus calls
-  const statusCounts = {
-    all: filteredThreads.length,
-    running: filteredThreads.length,
-    completed: filteredThreads.length,
-    failed: filteredThreads.length,
-    pending: filteredThreads.length,
+  // Group filtered threads by their actual status
+  const realGroupedThreads = {
+    running: filteredThreads.filter(
+      (thread: ThreadMetadata) => statusMap[thread.id] === "running",
+    ),
+    completed: filteredThreads.filter(
+      (thread: ThreadMetadata) => statusMap[thread.id] === "completed",
+    ),
+    failed: filteredThreads.filter(
+      (thread: ThreadMetadata) => statusMap[thread.id] === "failed",
+    ),
+    pending: filteredThreads.filter(
+      (thread: ThreadMetadata) => statusMap[thread.id] === "pending",
+    ),
+    idle: filteredThreads.filter(
+      (thread: ThreadMetadata) => statusMap[thread.id] === "idle",
+    ),
+    paused: filteredThreads.filter(
+      (thread: ThreadMetadata) => statusMap[thread.id] === "paused",
+    ),
+    error: filteredThreads.filter(
+      (thread: ThreadMetadata) => statusMap[thread.id] === "error",
+    ),
   };
 
   return (
@@ -119,6 +142,9 @@ function AllThreadsPageContent() {
                   "completed",
                   "failed",
                   "pending",
+                  "idle",
+                  "paused",
+                  "error",
                 ] as FilterStatus[]
               ).map((status) => (
                 <Button
@@ -153,7 +179,7 @@ function AllThreadsPageContent() {
             {statusFilter === "all" ? (
               // Show grouped view when "all" is selected
               <div className="space-y-6">
-                {Object.entries(groupedThreads).map(([status, threads]) => {
+                {Object.entries(realGroupedThreads).map(([status, threads]) => {
                   if (threads.length === 0) return null;
                   return (
                     <div key={status}>
@@ -192,33 +218,38 @@ function AllThreadsPageContent() {
               </div>
             )}
 
-            {filteredThreads.length === 0 && !threadsLoading && (
-              <div className="py-12 text-center">
-                <div className="text-muted-foreground mb-2">
-                  No threads found
+            {filteredThreads.length === 0 &&
+              !threadsLoading &&
+              !statusLoading && (
+                <div className="py-12 text-center">
+                  <div className="text-muted-foreground mb-2">
+                    No threads found
+                  </div>
+                  <div className="text-muted-foreground/70 text-xs">
+                    {!threads || threads.length === 0
+                      ? "No threads have been created yet"
+                      : searchQuery
+                        ? "Try adjusting your search query"
+                        : "No threads match the selected filter"}
+                  </div>
                 </div>
-                <div className="text-muted-foreground/70 text-xs">
-                  {searchQuery
-                    ? "Try adjusting your search query"
-                    : "No threads match the selected filter"}
-                </div>
-              </div>
-            )}
+              )}
 
-            {threadsLoading && threads.length === 0 && (
-              <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <h2 className="text-foreground text-base font-semibold capitalize">
-                    Loading threads...
-                  </h2>
+            {(threadsLoading || statusLoading) &&
+              (!threads || threads.length === 0) && (
+                <div>
+                  <div className="mb-3 flex items-center gap-2">
+                    <h2 className="text-foreground text-base font-semibold capitalize">
+                      Loading threads...
+                    </h2>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                    {Array.from({ length: 9 }).map((_, index) => (
+                      <ThreadCardLoading key={`all-threads-loading-${index}`} />
+                    ))}
+                  </div>
                 </div>
-                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: 9 }).map((_, index) => (
-                    <ThreadCardLoading key={`all-threads-loading-${index}`} />
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
           </div>
         </div>
       </div>
