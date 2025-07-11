@@ -108,7 +108,7 @@ function ThreadCardContent({ thread }: { thread: ThreadMetadata }) {
           </div>
           <Badge
             variant="secondary"
-            className={`${getStatusColor(displayStatus)} text-xs`}
+            className={cn("text-xs", getStatusColor(displayStatus))}
           >
             <div className="flex items-center gap-1">
               {getStatusIcon(displayStatus)}
