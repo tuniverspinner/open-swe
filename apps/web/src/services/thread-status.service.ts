@@ -1,8 +1,9 @@
 import { Thread, Run } from "@langchain/langgraph-sdk";
 import { createClient } from "@/providers/client";
 import {
-  ThreadDisplayStatus,
-  ThreadPollingResponseSchema,
+  ThreadUIStatus,
+  ThreadStatusData,
+  mapLangGraphToUIStatus,
 } from "@/lib/schemas/thread-status";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
@@ -12,151 +13,141 @@ interface StatusResult {
   graph: "manager" | "planner" | "programmer";
   runId: string;
   threadId: string;
-  status: ThreadDisplayStatus;
-  taskPlan?: any;
+  status: ThreadUIStatus;
 }
 
 /**
- * Service class for fetching thread status information
+ * Determines if all tasks in a task plan are completed
  */
-export class ThreadStatusService {
-  public client;
-
-  constructor(apiUrl: string) {
-    if (!apiUrl) {
-      throw new Error("API URL not configured");
-    }
-    this.client = createClient(apiUrl);
+function areAllTasksCompleted(taskPlan: any): boolean {
+  if (!taskPlan?.tasks || !Array.isArray(taskPlan.tasks)) {
+    return false;
   }
+  return taskPlan.tasks.every((task: any) => task.completed === true);
+}
 
-  /**
-   * Determines if all tasks in a task plan are completed
-   */
-  private areAllTasksCompleted(taskPlan: any): boolean {
-    if (!taskPlan?.tasks || !Array.isArray(taskPlan.tasks)) {
-      return false;
-    }
-    return taskPlan.tasks.every((task: any) => task.completed === true);
+/**
+ * Maps LangGraph SDK status to display status
+ */
+function mapLangGraphStatusToDisplay(status: string): ThreadUIStatus {
+  switch (status) {
+    case "busy":
+      return "running";
+    case "idle":
+      return "idle";
+    case "error":
+      return "error";
+    case "interrupted":
+      return "paused";
+    default:
+      return "idle";
   }
+}
 
-  /**
-   * Maps LangGraph SDK status to display status
-   */
-  private mapLangGraphStatusToDisplay(status: string): ThreadDisplayStatus {
-    switch (status) {
-      case "busy":
-        return "running";
-      case "idle":
-        return "idle";
-      case "error":
-        return "error";
-      case "interrupted":
-        return "paused";
-      default:
-        return "idle";
-    }
-  }
+/**
+ * Fetches manager thread status
+ */
+async function getManagerStatus(
+  client: ReturnType<typeof createClient>,
+  threadId: string,
+): Promise<StatusResult> {
+  const managerThread = await client.threads.get<ManagerGraphState>(threadId);
+  const status = mapLangGraphStatusToDisplay(managerThread.status);
 
-  /**
-   * Fetches manager thread status
-   */
-  async getManagerStatus(threadId: string): Promise<StatusResult> {
-    const managerThread =
-      await this.client.threads.get<ManagerGraphState>(threadId);
-    const status = this.mapLangGraphStatusToDisplay(managerThread.status);
+  return {
+    graph: "manager",
+    runId: "",
+    threadId,
+    status,
+  };
+}
 
-    return {
-      graph: "manager",
-      runId: "",
-      threadId,
-      status,
-      taskPlan: managerThread.values?.taskPlan,
-    };
-  }
-
-  /**
-   * Fetches planner run and thread status
-   */
-  async getPlannerStatus(plannerSession: {
+/**
+ * Fetches planner run and thread status
+ */
+async function getPlannerStatus(
+  client: ReturnType<typeof createClient>,
+  plannerSession: {
     threadId: string;
     runId: string;
-  }): Promise<StatusResult> {
-    const [plannerRun, plannerThread] = await Promise.all([
-      this.client.runs.get(plannerSession.threadId, plannerSession.runId),
-      this.client.threads.get<PlannerGraphState>(plannerSession.threadId),
-    ]);
+  },
+): Promise<StatusResult> {
+  const [plannerRun, plannerThread] = await Promise.all([
+    client.runs.get(plannerSession.threadId, plannerSession.runId),
+    client.threads.get<PlannerGraphState>(plannerSession.threadId),
+  ]);
 
-    let status: ThreadDisplayStatus;
+  let status: ThreadUIStatus;
 
-    // First check if the thread itself is interrupted (plan waiting for approval)
-    if (plannerThread.status === "interrupted") {
-      status = "paused";
-    }
-    // Then check if the thread has interrupts (plan waiting for approval)
-    else if (
-      plannerThread.interrupts &&
-      Array.isArray(plannerThread.interrupts) &&
-      plannerThread.interrupts.length > 0
-    ) {
-      status = "paused";
-    } else if (plannerRun.status === "running") {
-      status = "running";
-    } else if (plannerRun.status === "interrupted") {
-      status = "paused";
-    } else if (plannerRun.status === "timeout") {
-      status = "error";
-    } else if (
-      plannerRun.status === "success" &&
-      !plannerThread.values?.programmerSession
-    ) {
-      status = "idle";
-    } else {
-      status = "idle";
-    }
-
-    return {
-      graph: "planner",
-      runId: plannerSession.runId,
-      threadId: plannerSession.threadId,
-      status,
-      taskPlan: plannerThread.values?.taskPlan,
-    };
+  // First check if the thread itself is interrupted (plan waiting for approval)
+  if (plannerThread.status === "interrupted") {
+    status = "paused";
+  }
+  // Then check if the thread has interrupts (plan waiting for approval)
+  else if (
+    plannerThread.interrupts &&
+    Array.isArray(plannerThread.interrupts) &&
+    plannerThread.interrupts.length > 0
+  ) {
+    status = "paused";
+  } else if (plannerRun.status === "running") {
+    status = "running";
+  } else if (plannerRun.status === "interrupted") {
+    status = "paused";
+  } else if (plannerRun.status === "timeout") {
+    status = "error";
+  } else if (
+    plannerRun.status === "success" &&
+    !plannerThread.values?.programmerSession
+  ) {
+    status = "idle";
+  } else {
+    status = "idle";
   }
 
-  /**
-   * Fetches programmer run and thread status
-   */
-  async getProgrammerStatus(programmerSession: {
+  return {
+    graph: "planner",
+    runId: plannerSession.runId,
+    threadId: plannerSession.threadId,
+    status,
+  };
+}
+
+/**
+ * Fetches programmer run and thread status
+ */
+async function getProgrammerStatus(
+  client: ReturnType<typeof createClient>,
+  programmerSession: {
     threadId: string;
     runId: string;
-  }): Promise<StatusResult> {
-    const [programmerRun, programmerThread] = await Promise.all([
-      this.client.runs.get(programmerSession.threadId, programmerSession.runId),
-      this.client.threads.get<GraphState>(programmerSession.threadId),
-    ]);
+  },
+): Promise<StatusResult> {
+  const [programmerRun, programmerThread] = await Promise.all([
+    client.runs.get(programmerSession.threadId, programmerSession.runId),
+    client.threads.get<GraphState>(programmerSession.threadId),
+  ]);
 
-    let status: ThreadDisplayStatus;
-    if (programmerRun.status === "running") {
-      status = "running";
-    } else if (programmerRun.status === "timeout") {
-      status = "error";
-    } else if (
-      programmerRun.status === "success" &&
-      this.areAllTasksCompleted(programmerThread.values?.taskPlan)
-    ) {
-      status = "completed";
-    } else {
-      status = "idle";
-    }
-
-    return {
-      graph: "programmer",
-      runId: programmerSession.runId,
-      threadId: programmerSession.threadId,
-      status,
-      taskPlan: programmerThread.values?.taskPlan,
-    };
+  let status: ThreadUIStatus;
+  if (programmerRun.status === "running") {
+    status = "running";
+  } else if (programmerRun.status === "timeout") {
+    status = "error";
+  } else if (
+    programmerRun.status === "success" &&
+    areAllTasksCompleted(programmerThread.values?.taskPlan)
+  ) {
+    status = "completed";
+  } else {
+    status = "idle";
   }
+
+  return {
+    graph: "programmer",
+    runId: programmerSession.runId,
+    threadId: programmerSession.threadId,
+    status,
+  };
 }
 
 /**
@@ -168,7 +159,7 @@ export class StatusResolver {
     manager: StatusResult,
     planner?: StatusResult,
     programmer?: StatusResult,
-  ): ThreadPollingResponseSchema {
+  ): ThreadStatusData {
     // Priority 1: Manager is running or has error
     if (manager.status === "running" || manager.status === "error") {
       const result = manager;
@@ -210,8 +201,8 @@ export class StatusResolver {
  */
 export async function fetchThreadStatus(
   threadId: string,
-  lastPollingState: ThreadPollingResponseSchema | null = null,
-): Promise<ThreadPollingResponseSchema> {
+  lastPollingState: ThreadStatusData | null = null,
+): Promise<ThreadStatusData> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
     if (!apiUrl) {
@@ -219,14 +210,13 @@ export async function fetchThreadStatus(
       throw new Error("API URL not configured");
     }
 
-    const service = new ThreadStatusService(apiUrl);
+    const client = createClient(apiUrl);
     const resolver = new StatusResolver();
 
     // Step 1: Get manager status
-    const managerStatus = await service.getManagerStatus(threadId);
+    const managerStatus = await getManagerStatus(client, threadId);
 
-    const managerThread =
-      await service.client.threads.get<ManagerGraphState>(threadId);
+    const managerThread = await client.threads.get<ManagerGraphState>(threadId);
 
     // Early returns for manager-level conditions
     if (
@@ -243,11 +233,12 @@ export async function fetchThreadStatus(
     }
 
     // Step 2: Get planner status
-    const plannerStatus = await service.getPlannerStatus(
+    const plannerStatus = await getPlannerStatus(
+      client,
       managerThread.values.plannerSession,
     );
 
-    const plannerThread = await service.client.threads.get<PlannerGraphState>(
+    const plannerThread = await client.threads.get<PlannerGraphState>(
       managerThread.values.plannerSession.threadId,
     );
 
@@ -267,7 +258,8 @@ export async function fetchThreadStatus(
     }
 
     // Step 3: Get programmer status
-    const programmerStatus = await service.getProgrammerStatus(
+    const programmerStatus = await getProgrammerStatus(
+      client,
       plannerThread.values.programmerSession,
     );
 
@@ -291,7 +283,6 @@ export async function fetchThreadStatus(
       runId,
       threadId: errorThreadId,
       status: "error",
-      taskPlan: lastPollingState?.taskPlan,
     };
   }
 }

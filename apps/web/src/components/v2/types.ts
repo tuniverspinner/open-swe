@@ -2,7 +2,7 @@ import { getThreadTitle } from "@/lib/thread";
 import { Thread } from "@langchain/langgraph-sdk";
 import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
-import { ThreadDisplayStatus } from "@/lib/schemas/thread-status";
+import { ThreadUIStatus } from "@/lib/schemas/thread-status";
 
 export interface ThreadMetadata {
   id: string;
@@ -23,7 +23,7 @@ export interface ThreadMetadata {
 }
 
 export interface ThreadDisplayInfo extends ThreadMetadata {
-  status: ThreadDisplayStatus;
+  status: ThreadUIStatus;
 }
 
 export function threadToMetadata(

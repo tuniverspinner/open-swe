@@ -1,9 +1,6 @@
 import useSWR from "swr";
 import { THREAD_STATUS_SWR_CONFIG } from "@/lib/swr-config";
-import {
-  ThreadDisplayStatus,
-  ThreadPollingResponseSchema,
-} from "@/lib/schemas/thread-status";
+import { ThreadUIStatus, ThreadStatusData } from "@/lib/schemas/thread-status";
 import { fetchThreadStatus } from "@/services/thread-status.service";
 
 interface UseThreadStatusOptions {
@@ -12,10 +9,9 @@ interface UseThreadStatusOptions {
 }
 
 interface ThreadStatusResult {
-  status: ThreadDisplayStatus;
+  status: ThreadUIStatus;
   isLoading: boolean;
   error: Error | null;
-  taskPlan?: any;
   mutate: () => void;
 }
 
@@ -34,21 +30,19 @@ export function useThreadStatus(
 
   const swrKey = enabled ? `thread-status-${threadId}` : null;
 
-  const { data, error, isLoading, mutate } =
-    useSWR<ThreadPollingResponseSchema>(
-      swrKey,
-      () => fetchThreadStatus(threadId),
-      {
-        ...THREAD_STATUS_SWR_CONFIG,
-        refreshInterval,
-      },
-    );
+  const { data, error, isLoading, mutate } = useSWR<ThreadStatusData>(
+    swrKey,
+    () => fetchThreadStatus(threadId),
+    {
+      ...THREAD_STATUS_SWR_CONFIG,
+      refreshInterval,
+    },
+  );
 
   return {
     status: data?.status || "idle",
     isLoading,
     error,
-    taskPlan: data?.taskPlan,
     mutate,
   };
 }

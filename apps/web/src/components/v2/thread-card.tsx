@@ -16,7 +16,7 @@ import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
 import { ThreadMetadata } from "./types";
-import { ThreadDisplayStatus } from "@/lib/schemas/thread-status";
+import { ThreadUIStatus } from "@/lib/schemas/thread-status";
 import { cn } from "@/lib/utils";
 
 export function ThreadCard({ thread }: { thread: ThreadMetadata }) {
@@ -29,11 +29,9 @@ export function ThreadCard({ thread }: { thread: ThreadMetadata }) {
   } = useThreadStatus(thread.id);
 
   // Use real-time status, only fallback to idle if there's an actual error (not during loading)
-  const displayStatus = error
-    ? ("idle" as ThreadDisplayStatus)
-    : realTimeStatus;
+  const displayStatus = error ? ("idle" as ThreadUIStatus) : realTimeStatus;
 
-  const getStatusColor = (status: ThreadDisplayStatus) => {
+  const getStatusColor = (status: ThreadUIStatus) => {
     switch (status) {
       case "running":
         return "dark:bg-blue-950 bg-blue-100 dark:text-blue-400 text-blue-700";
@@ -52,7 +50,7 @@ export function ThreadCard({ thread }: { thread: ThreadMetadata }) {
     }
   };
 
-  const getStatusIcon = (status: ThreadDisplayStatus) => {
+  const getStatusIcon = (status: ThreadUIStatus) => {
     switch (status) {
       case "running":
         return <Loader2 className="h-4 w-4 animate-spin" />;

@@ -1,33 +1,43 @@
-import { z } from "zod";
+import {
+  MANAGER_GRAPH_ID,
+  PLANNER_GRAPH_ID,
+  PROGRAMMER_GRAPH_ID,
+} from "@open-swe/shared/constants";
+import { ThreadStatus } from "@langchain/langgraph-sdk";
 
 /**
- * Thread status enum for UI display
- * Maps to the priority logic: manager > planner > programmer
+ * UI-specific thread status that extends LangGraph's states
  */
-export const ThreadDisplayStatus = z.enum([
-  "running",
-  "completed",
-  "failed",
-  "pending",
-  "idle",
-  "paused",
-  "error",
-]);
+export type ThreadUIStatus =
+  | "running" // Maps from LangGraph "busy"
+  | "completed" // Business logic: all tasks completed
+  | "failed" // UI-specific state
+  | "pending" // UI-specific state
+  | "idle" // Same as LangGraph "idle"
+  | "paused" // Maps from LangGraph "interrupted"
+  | "error"; // Same as LangGraph "error"
 
-export type ThreadDisplayStatus = z.infer<typeof ThreadDisplayStatus>;
+export function mapLangGraphToUIStatus(status: ThreadStatus): ThreadUIStatus {
+  switch (status) {
+    case "busy":
+      return "running";
+    case "interrupted":
+      return "paused";
+    case "idle":
+      return "idle";
+    case "error":
+      return "error";
+    default:
+      return "idle";
+  }
+}
 
-/**
- * Thread status response schema for SWR typing
- * Used by useThreadStatus hook and fetchThreadStatus service
- */
-export const ThreadPollingResponseSchema = z.object({
-  graph: z.enum(["manager", "planner", "programmer"]),
-  runId: z.string(),
-  threadId: z.string(),
-  status: ThreadDisplayStatus,
-  taskPlan: z.any().optional(), // TaskPlan type from shared package
-});
-
-export type ThreadPollingResponseSchema = z.infer<
-  typeof ThreadPollingResponseSchema
->;
+export interface ThreadStatusData {
+  graph:
+    | typeof MANAGER_GRAPH_ID
+    | typeof PLANNER_GRAPH_ID
+    | typeof PROGRAMMER_GRAPH_ID;
+  runId: string;
+  threadId: string;
+  status: ThreadUIStatus;
+}
