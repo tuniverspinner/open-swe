@@ -12,6 +12,7 @@ import { useThreadsSWR } from "@/hooks/useThreadsSWR";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { ThreadCard, ThreadCardLoading } from "@/components/v2/thread-card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { InstallationSelector } from "@/components/github/installation-selector";
 import { GitHubAppProvider } from "@/providers/GitHubApp";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 
@@ -87,6 +88,7 @@ function AllThreadsPageContent() {
                 </span>
               </div>
               <div className="flex items-center gap-2">
+                <InstallationSelector />
                 <ThemeToggle />
               </div>
             </div>
@@ -149,17 +151,37 @@ function AllThreadsPageContent() {
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-6xl p-4">
             {statusFilter === "all" ? (
-              // Show all threads in a single grid when "all" is selected
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-                {filteredThreads.map((thread) => (
-                  <ThreadCard
-                    key={thread.id}
-                    thread={thread}
-                  />
-                ))}
+              // Show grouped view when "all" is selected
+              <div className="space-y-6">
+                {Object.entries(groupedThreads).map(([status, threads]) => {
+                  if (threads.length === 0) return null;
+                  return (
+                    <div key={status}>
+                      <div className="mb-3 flex items-center gap-2">
+                        <h2 className="text-foreground text-base font-semibold capitalize">
+                          {status} Threads
+                        </h2>
+                        <Badge
+                          variant="secondary"
+                          className="bg-muted/70 text-muted-foreground text-xs dark:bg-gray-800"
+                        >
+                          {threads.length}
+                        </Badge>
+                      </div>
+                      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {threads.map((thread) => (
+                          <ThreadCard
+                            key={thread.id}
+                            thread={thread}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
-              // Show filtered threads - individual ThreadCard components will handle real-time status
+              // Show flat list when specific status is selected
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {filteredThreads.map((thread) => (
                   <ThreadCard
