@@ -3,6 +3,8 @@ import { ThreadUIStatus, ThreadStatusData } from "@/lib/schemas/thread-status";
 import { fetchThreadStatus } from "@/services/thread-status.service";
 import { THREAD_STATUS_SWR_CONFIG } from "@/lib/swr-config";
 import { useMemo, useRef } from "react";
+import { Thread } from "@langchain/langgraph-sdk";
+import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 
 interface ThreadStatusMap {
   [threadId: string]: ThreadUIStatus;
@@ -44,6 +46,7 @@ interface UseThreadsStatusResult {
 async function fetchAllThreadStatuses(
   threadIds: string[],
   lastPollingStates: Map<string, ThreadStatusData>,
+  managerThreads?: Thread<ManagerGraphState>[],
 ): Promise<{
   statusMap: ThreadStatusMap;
   updatedStates: Map<string, ThreadStatusData>;
@@ -51,7 +54,14 @@ async function fetchAllThreadStatuses(
   const statusPromises = threadIds.map(async (threadId) => {
     try {
       const lastState = lastPollingStates.get(threadId) || null;
-      const statusData = await fetchThreadStatus(threadId, lastState);
+      const managerThread = managerThreads?.find(
+        (t) => t.thread_id === threadId,
+      );
+      const statusData = await fetchThreadStatus(
+        threadId,
+        lastState,
+        managerThread,
+      );
       return { threadId, status: statusData.status, statusData };
     } catch (error) {
       console.error(`Failed to fetch status for thread ${threadId}:`, error);
@@ -81,7 +91,10 @@ async function fetchAllThreadStatuses(
  * Hook that fetches statuses for multiple threads in parallel
  * Uses SWR for caching and deduplication with state optimization
  */
-export function useThreadsStatus(threadIds: string[]): UseThreadsStatusResult {
+export function useThreadsStatus(
+  threadIds: string[],
+  managerThreads?: Thread<ManagerGraphState>[],
+): UseThreadsStatusResult {
   // Store last polling states for optimization
   const lastPollingStatesRef = useRef<Map<string, ThreadStatusData>>(new Map());
 
@@ -99,6 +112,7 @@ export function useThreadsStatus(threadIds: string[]): UseThreadsStatusResult {
       const result = await fetchAllThreadStatuses(
         threadIds,
         lastPollingStatesRef.current,
+        managerThreads,
       );
       // Update the stored states
       lastPollingStatesRef.current = result.updatedStates;

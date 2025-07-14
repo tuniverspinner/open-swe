@@ -203,6 +203,7 @@ export class StatusResolver {
 export async function fetchThreadStatus(
   threadId: string,
   lastPollingState: ThreadStatusData | null = null,
+  managerThreadData?: Thread<ManagerGraphState> | null,
 ): Promise<ThreadStatusData> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -236,7 +237,12 @@ export async function fetchThreadStatus(
     }
 
     // Full status check - same logic as before but more efficient
-    return await performFullStatusCheck(client, threadId, resolver);
+    return await performFullStatusCheck(
+      client,
+      threadId,
+      resolver,
+      managerThreadData,
+    );
   } catch (error) {
     console.error(`[fetchThreadStatus] Error for thread ${threadId}:`, error);
 
@@ -435,9 +441,12 @@ async function performFullStatusCheck(
   client: ReturnType<typeof createClient>,
   threadId: string,
   resolver: StatusResolver,
+  managerThreadData?: Thread<ManagerGraphState> | null,
 ): Promise<ThreadStatusData> {
-  // Step 1: Check manager status first (1 API call)
-  const managerThread = await client.threads.get<ManagerGraphState>(threadId);
+  // Step 1: Get manager status (use pre-fetched data if available, otherwise fetch)
+  const managerThread =
+    managerThreadData ||
+    (await client.threads.get<ManagerGraphState>(threadId));
   const managerStatus: StatusResult = {
     graph: "manager",
     runId: "",

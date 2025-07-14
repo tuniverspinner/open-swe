@@ -44,7 +44,7 @@ function AllThreadsPageContent() {
     statusCounts,
     groupedThreads,
     isLoading: statusLoading,
-  } = useThreadsStatus(threadIds);
+  } = useThreadsStatus(threadIds, threads);
 
   // Filter and search threads
   const filteredThreads = threadMetadata.filter((thread) => {

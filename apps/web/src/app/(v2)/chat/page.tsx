@@ -29,6 +29,7 @@ export default function ChatPage() {
           <DefaultView
             threads={threadMetadata}
             threadsLoading={threadsLoading}
+            originalThreads={threads}
           />
         </GitHubAppProvider>
       </Suspense>

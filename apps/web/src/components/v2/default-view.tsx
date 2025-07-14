@@ -26,13 +26,20 @@ import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { TooltipIconButton } from "../ui/tooltip-icon-button";
 import { InstallationSelector } from "../github/installation-selector";
 import { useThreadsStatus } from "@/hooks/useThreadsStatus";
+import { Thread } from "@langchain/langgraph-sdk";
+import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 
 interface DefaultViewProps {
   threads: ThreadMetadata[];
   threadsLoading: boolean;
+  originalThreads?: Thread<ManagerGraphState>[];
 }
 
-export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
+export function DefaultView({
+  threads,
+  threadsLoading,
+  originalThreads,
+}: DefaultViewProps) {
   const router = useRouter();
   const [quickActionPrompt, setQuickActionPrompt] = useState("");
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -54,8 +61,10 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
   const displayThreadIds = displayThreads.map((thread) => thread.id);
 
   // Batch fetch statuses for displayed threads only
-  const { statusMap, isLoading: statusLoading } =
-    useThreadsStatus(displayThreadIds);
+  const { statusMap, isLoading: statusLoading } = useThreadsStatus(
+    displayThreadIds,
+    originalThreads,
+  );
 
   const handleLoadDraft = (content: string) => {
     setDraftToLoad(content);
