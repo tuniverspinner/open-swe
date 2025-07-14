@@ -27,7 +27,9 @@ interface ThreadCardProps {
 export function ThreadCard({ thread, status, statusLoading }: ThreadCardProps) {
   const router = useRouter();
 
-  // Use provided status or fallback to idle
+  // Show loading state when status is being fetched and not yet available
+  const isStatusLoading = statusLoading && !status;
+  // Use provided status or fallback to idle only when not loading
   const displayStatus = status || ("idle" as ThreadUIStatus);
 
   const getStatusColor = (status: ThreadUIStatus) => {
@@ -106,11 +108,22 @@ export function ThreadCard({ thread, status, statusLoading }: ThreadCardProps) {
           </div>
           <Badge
             variant="secondary"
-            className={cn("text-xs", getStatusColor(displayStatus))}
+            className={cn(
+              "text-xs",
+              isStatusLoading
+                ? "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                : getStatusColor(displayStatus),
+            )}
           >
             <div className="flex items-center gap-1">
-              {getStatusIcon(displayStatus)}
-              <span className="capitalize">{displayStatus}</span>
+              {isStatusLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                getStatusIcon(displayStatus)
+              )}
+              <span className="capitalize">
+                {isStatusLoading ? "Loading..." : displayStatus}
+              </span>
             </div>
           </Badge>
         </div>
