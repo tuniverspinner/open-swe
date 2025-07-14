@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, GitBranch, Terminal, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { ThreadSwitcher } from "./thread-switcher";
 import { ThreadDisplayInfo } from "./types";
 import { useStream } from "@langchain/langgraph-sdk/react";
@@ -27,6 +28,7 @@ import {
 } from "../../utils/scroll-utils";
 import { ManagerChat } from "./manager-chat";
 import { CancelStreamButton } from "./cancel-stream-button";
+import { useActionDisplay } from "@/contexts/action-display-context";
 
 interface ThreadViewProps {
   stream: ReturnType<typeof useStream<ManagerGraphState>>;
@@ -41,6 +43,12 @@ export function ThreadView({
   allDisplayThreads,
   onBackToHome,
 }: ThreadViewProps) {
+  const {
+    globalReasoningState,
+    globalOutputState,
+    setGlobalReasoningState,
+    setGlobalOutputState,
+  } = useActionDisplay();
   const [chatInput, setChatInput] = useState("");
   const [selectedTab, setSelectedTab] = useState<"planner" | "programmer">(
     "planner",
@@ -149,6 +157,47 @@ export function ThreadView({
                 className="h-full overflow-y-auto"
                 contentClassName="space-y-4 p-4"
                 content={
+                  <>
+                    {/* Global Toggle Controls */}
+                    <div className="border-border bg-card/50 mb-4 rounded-lg border p-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between">
+                          <label
+                            htmlFor="reasoning-toggle"
+                            className="text-sm font-medium"
+                          >
+                            Expand/Collapse Reasoning
+                          </label>
+                          <Switch
+                            id="reasoning-toggle"
+                            checked={globalReasoningState === "expanded"}
+                            onCheckedChange={(checked) =>
+                              setGlobalReasoningState(
+                                checked ? "expanded" : "collapsed",
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <label
+                            htmlFor="output-toggle"
+                            className="text-sm font-medium"
+                          >
+                            Expand/Collapse Command Output
+                          </label>
+                          <Switch
+                            id="output-toggle"
+                            checked={globalOutputState === "expanded"}
+                            onCheckedChange={(checked) =>
+                              setGlobalOutputState(
+                                checked ? "expanded" : "collapsed",
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    </div>
+
                   <Tabs
                     defaultValue="planner"
                     className="w-full"
@@ -246,6 +295,7 @@ export function ThreadView({
                       </Card>
                     </TabsContent>
                   </Tabs>
+                  </>
                 }
                 footer={
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
@@ -260,3 +310,4 @@ export function ThreadView({
     </div>
   );
 }
+
