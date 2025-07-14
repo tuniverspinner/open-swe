@@ -255,7 +255,7 @@ export async function fetchThreadStatus(
 }
 
 /**
- * Optimized status check using last known state
+ * Optimized status check using last known state with smart early returns
  */
 async function checkLastKnownGraph(
   client: ReturnType<typeof createClient>,
@@ -266,12 +266,34 @@ async function checkLastKnownGraph(
   switch (lastState.graph) {
     case "programmer":
       if (lastState.threadId && lastState.runId) {
-        const programmerStatus = await getProgrammerStatus(client, {
-          threadId: lastState.threadId,
-          runId: lastState.runId,
-        });
+        // Check if programmer is still active (2 API calls)
+        const [programmerRun, programmerThread] = await Promise.all([
+          client.runs.get(lastState.threadId, lastState.runId),
+          client.threads.get<GraphState>(lastState.threadId),
+        ]);
 
-        // If programmer is still running or has error, we can return early
+        let programmerStatusValue: ThreadUIStatus;
+        if (programmerRun.status === "running") {
+          programmerStatusValue = "running";
+        } else if (programmerRun.status === "timeout") {
+          programmerStatusValue = "error";
+        } else if (
+          programmerRun.status === "success" &&
+          areAllTasksCompleted(programmerThread.values?.taskPlan)
+        ) {
+          programmerStatusValue = "completed";
+        } else {
+          programmerStatusValue = "idle";
+        }
+
+        const programmerStatus: StatusResult = {
+          graph: "programmer",
+          runId: lastState.runId,
+          threadId: lastState.threadId,
+          status: programmerStatusValue,
+        };
+
+        // ✅ EARLY RETURN: Programmer is still active (2 API calls total)
         if (
           programmerStatus.status === "running" ||
           programmerStatus.status === "error"
@@ -279,19 +301,46 @@ async function checkLastKnownGraph(
           return programmerStatus;
         }
 
-        // If programmer finished, we need to do a full check to see final state
+        // Programmer finished, fall back to full check
         return null;
       }
       break;
 
     case "planner":
       if (lastState.threadId && lastState.runId) {
-        const plannerStatus = await getPlannerStatus(client, {
-          threadId: lastState.threadId,
-          runId: lastState.runId,
-        });
+        // Check if planner is still active (2 API calls)
+        const [plannerRun, plannerThread] = await Promise.all([
+          client.runs.get(lastState.threadId, lastState.runId),
+          client.threads.get<PlannerGraphState>(lastState.threadId),
+        ]);
 
-        // If planner is still running, paused, or has error, return early
+        let plannerStatusValue: ThreadUIStatus;
+        if (plannerThread.status === "interrupted") {
+          plannerStatusValue = "paused";
+        } else if (
+          plannerThread.interrupts &&
+          Array.isArray(plannerThread.interrupts) &&
+          plannerThread.interrupts.length > 0
+        ) {
+          plannerStatusValue = "paused";
+        } else if (plannerRun.status === "running") {
+          plannerStatusValue = "running";
+        } else if (plannerRun.status === "interrupted") {
+          plannerStatusValue = "paused";
+        } else if (plannerRun.status === "timeout") {
+          plannerStatusValue = "error";
+        } else {
+          plannerStatusValue = "idle";
+        }
+
+        const plannerStatus: StatusResult = {
+          graph: "planner",
+          runId: lastState.runId,
+          threadId: lastState.threadId,
+          status: plannerStatusValue,
+        };
+
+        // ✅ EARLY RETURN: Planner is still active (2 API calls total)
         if (
           plannerStatus.status === "running" ||
           plannerStatus.status === "paused" ||
@@ -300,16 +349,39 @@ async function checkLastKnownGraph(
           return plannerStatus;
         }
 
-        // If planner finished, need to check if programmer started
-        const plannerThread = await client.threads.get<PlannerGraphState>(
-          lastState.threadId,
-        );
+        // Planner finished, check if programmer started
         if (plannerThread.values?.programmerSession) {
-          // Programmer started, check programmer status
-          const programmerStatus = await getProgrammerStatus(
-            client,
-            plannerThread.values.programmerSession,
-          );
+          // Programmer started, check programmer status (2 more API calls)
+          const programmerSession = plannerThread.values.programmerSession;
+          const [programmerRun, programmerThread] = await Promise.all([
+            client.runs.get(
+              programmerSession.threadId,
+              programmerSession.runId,
+            ),
+            client.threads.get<GraphState>(programmerSession.threadId),
+          ]);
+
+          let programmerStatusValue: ThreadUIStatus;
+          if (programmerRun.status === "running") {
+            programmerStatusValue = "running";
+          } else if (programmerRun.status === "timeout") {
+            programmerStatusValue = "error";
+          } else if (
+            programmerRun.status === "success" &&
+            areAllTasksCompleted(programmerThread.values?.taskPlan)
+          ) {
+            programmerStatusValue = "completed";
+          } else {
+            programmerStatusValue = "idle";
+          }
+
+          const programmerStatus: StatusResult = {
+            graph: "programmer",
+            runId: programmerSession.runId,
+            threadId: programmerSession.threadId,
+            status: programmerStatusValue,
+          };
+
           return resolver.resolve(
             {
               graph: "manager",
@@ -328,15 +400,26 @@ async function checkLastKnownGraph(
       break;
 
     case "manager": {
-      // Manager was last active, check manager first
-      const managerStatus = await getManagerStatus(client, lastState.threadId);
+      // Check if manager is still active (1 API call)
+      const managerThread = await client.threads.get<ManagerGraphState>(
+        lastState.threadId,
+      );
+      const managerStatus: StatusResult = {
+        graph: "manager",
+        runId: "",
+        threadId: lastState.threadId,
+        status: mapLangGraphStatusToDisplay(managerThread.status),
+      };
+
+      // ✅ EARLY RETURN: Manager is still active (1 API call total)
       if (
         managerStatus.status === "running" ||
         managerStatus.status === "error"
       ) {
         return managerStatus;
       }
-      // Manager not running, need full check
+
+      // Manager not running, fall back to full check
       return null;
     }
   }
@@ -345,36 +428,73 @@ async function checkLastKnownGraph(
 }
 
 /**
- * Full status check - performs complete hierarchy check
+ * Full status check with smart early returns
+ * Checks manager → planner → programmer sequentially, stopping as soon as active status found
  */
 async function performFullStatusCheck(
   client: ReturnType<typeof createClient>,
   threadId: string,
   resolver: StatusResolver,
 ): Promise<ThreadStatusData> {
-  // Step 1: Get manager status
-  const managerStatus = await getManagerStatus(client, threadId);
+  // Step 1: Check manager status first (1 API call)
   const managerThread = await client.threads.get<ManagerGraphState>(threadId);
+  const managerStatus: StatusResult = {
+    graph: "manager",
+    runId: "",
+    threadId,
+    status: mapLangGraphStatusToDisplay(managerThread.status),
+  };
 
-  // Early returns for manager-level conditions
+  // ✅ EARLY RETURN: Manager is active - stop here (1 API call total)
   if (managerStatus.status === "running" || managerStatus.status === "error") {
     return resolver.resolve(managerStatus);
   }
 
+  // ✅ EARLY RETURN: No planner session - manager is idle (1 API call total)
   if (!managerThread.values?.plannerSession) {
     return resolver.resolve(managerStatus);
   }
 
-  // Step 2: Get planner status
-  const plannerStatus = await getPlannerStatus(
-    client,
-    managerThread.values.plannerSession,
-  );
-  const plannerThread = await client.threads.get<PlannerGraphState>(
-    managerThread.values.plannerSession.threadId,
-  );
+  // Step 2: Manager is idle, check planner status (2 more API calls)
+  const plannerSession = managerThread.values.plannerSession;
+  const [plannerRun, plannerThread] = await Promise.all([
+    client.runs.get(plannerSession.threadId, plannerSession.runId),
+    client.threads.get<PlannerGraphState>(plannerSession.threadId),
+  ]);
 
-  // Early returns for planner-level conditions
+  // Build planner status
+  let plannerStatusValue: ThreadUIStatus;
+  if (plannerThread.status === "interrupted") {
+    plannerStatusValue = "paused";
+  } else if (
+    plannerThread.interrupts &&
+    Array.isArray(plannerThread.interrupts) &&
+    plannerThread.interrupts.length > 0
+  ) {
+    plannerStatusValue = "paused";
+  } else if (plannerRun.status === "running") {
+    plannerStatusValue = "running";
+  } else if (plannerRun.status === "interrupted") {
+    plannerStatusValue = "paused";
+  } else if (plannerRun.status === "timeout") {
+    plannerStatusValue = "error";
+  } else if (
+    plannerRun.status === "success" &&
+    !plannerThread.values?.programmerSession
+  ) {
+    plannerStatusValue = "idle";
+  } else {
+    plannerStatusValue = "idle";
+  }
+
+  const plannerStatus: StatusResult = {
+    graph: "planner",
+    runId: plannerSession.runId,
+    threadId: plannerSession.threadId,
+    status: plannerStatusValue,
+  };
+
+  // ✅ EARLY RETURN: Planner is active - stop here (3 API calls total)
   if (
     plannerStatus.status === "running" ||
     plannerStatus.status === "paused" ||
@@ -383,16 +503,40 @@ async function performFullStatusCheck(
     return resolver.resolve(managerStatus, plannerStatus);
   }
 
+  // ✅ EARLY RETURN: No programmer session - planner is idle (3 API calls total)
   if (!plannerThread.values?.programmerSession) {
     return resolver.resolve(managerStatus, plannerStatus);
   }
 
-  // Step 3: Get programmer status
-  const programmerStatus = await getProgrammerStatus(
-    client,
-    plannerThread.values.programmerSession,
-  );
+  // Step 3: Both manager and planner idle, check programmer (2 more API calls)
+  const programmerSession = plannerThread.values.programmerSession;
+  const [programmerRun, programmerThread] = await Promise.all([
+    client.runs.get(programmerSession.threadId, programmerSession.runId),
+    client.threads.get<GraphState>(programmerSession.threadId),
+  ]);
 
-  // Return final resolved status
+  // Build programmer status
+  let programmerStatusValue: ThreadUIStatus;
+  if (programmerRun.status === "running") {
+    programmerStatusValue = "running";
+  } else if (programmerRun.status === "timeout") {
+    programmerStatusValue = "error";
+  } else if (
+    programmerRun.status === "success" &&
+    areAllTasksCompleted(programmerThread.values?.taskPlan)
+  ) {
+    programmerStatusValue = "completed";
+  } else {
+    programmerStatusValue = "idle";
+  }
+
+  const programmerStatus: StatusResult = {
+    graph: "programmer",
+    runId: programmerSession.runId,
+    threadId: programmerSession.threadId,
+    status: programmerStatusValue,
+  };
+
+  // Final status (5 API calls total - only when all levels need checking)
   return resolver.resolve(managerStatus, plannerStatus, programmerStatus);
 }

@@ -199,6 +199,8 @@ function AllThreadsPageContent() {
                           <ThreadCard
                             key={thread.id}
                             thread={thread}
+                            status={statusMap[thread.id]}
+                            statusLoading={statusLoading}
                           />
                         ))}
                       </div>
@@ -213,6 +215,8 @@ function AllThreadsPageContent() {
                   <ThreadCard
                     key={thread.id}
                     thread={thread}
+                    status={statusMap[thread.id]}
+                    statusLoading={statusLoading}
                   />
                 ))}
               </div>
