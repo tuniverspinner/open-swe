@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useActionDisplay } from "@/contexts/action-display-context";
 import {
   Terminal,
   FileText,
@@ -543,8 +544,15 @@ function ActionItem(props: ActionItemProps) {
 }
 
 export function ActionStep(props: ActionStepProps) {
-  const [showReasoning, setShowReasoning] = useState(true);
-  const [showSummary, setShowSummary] = useState(true);
+  const { getEffectiveReasoningState, getEffectiveSummaryState } = useActionDisplay();
+  
+  // Local state for individual component toggles
+  const [localShowReasoning, setLocalShowReasoning] = useState(true);
+  const [localShowSummary, setLocalShowSummary] = useState(true);
+  
+  // Get effective state from context (respects global overrides)
+  const showReasoning = getEffectiveReasoningState(localShowReasoning);
+  const showSummary = getEffectiveSummaryState(localShowSummary);
 
   const reasoningText =
     "reasoningText" in props ? props.reasoningText : undefined;
@@ -558,7 +566,7 @@ export function ActionStep(props: ActionStepProps) {
     <div className="border-border overflow-hidden rounded-md border">
       <div className="border-b border-blue-300 bg-blue-100/50 p-2 dark:border-blue-800 dark:bg-blue-900/50">
         <button
-          onClick={() => setShowReasoning(!showReasoning)}
+          onClick={() => setLocalShowReasoning(!localShowReasoning)}
           className="flex cursor-pointer items-center gap-1 text-xs font-normal text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
         >
           <MessageSquare className="h-3 w-3" />
@@ -583,7 +591,7 @@ export function ActionStep(props: ActionStepProps) {
       {summaryText && anyActionDone && (
         <div className="border-t border-green-300 bg-green-100/50 p-2 dark:border-green-800 dark:bg-green-900/50">
           <button
-            onClick={() => setShowSummary(!showSummary)}
+            onClick={() => setLocalShowSummary(!localShowSummary)}
             className="flex cursor-pointer items-center gap-1 text-xs font-normal text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
           >
             <FileText className="h-3 w-3" />
@@ -615,3 +623,4 @@ function formatDiff(diff: string) {
     })
     .join("\n");
 }
+
