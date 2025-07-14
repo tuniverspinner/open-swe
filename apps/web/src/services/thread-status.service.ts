@@ -198,6 +198,7 @@ export class StatusResolver {
 
 /**
  * Main service function to fetch thread status
+ * Uses lastPollingState to optimize API calls by checking the previously active graph first
  */
 export async function fetchThreadStatus(
   threadId: string,
@@ -213,63 +214,29 @@ export async function fetchThreadStatus(
     const client = createClient(apiUrl);
     const resolver = new StatusResolver();
 
-    // Step 1: Get manager status
-    const managerStatus = await getManagerStatus(client, threadId);
-
-    const managerThread = await client.threads.get<ManagerGraphState>(threadId);
-
-    // Early returns for manager-level conditions
-    if (
-      managerStatus.status === "running" ||
-      managerStatus.status === "error"
-    ) {
-      const result = resolver.resolve(managerStatus);
-      return result;
+    // Optimization: If we have lastPollingState, check that graph first
+    if (lastPollingState) {
+      try {
+        const optimizedResult = await checkLastKnownGraph(
+          client,
+          lastPollingState,
+          resolver,
+        );
+        if (optimizedResult) {
+          return optimizedResult;
+        }
+        // If optimization failed, fall through to full check
+      } catch (error) {
+        console.warn(
+          "Optimization check failed, falling back to full status check:",
+          error,
+        );
+        // Fall through to full check
+      }
     }
 
-    if (!managerThread.values?.plannerSession) {
-      const result = resolver.resolve(managerStatus);
-      return result;
-    }
-
-    // Step 2: Get planner status
-    const plannerStatus = await getPlannerStatus(
-      client,
-      managerThread.values.plannerSession,
-    );
-
-    const plannerThread = await client.threads.get<PlannerGraphState>(
-      managerThread.values.plannerSession.threadId,
-    );
-
-    // Early returns for planner-level conditions
-    if (
-      plannerStatus.status === "running" ||
-      plannerStatus.status === "paused" ||
-      plannerStatus.status === "error"
-    ) {
-      const result = resolver.resolve(managerStatus, plannerStatus);
-      return result;
-    }
-
-    if (!plannerThread.values?.programmerSession) {
-      const result = resolver.resolve(managerStatus, plannerStatus);
-      return result;
-    }
-
-    // Step 3: Get programmer status
-    const programmerStatus = await getProgrammerStatus(
-      client,
-      plannerThread.values.programmerSession,
-    );
-
-    // Return final resolved status
-    const result = resolver.resolve(
-      managerStatus,
-      plannerStatus,
-      programmerStatus,
-    );
-    return result;
+    // Full status check - same logic as before but more efficient
+    return await performFullStatusCheck(client, threadId, resolver);
   } catch (error) {
     console.error(`[fetchThreadStatus] Error for thread ${threadId}:`, error);
 
@@ -285,4 +252,147 @@ export async function fetchThreadStatus(
       status: "error",
     };
   }
+}
+
+/**
+ * Optimized status check using last known state
+ */
+async function checkLastKnownGraph(
+  client: ReturnType<typeof createClient>,
+  lastState: ThreadStatusData,
+  resolver: StatusResolver,
+): Promise<ThreadStatusData | null> {
+  // Check the status of the last known active graph directly
+  switch (lastState.graph) {
+    case "programmer":
+      if (lastState.threadId && lastState.runId) {
+        const programmerStatus = await getProgrammerStatus(client, {
+          threadId: lastState.threadId,
+          runId: lastState.runId,
+        });
+
+        // If programmer is still running or has error, we can return early
+        if (
+          programmerStatus.status === "running" ||
+          programmerStatus.status === "error"
+        ) {
+          return programmerStatus;
+        }
+
+        // If programmer finished, we need to do a full check to see final state
+        return null;
+      }
+      break;
+
+    case "planner":
+      if (lastState.threadId && lastState.runId) {
+        const plannerStatus = await getPlannerStatus(client, {
+          threadId: lastState.threadId,
+          runId: lastState.runId,
+        });
+
+        // If planner is still running, paused, or has error, return early
+        if (
+          plannerStatus.status === "running" ||
+          plannerStatus.status === "paused" ||
+          plannerStatus.status === "error"
+        ) {
+          return plannerStatus;
+        }
+
+        // If planner finished, need to check if programmer started
+        const plannerThread = await client.threads.get<PlannerGraphState>(
+          lastState.threadId,
+        );
+        if (plannerThread.values?.programmerSession) {
+          // Programmer started, check programmer status
+          const programmerStatus = await getProgrammerStatus(
+            client,
+            plannerThread.values.programmerSession,
+          );
+          return resolver.resolve(
+            {
+              graph: "manager",
+              runId: "",
+              threadId: lastState.threadId,
+              status: "idle",
+            },
+            plannerStatus,
+            programmerStatus,
+          );
+        }
+
+        // No programmer session, planner is idle
+        return plannerStatus;
+      }
+      break;
+
+    case "manager": {
+      // Manager was last active, check manager first
+      const managerStatus = await getManagerStatus(client, lastState.threadId);
+      if (
+        managerStatus.status === "running" ||
+        managerStatus.status === "error"
+      ) {
+        return managerStatus;
+      }
+      // Manager not running, need full check
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Full status check - performs complete hierarchy check
+ */
+async function performFullStatusCheck(
+  client: ReturnType<typeof createClient>,
+  threadId: string,
+  resolver: StatusResolver,
+): Promise<ThreadStatusData> {
+  // Step 1: Get manager status
+  const managerStatus = await getManagerStatus(client, threadId);
+  const managerThread = await client.threads.get<ManagerGraphState>(threadId);
+
+  // Early returns for manager-level conditions
+  if (managerStatus.status === "running" || managerStatus.status === "error") {
+    return resolver.resolve(managerStatus);
+  }
+
+  if (!managerThread.values?.plannerSession) {
+    return resolver.resolve(managerStatus);
+  }
+
+  // Step 2: Get planner status
+  const plannerStatus = await getPlannerStatus(
+    client,
+    managerThread.values.plannerSession,
+  );
+  const plannerThread = await client.threads.get<PlannerGraphState>(
+    managerThread.values.plannerSession.threadId,
+  );
+
+  // Early returns for planner-level conditions
+  if (
+    plannerStatus.status === "running" ||
+    plannerStatus.status === "paused" ||
+    plannerStatus.status === "error"
+  ) {
+    return resolver.resolve(managerStatus, plannerStatus);
+  }
+
+  if (!plannerThread.values?.programmerSession) {
+    return resolver.resolve(managerStatus, plannerStatus);
+  }
+
+  // Step 3: Get programmer status
+  const programmerStatus = await getProgrammerStatus(
+    client,
+    plannerThread.values.programmerSession,
+  );
+
+  // Return final resolved status
+  return resolver.resolve(managerStatus, plannerStatus, programmerStatus);
 }

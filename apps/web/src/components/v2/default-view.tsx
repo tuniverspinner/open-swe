@@ -25,6 +25,7 @@ import { GitHubLogoutButton } from "../github/github-oauth-button";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { TooltipIconButton } from "../ui/tooltip-icon-button";
 import { InstallationSelector } from "../github/installation-selector";
+import { useThreadsStatus } from "@/hooks/useThreadsStatus";
 
 interface DefaultViewProps {
   threads: ThreadMetadata[];
@@ -47,6 +48,14 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
     handlePaste,
   } = useFileUpload();
   const [autoAccept, setAutoAccept] = useState(false);
+
+  // Get thread IDs for the threads we want to display (first 4)
+  const displayThreads = threads.slice(0, 4);
+  const displayThreadIds = displayThreads.map((thread) => thread.id);
+
+  // Batch fetch statuses for displayed threads only
+  const { statusMap, isLoading: statusLoading } =
+    useThreadsStatus(displayThreadIds);
 
   const handleLoadDraft = (content: string) => {
     setDraftToLoad(content);
@@ -180,10 +189,12 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
                     <ThreadCardLoading />
                   </>
                 )}
-                {threads.slice(0, 4).map((thread) => (
+                {displayThreads.map((thread) => (
                   <ThreadCard
                     key={thread.id}
                     thread={thread}
+                    status={statusMap[thread.id]}
+                    statusLoading={statusLoading}
                   />
                 ))}
               </div>

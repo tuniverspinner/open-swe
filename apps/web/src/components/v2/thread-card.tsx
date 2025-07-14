@@ -14,22 +14,21 @@ import { useRouter } from "next/navigation";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
-import { useThreadStatus } from "@/hooks/useThreadStatus";
 import { ThreadMetadata } from "./types";
 import { ThreadUIStatus } from "@/lib/schemas/thread-status";
 import { cn } from "@/lib/utils";
 
-export function ThreadCard({ thread }: { thread: ThreadMetadata }) {
+interface ThreadCardProps {
+  thread: ThreadMetadata;
+  status?: ThreadUIStatus;
+  statusLoading?: boolean;
+}
+
+export function ThreadCard({ thread, status, statusLoading }: ThreadCardProps) {
   const router = useRouter();
 
-  const {
-    status: realTimeStatus,
-    isLoading: statusLoading,
-    error,
-  } = useThreadStatus(thread.id);
-
-  // Use real-time status, only fallback to idle if there's an actual error (not during loading)
-  const displayStatus = error ? ("idle" as ThreadUIStatus) : realTimeStatus;
+  // Use provided status or fallback to idle
+  const displayStatus = status || ("idle" as ThreadUIStatus);
 
   const getStatusColor = (status: ThreadUIStatus) => {
     switch (status) {

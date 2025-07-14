@@ -1,8 +1,8 @@
 import useSWR from "swr";
-import { ThreadUIStatus } from "@/lib/schemas/thread-status";
+import { ThreadUIStatus, ThreadStatusData } from "@/lib/schemas/thread-status";
 import { fetchThreadStatus } from "@/services/thread-status.service";
 import { THREAD_STATUS_SWR_CONFIG } from "@/lib/swr-config";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 interface ThreadStatusMap {
   [threadId: string]: ThreadUIStatus;
@@ -39,48 +39,75 @@ interface UseThreadsStatusResult {
 
 /**
  * Fetches statuses for multiple threads in parallel
+ * Uses and updates lastPollingStates for optimization
  */
 async function fetchAllThreadStatuses(
   threadIds: string[],
-): Promise<ThreadStatusMap> {
+  lastPollingStates: Map<string, ThreadStatusData>,
+): Promise<{
+  statusMap: ThreadStatusMap;
+  updatedStates: Map<string, ThreadStatusData>;
+}> {
   const statusPromises = threadIds.map(async (threadId) => {
     try {
-      const statusData = await fetchThreadStatus(threadId);
-      return { threadId, status: statusData.status };
+      const lastState = lastPollingStates.get(threadId) || null;
+      const statusData = await fetchThreadStatus(threadId, lastState);
+      return { threadId, status: statusData.status, statusData };
     } catch (error) {
       console.error(`Failed to fetch status for thread ${threadId}:`, error);
-      return { threadId, status: "idle" as ThreadUIStatus };
+      return {
+        threadId,
+        status: "idle" as ThreadUIStatus,
+        statusData: null,
+      };
     }
   });
 
   const results = await Promise.all(statusPromises);
   const statusMap: ThreadStatusMap = {};
+  const updatedStates = new Map<string, ThreadStatusData>();
 
-  results.forEach(({ threadId, status }) => {
+  results.forEach(({ threadId, status, statusData }) => {
     statusMap[threadId] = status;
+    if (statusData) {
+      updatedStates.set(threadId, statusData);
+    }
   });
 
-  return statusMap;
+  return { statusMap, updatedStates };
 }
 
 /**
  * Hook that fetches statuses for multiple threads in parallel
- * Uses SWR for caching and deduplication
+ * Uses SWR for caching and deduplication with state optimization
  */
 export function useThreadsStatus(threadIds: string[]): UseThreadsStatusResult {
+  // Store last polling states for optimization
+  const lastPollingStatesRef = useRef<Map<string, ThreadStatusData>>(new Map());
+
   // Create a stable key for the thread IDs array
   const threadIdsKey = threadIds.sort().join(",");
 
   // Fetch all thread statuses in a single SWR call
   const {
-    data: statusMap,
+    data: fetchResult,
     isLoading,
     error,
   } = useSWR(
     threadIds.length > 0 ? `threads-status-${threadIdsKey}` : null,
-    () => fetchAllThreadStatuses(threadIds),
+    async () => {
+      const result = await fetchAllThreadStatuses(
+        threadIds,
+        lastPollingStatesRef.current,
+      );
+      // Update the stored states
+      lastPollingStatesRef.current = result.updatedStates;
+      return result;
+    },
     THREAD_STATUS_SWR_CONFIG,
   );
+
+  const statusMap = fetchResult?.statusMap || {};
 
   return useMemo(() => {
     const groupedThreads: GroupedThreads = {
