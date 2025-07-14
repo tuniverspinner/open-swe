@@ -15,6 +15,8 @@ import { withRetry } from "./utils/retry.js";
 
 const logger = createLogger(LogLevel.DEBUG, "Evaluator");
 
+// Configuration constants
+const RUN_AGENT_PIPELINE = process.env.RUN_AGENT_PIPELINE === "true" || false;
 const DATASET_NAME = process.env.DATASET_NAME || "";
 // const RUN_NAME = `${DATASET_NAME}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 
@@ -40,27 +42,12 @@ const DATASET_NAME = process.env.DATASET_NAME || "";
 const DATASET = [
   {
     inputs: {
-      repo: "mai-sandbox/open-swe_content_team_eval",
+      repo: "mai-sandbox/open_swe_eval_debug",
       branch: "main",
-      user_input: `I have implemented a multi-agent content creation system using LangGraph that orchestrates collaboration between specialized agents. The system is experiencing multiple runtime errors and workflow failures that prevent proper execution.
-
-System Architecture
-The application implements a three-agent architecture:
-
-Research Agent: Utilizes web search tools to gather information on specified topics
-Writer Agent: Creates content based on research findings with creative temperature settings
-Reviewer Agent: Provides feedback using fact-checking tools and determines revision needs
-
-Expected Workflow
-User Request → Research Agent → Writer Agent → Reviewer Agent → [Revision Loop if needed] → Final Content
-
-Current Issues
-
-Runtime Errors: Application fails to start with import and graph compilation errors
-Agent Handoff Failures: Agents are not properly transferring control and context
-Tool Integration Problems: Tool calling mechanisms are not functioning correctly
-State Management Issues: Shared state is not being updated correctly across agent transitions
-Routing Logic Failures: Conditional edges and workflow routing are broken`,
+      user_input: `There are some bugs in the LangGraph implementation. Please fix them.`,
+      // LangGraph evaluation inputs
+      test_input: "What is the square root of 144?",
+      ground_truth: "12",
     },
   },
 ];
@@ -102,169 +89,209 @@ ls.describe(DATASET_NAME, () => {
         repo: inputs.repo,
       });
 
-      // Run the agent with user input
-      let managerRun;
-      try {
-        managerRun = await withRetry(() =>
-          lgClient.runs.wait(threadId, MANAGER_GRAPH_ID, {
-            input,
-            config: {
-              recursion_limit: 250,
+      let branchName: string;
+
+      if (RUN_AGENT_PIPELINE) {
+        logger.info("Running full agent pipeline...");
+
+        // Run the agent with user input
+        let managerRun;
+        try {
+          managerRun = await withRetry(() =>
+            lgClient.runs.wait(threadId, MANAGER_GRAPH_ID, {
+              input,
+              config: {
+                recursion_limit: 250,
+              },
+              ifNotExists: "create",
+            }),
+          );
+        } catch (error) {
+          logger.error("Error in manager run", {
+            thread_id: threadId,
+            error:
+              error instanceof Error
+                ? {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name,
+                    cause: error.cause,
+                  }
+                : error,
+          });
+          return {
+            ruffScore: 0,
+            mypyScore: 0,
+            langGraphScore: 0,
+            details: {
+              ruff: { issues: [], error: "Error in manager run" },
+              mypy: { issues: [], error: "Error in manager run" },
+              langGraph: { explanation: "", error: "Error in manager run" },
             },
-            ifNotExists: "create",
-          }),
-        );
-      } catch (error) {
-        logger.error("Error in manager run", {
-          thread_id: threadId,
-          error:
-            error instanceof Error
-              ? {
-                  message: error.message,
-                  stack: error.stack,
-                  name: error.name,
-                  cause: error.cause,
-                }
-              : error,
-        });
-        return {
-          ruffScore: 0,
-          mypyScore: 0,
-          details: {
-            ruff: { issues: [], error: "Error in manager run" },
-            mypy: { issues: [], error: "Error in manager run" },
-          },
-        };
-      }
+          };
+        }
 
-      const managerState = managerRun as unknown as ManagerGraphState;
-      const plannerSession = managerState?.plannerSession;
+        const managerState = managerRun as unknown as ManagerGraphState;
+        const plannerSession = managerState?.plannerSession;
 
-      if (!plannerSession) {
-        logger.info("Agent did not create a planner session", {
-          thread_id: threadId,
-        });
-        return {
-          ruffScore: 0,
-          mypyScore: 0,
-          details: {
-            ruff: {
-              issues: [],
-              error: "Agent did not create a planner session",
+        if (!plannerSession) {
+          logger.info("Agent did not create a planner session", {
+            thread_id: threadId,
+          });
+          return {
+            ruffScore: 0,
+            mypyScore: 0,
+            langGraphScore: 0,
+            details: {
+              ruff: {
+                issues: [],
+                error: "Agent did not create a planner session",
+              },
+              mypy: {
+                issues: [],
+                error: "Agent did not create a planner session",
+              },
+              langGraph: {
+                explanation: "",
+                error: "Agent did not create a planner session",
+              },
             },
-            mypy: {
-              issues: [],
-              error: "Agent did not create a planner session",
+          };
+        }
+
+        let plannerRun;
+        try {
+          plannerRun = await withRetry(() =>
+            lgClient.runs.join(plannerSession.threadId, plannerSession.runId),
+          );
+        } catch (error) {
+          logger.error("Error joining planner run", {
+            thread_id: threadId,
+            plannerSession,
+            error:
+              error instanceof Error
+                ? {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name,
+                    cause: error.cause,
+                  }
+                : error,
+          });
+          return {
+            ruffScore: 0,
+            mypyScore: 0,
+            langGraphScore: 0,
+            details: {
+              ruff: { issues: [], error: "Error joining planner run" },
+              mypy: { issues: [], error: "Error joining planner run" },
+              langGraph: {
+                explanation: "",
+                error: "Error joining planner run",
+              },
             },
-          },
-        };
-      }
+          };
+        }
 
-      let plannerRun;
-      try {
-        plannerRun = await withRetry(() =>
-          lgClient.runs.join(plannerSession.threadId, plannerSession.runId),
-        );
-      } catch (error) {
-        logger.error("Error joining planner run", {
-          thread_id: threadId,
-          plannerSession,
-          error:
-            error instanceof Error
-              ? {
-                  message: error.message,
-                  stack: error.stack,
-                  name: error.name,
-                  cause: error.cause,
-                }
-              : error,
-        });
-        return {
-          ruffScore: 0,
-          mypyScore: 0,
-          details: {
-            ruff: { issues: [], error: "Error joining planner run" },
-            mypy: { issues: [], error: "Error joining planner run" },
-          },
-        };
-      }
+        // Type-safe access to planner run state
+        const plannerState = plannerRun as unknown as PlannerGraphState;
+        const programmerSession = plannerState?.programmerSession;
 
-      // Type-safe access to planner run state
-      const plannerState = plannerRun as unknown as PlannerGraphState;
-      const programmerSession = plannerState?.programmerSession;
-
-      if (!programmerSession) {
-        logger.info("Agent did not create a programmer session", {
-          thread_id: threadId,
-        });
-        return {
-          ruffScore: 0,
-          mypyScore: 0,
-          details: {
-            ruff: {
-              issues: [],
-              error: "Agent did not create a programmer session",
+        if (!programmerSession) {
+          logger.info("Agent did not create a programmer session", {
+            thread_id: threadId,
+          });
+          return {
+            ruffScore: 0,
+            mypyScore: 0,
+            langGraphScore: 0,
+            details: {
+              ruff: {
+                issues: [],
+                error: "Agent did not create a programmer session",
+              },
+              mypy: {
+                issues: [],
+                error: "Agent did not create a programmer session",
+              },
+              langGraph: {
+                explanation: "",
+                error: "Agent did not create a programmer session",
+              },
             },
-            mypy: {
-              issues: [],
-              error: "Agent did not create a programmer session",
+          };
+        }
+
+        let programmerRun;
+        try {
+          programmerRun = await withRetry(() =>
+            lgClient.runs.join(
+              programmerSession.threadId,
+              programmerSession.runId,
+            ),
+          );
+        } catch (error) {
+          logger.error("Error joining programmer run", {
+            thread_id: threadId,
+            programmerSession,
+            error:
+              error instanceof Error
+                ? {
+                    message: error.message,
+                    stack: error.stack,
+                    name: error.name,
+                    cause: error.cause,
+                  }
+                : error,
+          });
+          return {
+            ruffScore: 0,
+            mypyScore: 0,
+            langGraphScore: 0,
+            details: {
+              ruff: { issues: [], error: "Error joining programmer run" },
+              mypy: { issues: [], error: "Error joining programmer run" },
+              langGraph: {
+                explanation: "",
+                error: "Error joining programmer run",
+              },
             },
-          },
-        };
-      }
+          };
+        }
 
-      let programmerRun;
-      try {
-        programmerRun = await withRetry(() =>
-          lgClient.runs.join(
-            programmerSession.threadId,
-            programmerSession.runId,
-          ),
-        );
-      } catch (error) {
-        logger.error("Error joining programmer run", {
-          thread_id: threadId,
-          programmerSession,
-          error:
-            error instanceof Error
-              ? {
-                  message: error.message,
-                  stack: error.stack,
-                  name: error.name,
-                  cause: error.cause,
-                }
-              : error,
+        const programmerState = programmerRun as unknown as GraphState;
+        const agentBranchName = programmerState?.branchName;
+
+        if (!agentBranchName) {
+          logger.info("Agent did not create a branch", {
+            thread_id: threadId,
+          });
+          return {
+            ruffScore: 0,
+            mypyScore: 0,
+            langGraphScore: 0,
+            details: {
+              ruff: { issues: [], error: "Agent did not create a branch" },
+              mypy: { issues: [], error: "Agent did not create a branch" },
+              langGraph: {
+                explanation: "",
+                error: "Agent did not create a branch",
+              },
+            },
+          };
+        }
+
+        branchName = agentBranchName;
+        logger.info("Agent completed. Created branch:", {
+          branchName: branchName,
         });
-        return {
-          ruffScore: 0,
-          mypyScore: 0,
-          details: {
-            ruff: { issues: [], error: "Error joining programmer run" },
-            mypy: { issues: [], error: "Error joining programmer run" },
-          },
-        }; // instead of skipping, we should award 0 points
-      }
-
-      const programmerState = programmerRun as unknown as GraphState;
-      const branchName = programmerState?.branchName;
-
-      if (!branchName) {
-        logger.info("Agent did not create a branch", {
-          thread_id: threadId,
+      } else {
+        // Skip agent run - evaluate main branch directly
+        branchName = inputs.branch || "main";
+        logger.info("Skipping agent run. Evaluating main branch directly:", {
+          branchName: branchName,
         });
-        return {
-          ruffScore: 0,
-          mypyScore: 0,
-          details: {
-            ruff: { issues: [], error: "Agent did not create a branch" },
-            mypy: { issues: [], error: "Agent did not create a branch" },
-          },
-        };
       }
-
-      logger.info("Agent completed. Created branch:", {
-        branchName: branchName,
-      });
 
       // Evaluation
       const wrappedEvaluator = ls.wrapEvaluator(evaluator);
