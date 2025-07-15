@@ -9,23 +9,23 @@ interface ActionDisplayContextType {
   // Global states
   globalReasoningState: DisplayState;
   globalOutputState: DisplayState;
-  
+
   // Functions to update global states
   setGlobalReasoningState: (state: DisplayState) => void;
   setGlobalOutputState: (state: DisplayState) => void;
-  
+
   // Functions to get effective state for individual components
   getEffectiveReasoningState: (localState?: boolean) => boolean;
   getEffectiveSummaryState: (localState?: boolean) => boolean;
   getEffectiveOutputState: (localState?: boolean) => boolean;
-  
+
   // Function to check if global override is active
   isGlobalOverrideActive: () => boolean;
 }
 
-const ActionDisplayContext = createContext<ActionDisplayContextType | undefined>(
-  undefined,
-);
+const ActionDisplayContext = createContext<
+  ActionDisplayContextType | undefined
+>(undefined);
 
 export function useActionDisplay() {
   const context = useContext(ActionDisplayContext);
@@ -41,17 +41,21 @@ interface ActionDisplayProviderProps {
   children: React.ReactNode;
 }
 
-export function ActionDisplayProvider({ children }: ActionDisplayProviderProps) {
+export function ActionDisplayProvider({
+  children,
+}: ActionDisplayProviderProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   // Initialize states from URL parameters
-  const [globalReasoningState, setGlobalReasoningStateInternal] = useState<DisplayState>(
-    (searchParams.get("reasoning") as DisplayState) || "expanded"
-  );
-  const [globalOutputState, setGlobalOutputStateInternal] = useState<DisplayState>(
-    (searchParams.get("output") as DisplayState) || "expanded"
-  );
+  const [globalReasoningState, setGlobalReasoningStateInternal] =
+    useState<DisplayState>(
+      (searchParams.get("reasoning") as DisplayState) || "expanded",
+    );
+  const [globalOutputState, setGlobalOutputStateInternal] =
+    useState<DisplayState>(
+      (searchParams.get("output") as DisplayState) || "expanded",
+    );
 
   // Update URL when global states change
   const updateURL = (reasoning: DisplayState, output: DisplayState) => {
@@ -92,7 +96,7 @@ export function ActionDisplayProvider({ children }: ActionDisplayProviderProps) 
   useEffect(() => {
     const reasoningParam = searchParams.get("reasoning") as DisplayState;
     const outputParam = searchParams.get("output") as DisplayState;
-    
+
     if (reasoningParam && reasoningParam !== globalReasoningState) {
       setGlobalReasoningStateInternal(reasoningParam);
     }
@@ -118,4 +122,3 @@ export function ActionDisplayProvider({ children }: ActionDisplayProviderProps) 
     </ActionDisplayContext.Provider>
   );
 }
-

@@ -198,103 +198,105 @@ export function ThreadView({
                       </div>
                     </div>
 
-                  <Tabs
-                    defaultValue="planner"
-                    className="w-full"
-                    value={selectedTab}
-                    onValueChange={(value) =>
-                      setSelectedTab(value as "planner" | "programmer")
-                    }
-                  >
-                    <div className="flex items-center justify-between">
-                      <TabsList className="bg-muted/70 dark:bg-gray-800">
-                        <TabsTrigger value="planner">Planner</TabsTrigger>
-                        <TabsTrigger value="programmer">Programmer</TabsTrigger>
-                      </TabsList>
+                    <Tabs
+                      defaultValue="planner"
+                      className="w-full"
+                      value={selectedTab}
+                      onValueChange={(value) =>
+                        setSelectedTab(value as "planner" | "programmer")
+                      }
+                    >
+                      <div className="flex items-center justify-between">
+                        <TabsList className="bg-muted/70 dark:bg-gray-800">
+                          <TabsTrigger value="planner">Planner</TabsTrigger>
+                          <TabsTrigger value="programmer">
+                            Programmer
+                          </TabsTrigger>
+                        </TabsList>
 
-                      <div className="flex gap-2">
-                        {selectedTab === "planner" &&
-                          plannerCancelRef.current && (
-                            <CancelStreamButton
-                              stream={stream}
-                              threadId={plannerThreadId}
-                              runId={plannerRunId}
-                              streamName="Planner"
-                            />
-                          )}
+                        <div className="flex gap-2">
+                          {selectedTab === "planner" &&
+                            plannerCancelRef.current && (
+                              <CancelStreamButton
+                                stream={stream}
+                                threadId={plannerThreadId}
+                                runId={plannerRunId}
+                                streamName="Planner"
+                              />
+                            )}
 
-                        {selectedTab === "programmer" &&
-                          programmerCancelRef.current && (
-                            <CancelStreamButton
-                              stream={stream}
-                              threadId={plannerThreadId}
-                              runId={plannerRunId}
-                              streamName="Programmer"
-                            />
-                          )}
+                          {selectedTab === "programmer" &&
+                            programmerCancelRef.current && (
+                              <CancelStreamButton
+                                stream={stream}
+                                threadId={plannerThreadId}
+                                runId={plannerRunId}
+                                streamName="Programmer"
+                              />
+                            )}
+                        </div>
                       </div>
-                    </div>
 
-                    <TabsContent value="planner">
-                      <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
-                        <CardContent className="space-y-2 p-3 pt-0">
-                          {plannerThreadId && plannerRunId && (
-                            <ActionsRenderer<PlannerGraphState>
-                              graphId={PLANNER_GRAPH_ID}
-                              threadId={plannerThreadId}
-                              runId={plannerRunId}
-                              setProgrammerSession={setProgrammerSession}
-                              programmerSession={programmerSession}
-                              setSelectedTab={setSelectedTab}
-                              onStreamReady={(cancelFn) => {
-                                if (cancelFn) {
-                                  plannerCancelRef.current = cancelFn;
-                                } else {
-                                  plannerCancelRef.current = null;
-                                }
-                              }}
-                            />
-                          )}
-                          {!(plannerThreadId && plannerRunId) && (
-                            <div className="flex items-center justify-center gap-2 py-8">
-                              <Clock className="text-muted-foreground size-4" />
-                              <span className="text-muted-foreground text-sm">
-                                No planner session
-                              </span>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                    <TabsContent value="programmer">
-                      <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
-                        <CardContent className="space-y-2 p-3 pt-0">
-                          {programmerSession && (
-                            <ActionsRenderer<GraphState>
-                              graphId={PROGRAMMER_GRAPH_ID}
-                              threadId={programmerSession.threadId}
-                              runId={programmerSession.runId}
-                              onStreamReady={(cancelFn) => {
-                                if (cancelFn) {
-                                  programmerCancelRef.current = cancelFn;
-                                } else {
-                                  programmerCancelRef.current = null;
-                                }
-                              }}
-                            />
-                          )}
-                          {!programmerSession && (
-                            <div className="flex items-center justify-center gap-2 py-8">
-                              <Terminal className="text-muted-foreground size-4" />
-                              <span className="text-muted-foreground text-sm">
-                                No programmer session
-                              </span>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </Tabs>
+                      <TabsContent value="planner">
+                        <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
+                          <CardContent className="space-y-2 p-3 pt-0">
+                            {plannerThreadId && plannerRunId && (
+                              <ActionsRenderer<PlannerGraphState>
+                                graphId={PLANNER_GRAPH_ID}
+                                threadId={plannerThreadId}
+                                runId={plannerRunId}
+                                setProgrammerSession={setProgrammerSession}
+                                programmerSession={programmerSession}
+                                setSelectedTab={setSelectedTab}
+                                onStreamReady={(cancelFn) => {
+                                  if (cancelFn) {
+                                    plannerCancelRef.current = cancelFn;
+                                  } else {
+                                    plannerCancelRef.current = null;
+                                  }
+                                }}
+                              />
+                            )}
+                            {!(plannerThreadId && plannerRunId) && (
+                              <div className="flex items-center justify-center gap-2 py-8">
+                                <Clock className="text-muted-foreground size-4" />
+                                <span className="text-muted-foreground text-sm">
+                                  No planner session
+                                </span>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                      <TabsContent value="programmer">
+                        <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
+                          <CardContent className="space-y-2 p-3 pt-0">
+                            {programmerSession && (
+                              <ActionsRenderer<GraphState>
+                                graphId={PROGRAMMER_GRAPH_ID}
+                                threadId={programmerSession.threadId}
+                                runId={programmerSession.runId}
+                                onStreamReady={(cancelFn) => {
+                                  if (cancelFn) {
+                                    programmerCancelRef.current = cancelFn;
+                                  } else {
+                                    programmerCancelRef.current = null;
+                                  }
+                                }}
+                              />
+                            )}
+                            {!programmerSession && (
+                              <div className="flex items-center justify-center gap-2 py-8">
+                                <Terminal className="text-muted-foreground size-4" />
+                                <span className="text-muted-foreground text-sm">
+                                  No programmer session
+                                </span>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                    </Tabs>
                   </>
                 }
                 footer={
@@ -310,4 +312,3 @@ export function ThreadView({
     </div>
   );
 }
-

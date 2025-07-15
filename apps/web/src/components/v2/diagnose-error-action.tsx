@@ -21,10 +21,10 @@ export function DiagnoseErrorAction({
   reasoningText,
 }: DiagnoseErrorActionProps) {
   const { getEffectiveReasoningState } = useActionDisplay();
-  
+
   // Local state for individual component toggle
   const [localShowReasoning, setLocalShowReasoning] = useState(true);
-  
+
   // Get effective state from context (respects global overrides)
   const showReasoning = getEffectiveReasoningState(localShowReasoning);
 
@@ -94,6 +94,3 @@ export function DiagnoseErrorAction({
     </div>
   );
 }
-
-
-
