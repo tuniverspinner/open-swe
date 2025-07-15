@@ -2,11 +2,7 @@ import useSWR from "swr";
 import { Thread } from "@langchain/langgraph-sdk";
 import { createClient } from "@/providers/client";
 import { THREAD_SWR_CONFIG } from "@/lib/swr-config";
-import { ThreadMetadata } from "@/components/v2/types";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
-import { getThreadTitle } from "@/lib/thread";
-import { calculateLastActivity } from "@/lib/thread-utils";
-import { useMemo } from "react";
 
 interface UseThreadsSWROptions {
   assistantId?: string;
@@ -16,9 +12,12 @@ interface UseThreadsSWROptions {
 }
 
 /**
- * Hook for fetching manager threads with computed metadata.
+ * Hook for fetching manager threads.
  * This hook is specifically designed for ManagerGraphState threads,
  * which are the top-level threads in the Open SWE system.
+ *
+ * For UI display, use `threadsToMetadata(threads)` utility to convert
+ * raw threads to ThreadMetadata objects.
  */
 export function useThreadsSWR(options: UseThreadsSWROptions = {}) {
   const {
@@ -63,37 +62,8 @@ export function useThreadsSWR(options: UseThreadsSWROptions = {}) {
     },
   );
 
-  // Compute ThreadMetadata once when threads data changes
-  const threadsMetadata = useMemo((): ThreadMetadata[] => {
-    if (!data) return [];
-
-    return data.map((thread): ThreadMetadata => {
-      const values = thread.values;
-
-      return {
-        id: thread.thread_id,
-        title: getThreadTitle(thread),
-        lastActivity: calculateLastActivity(thread.updated_at),
-        taskCount: values?.taskPlan?.tasks.length ?? 0,
-        repository: values?.targetRepository
-          ? `${values.targetRepository.owner}/${values.targetRepository.repo}`
-          : "",
-        branch: values?.targetRepository?.branch || "main",
-        taskPlan: values?.taskPlan,
-        status: "idle" as const, // Default status - consumers can override with real status
-        githubIssue: values?.githubIssueId
-          ? {
-              number: values?.githubIssueId,
-              url: `https://github.com/${values?.targetRepository?.owner}/${values?.targetRepository?.repo}/issues/${values?.githubIssueId}`,
-            }
-          : undefined,
-      };
-    });
-  }, [data]);
-
   return {
     threads: data ?? [],
-    threadsMetadata, // Pre-computed metadata with lastActivity calculated once
     error,
     isLoading,
     isValidating,

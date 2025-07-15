@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, Suspense, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { GitHubAppProvider } from "@/providers/GitHubApp";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { useThreadsStatus } from "@/hooks/useThreadsStatus";
 import { cn } from "@/lib/utils";
+import { threadsToMetadata } from "@/lib/thread-utils";
 
 type FilterStatus =
   | "all"
@@ -28,15 +29,13 @@ type FilterStatus =
 
 function AllThreadsPageContent() {
   const router = useRouter();
-  const {
-    threads,
-    threadsMetadata,
-    isLoading: threadsLoading,
-  } = useThreadsSWR({
+  const { threads, isLoading: threadsLoading } = useThreadsSWR({
     assistantId: MANAGER_GRAPH_ID,
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
+
+  const threadsMetadata = useMemo(() => threadsToMetadata(threads), [threads]);
 
   const threadIds = threadsMetadata.map((thread) => thread.id);
 

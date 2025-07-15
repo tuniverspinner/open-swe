@@ -8,13 +8,10 @@ import { Suspense } from "react";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 
 export default function ChatPage() {
-  const {
-    threads,
-    threadsMetadata,
-    isLoading: threadsLoading,
-  } = useThreadsSWR({
+  const { threads, isLoading: threadsLoading } = useThreadsSWR({
     assistantId: MANAGER_GRAPH_ID,
   });
+
   if (!threads) {
     return <div>No threads</div>;
   }
@@ -25,9 +22,8 @@ export default function ChatPage() {
         <Toaster />
         <GitHubAppProvider>
           <DefaultView
-            threads={threadsMetadata}
+            threads={threads}
             threadsLoading={threadsLoading}
-            originalThreads={threads}
           />
         </GitHubAppProvider>
       </Suspense>

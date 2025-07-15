@@ -19,7 +19,6 @@ import { ThemeToggle } from "../theme-toggle";
 import { ThreadCard, ThreadCardLoading } from "./thread-card";
 import { GitHubInstallationBanner } from "../github/installation-banner";
 import { QuickActions } from "./quick-actions";
-import { useState } from "react";
 import { DraftsSection } from "./drafts-section";
 import { GitHubLogoutButton } from "../github/github-oauth-button";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
@@ -28,18 +27,15 @@ import { InstallationSelector } from "../github/installation-selector";
 import { useThreadsStatus } from "@/hooks/useThreadsStatus";
 import { Thread } from "@langchain/langgraph-sdk";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
+import { useState, useMemo } from "react";
+import { threadsToMetadata } from "@/lib/thread-utils";
 
 interface DefaultViewProps {
-  threads: ThreadMetadata[];
+  threads: Thread<ManagerGraphState>[];
   threadsLoading: boolean;
-  originalThreads?: Thread<ManagerGraphState>[];
 }
 
-export function DefaultView({
-  threads,
-  threadsLoading,
-  originalThreads,
-}: DefaultViewProps) {
+export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
   const router = useRouter();
   const [quickActionPrompt, setQuickActionPrompt] = useState("");
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -56,12 +52,13 @@ export function DefaultView({
   } = useFileUpload();
   const [autoAccept, setAutoAccept] = useState(false);
 
-  const displayThreads = threads.slice(0, 4);
+  const threadsMetadata = useMemo(() => threadsToMetadata(threads), [threads]);
+  const displayThreads = threadsMetadata.slice(0, 4);
   const displayThreadIds = displayThreads.map((thread) => thread.id);
 
   const { statusMap, isLoading: statusLoading } = useThreadsStatus(
     displayThreadIds,
-    originalThreads,
+    threads,
   );
 
   const handleLoadDraft = (content: string) => {

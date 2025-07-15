@@ -10,7 +10,8 @@ import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { useRouter } from "next/navigation";
 import * as React from "react";
-import { use } from "react";
+import { use, useMemo } from "react";
+import { threadsToMetadata } from "@/lib/thread-utils";
 
 interface ThreadPageProps {
   thread_id: string;
@@ -30,13 +31,11 @@ export default function ThreadPage({
     reconnectOnMount: true,
   });
 
-  const {
-    threads,
-    threadsMetadata,
-    isLoading: threadsLoading,
-  } = useThreadsSWR({
+  const { threads, isLoading: threadsLoading } = useThreadsSWR({
     assistantId: MANAGER_GRAPH_ID,
   });
+
+  const threadsMetadata = useMemo(() => threadsToMetadata(threads), [threads]);
 
   // Find the thread by ID
   const thread = threads.find((t) => t.thread_id === thread_id);
