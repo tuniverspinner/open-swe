@@ -21,7 +21,7 @@ interface ThreadStatusCounts {
   error: number;
 }
 
-interface GroupedThreads {
+interface GroupedThreadIds {
   running: string[];
   completed: string[];
   failed: string[];
@@ -34,7 +34,7 @@ interface GroupedThreads {
 interface UseThreadsStatusResult {
   statusMap: ThreadStatusMap;
   statusCounts: ThreadStatusCounts;
-  groupedThreads: GroupedThreads;
+  groupedThreads: GroupedThreadIds;
   isLoading: boolean;
   hasErrors: boolean;
 }
@@ -149,7 +149,7 @@ export function useThreadsStatus(
   const statusMap = fetchResult?.statusMap || {};
 
   return useMemo(() => {
-    const groupedThreads: GroupedThreads = {
+    const groupedThreads: GroupedThreadIds = {
       running: [],
       completed: [],
       failed: [],

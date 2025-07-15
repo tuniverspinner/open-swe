@@ -5,26 +5,28 @@ import {
   ThreadStatusData,
   mapLangGraphToUIStatus,
 } from "@/lib/schemas/thread-status";
-import { GraphState } from "@open-swe/shared/open-swe/types";
+import { GraphState, TaskPlan } from "@open-swe/shared/open-swe/types";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
+import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";
 
 interface StatusResult {
   graph: "manager" | "planner" | "programmer";
   runId: string;
   threadId: string;
   status: ThreadUIStatus;
-  taskPlan?: any;
+  taskPlan?: TaskPlan;
 }
 
 /**
  * Determines if all tasks in a task plan are completed
  */
-function areAllTasksCompleted(taskPlan: any): boolean {
+function areAllPlanItemsCompleted(taskPlan: TaskPlan): boolean {
   if (!taskPlan?.tasks || !Array.isArray(taskPlan.tasks)) {
     return false;
   }
-  return taskPlan.tasks.every((task: any) => task.completed === true);
+  const activePlanItems = getActivePlanItems(taskPlan);
+  return activePlanItems.every((planItem) => planItem.completed);
 }
 
 export class StatusResolver {
@@ -166,7 +168,7 @@ async function checkLastKnownGraph(
         // Check task completion when thread is idle - no run status needed
         if (
           programmerThread.status === "idle" &&
-          areAllTasksCompleted(programmerThread.values?.taskPlan)
+          areAllPlanItemsCompleted(programmerThread.values?.taskPlan)
         ) {
           programmerStatusValue = "completed";
         }
@@ -239,7 +241,7 @@ async function checkLastKnownGraph(
           // Check task completion when thread is idle - no run status needed
           if (
             programmerThread.status === "idle" &&
-            areAllTasksCompleted(programmerThread.values?.taskPlan)
+            areAllPlanItemsCompleted(programmerThread.values?.taskPlan)
           ) {
             programmerStatusValue = "completed";
           }
@@ -406,7 +408,7 @@ async function performFullStatusCheck(
   // Check task completion when thread is idle - no run status needed
   if (
     programmerThread.status === "idle" &&
-    areAllTasksCompleted(programmerThread.values?.taskPlan)
+    areAllPlanItemsCompleted(programmerThread.values?.taskPlan)
   ) {
     programmerStatusValue = "completed";
   }
