@@ -446,7 +446,7 @@ function ActionItem(props: ActionItemProps) {
         props.actionType === "search" ||
         props.actionType === "install_dependencies") &&
       props.output
-    ) {
+    ) && showOutput {
       return (
         <div className="bg-muted text-foreground/90 overflow-x-auto p-2 dark:bg-gray-900">
           <pre className="text-xs font-normal whitespace-pre-wrap">
@@ -459,7 +459,7 @@ function ActionItem(props: ActionItemProps) {
           )}
         </div>
       );
-    } else if (props.actionType === "get_url_content" && props.output) {
+    } else if (props.actionType === "get_url_content" && props.output && showOutput) {
       return (
         <div className="bg-muted text-foreground/90 overflow-x-auto p-2 dark:bg-gray-900">
           <pre className="text-xs font-normal whitespace-pre-wrap">
@@ -630,5 +630,6 @@ function formatDiff(diff: string) {
     })
     .join("\n");
 }
+
 
 
