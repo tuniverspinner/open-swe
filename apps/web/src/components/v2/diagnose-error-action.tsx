@@ -20,7 +20,13 @@ export function DiagnoseErrorAction({
   diagnosis,
   reasoningText,
 }: DiagnoseErrorActionProps) {
-  const [showReasoning, setShowReasoning] = useState(true);
+  const { getEffectiveReasoningState } = useActionDisplay();
+  
+  // Local state for individual component toggle
+  const [localShowReasoning, setLocalShowReasoning] = useState(true);
+  
+  // Get effective state from context (respects global overrides)
+  const showReasoning = getEffectiveReasoningState(localShowReasoning);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -88,4 +94,5 @@ export function DiagnoseErrorAction({
     </div>
   );
 }
+
 
