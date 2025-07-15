@@ -1,6 +1,10 @@
 import { Thread } from "@langchain/langgraph-sdk";
 import { createClient } from "@/providers/client";
-import { ThreadUIStatus, ThreadStatusData } from "@/lib/schemas/thread-status";
+import {
+  ThreadUIStatus,
+  ThreadStatusData,
+  mapLangGraphToUIStatus,
+} from "@/lib/schemas/thread-status";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
@@ -21,24 +25,6 @@ function areAllTasksCompleted(taskPlan: any): boolean {
     return false;
   }
   return taskPlan.tasks.every((task: any) => task.completed === true);
-}
-
-/**
- * Maps LangGraph SDK status to display status
- */
-function mapLangGraphStatusToDisplay(status: string): ThreadUIStatus {
-  switch (status) {
-    case "busy":
-      return "running";
-    case "idle":
-      return "idle";
-    case "error":
-      return "error";
-    case "interrupted":
-      return "paused";
-    default:
-      return "idle";
-  }
 }
 
 export class StatusResolver {
@@ -170,23 +156,31 @@ async function checkLastKnownGraph(
   switch (lastState.graph) {
     case "programmer":
       if (lastState.threadId && lastState.runId) {
-        const [programmerRun, programmerThread] = await Promise.all([
-          client.runs.get(lastState.threadId, lastState.runId),
-          client.threads.get<GraphState>(lastState.threadId),
-        ]);
+        const programmerThread = await client.threads.get<GraphState>(
+          lastState.threadId,
+        );
 
-        let programmerStatusValue: ThreadUIStatus;
-        if (programmerRun.status === "running") {
-          programmerStatusValue = "running";
-        } else if (programmerRun.status === "timeout") {
-          programmerStatusValue = "error";
-        } else if (
-          programmerRun.status === "success" &&
-          areAllTasksCompleted(programmerThread.values?.taskPlan)
-        ) {
-          programmerStatusValue = "completed";
-        } else {
-          programmerStatusValue = "idle";
+        // Use thread status directly for most cases
+        let programmerStatusValue = mapLangGraphToUIStatus(
+          programmerThread.status,
+        );
+
+        // Only check run status if thread is idle and we need to determine completed vs idle
+        if (programmerThread.status === "idle") {
+          const programmerRun = await client.runs.get(
+            lastState.threadId,
+            lastState.runId,
+          );
+
+          if (
+            programmerRun.status === "success" &&
+            areAllTasksCompleted(programmerThread.values?.taskPlan)
+          ) {
+            programmerStatusValue = "completed";
+          } else if (programmerRun.status === "timeout") {
+            programmerStatusValue = "error";
+          }
+          // else keep the mapped thread status (idle)
         }
 
         const programmerStatus: StatusResult = {
@@ -214,30 +208,28 @@ async function checkLastKnownGraph(
           lastState.threadId,
         );
 
-        let plannerStatusValue: ThreadUIStatus;
-        if (plannerThread.status === "interrupted") {
-          plannerStatusValue = "paused";
-        } else if (
+        // Use thread status directly for most cases
+        let plannerStatusValue = mapLangGraphToUIStatus(plannerThread.status);
+
+        // Special case: check for interrupts even if thread status doesn't show interrupted
+        if (
           plannerThread.interrupts &&
           Array.isArray(plannerThread.interrupts) &&
           plannerThread.interrupts.length > 0
         ) {
           plannerStatusValue = "paused";
-        } else {
+        }
+
+        // Only check run status if thread is idle and we need timeout detection
+        if (plannerThread.status === "idle") {
           const plannerRun = await client.runs.get(
             lastState.threadId,
             lastState.runId,
           );
-
-          if (plannerRun.status === "running") {
-            plannerStatusValue = "running";
-          } else if (plannerRun.status === "interrupted") {
-            plannerStatusValue = "paused";
-          } else if (plannerRun.status === "timeout") {
+          if (plannerRun.status === "timeout") {
             plannerStatusValue = "error";
-          } else {
-            plannerStatusValue = "idle";
           }
+          // else keep the mapped thread status (idle)
         }
 
         const plannerStatus: StatusResult = {
@@ -257,26 +249,31 @@ async function checkLastKnownGraph(
 
         if (plannerThread.values?.programmerSession) {
           const programmerSession = plannerThread.values.programmerSession;
-          const [programmerRun, programmerThread] = await Promise.all([
-            client.runs.get(
+          const programmerThread = await client.threads.get<GraphState>(
+            programmerSession.threadId,
+          );
+
+          // Use thread status directly for most cases
+          let programmerStatusValue = mapLangGraphToUIStatus(
+            programmerThread.status,
+          );
+
+          // Only check run status if thread is idle and we need to determine completed vs idle
+          if (programmerThread.status === "idle") {
+            const programmerRun = await client.runs.get(
               programmerSession.threadId,
               programmerSession.runId,
-            ),
-            client.threads.get<GraphState>(programmerSession.threadId),
-          ]);
+            );
 
-          let programmerStatusValue: ThreadUIStatus;
-          if (programmerRun.status === "running") {
-            programmerStatusValue = "running";
-          } else if (programmerRun.status === "timeout") {
-            programmerStatusValue = "error";
-          } else if (
-            programmerRun.status === "success" &&
-            areAllTasksCompleted(programmerThread.values?.taskPlan)
-          ) {
-            programmerStatusValue = "completed";
-          } else {
-            programmerStatusValue = "idle";
+            if (
+              programmerRun.status === "success" &&
+              areAllTasksCompleted(programmerThread.values?.taskPlan)
+            ) {
+              programmerStatusValue = "completed";
+            } else if (programmerRun.status === "timeout") {
+              programmerStatusValue = "error";
+            }
+            // else keep the mapped thread status (idle)
           }
 
           const programmerStatus: StatusResult = {
@@ -311,7 +308,7 @@ async function checkLastKnownGraph(
         graph: "manager",
         runId: "",
         threadId: lastState.threadId,
-        status: mapLangGraphStatusToDisplay(managerThread.status),
+        status: mapLangGraphToUIStatus(managerThread.status),
       };
 
       if (
@@ -346,9 +343,10 @@ async function performFullStatusCheck(
     graph: "manager",
     runId: "",
     threadId,
-    status: mapLangGraphStatusToDisplay(managerThread.status),
+    status: mapLangGraphToUIStatus(managerThread.status),
   };
 
+  // If manager is running or has error, return immediately without checking sub-sessions
   if (managerStatus.status === "running" || managerStatus.status === "error") {
     return resolver.resolve(managerStatus);
   }
@@ -361,89 +359,23 @@ async function performFullStatusCheck(
   const plannerCacheKey = `planner:${plannerSession.threadId}:${plannerSession.runId}`;
 
   let plannerThread: any;
-  let plannerRun: any;
-  let plannerStatusValue: ThreadUIStatus = "idle";
+  let plannerRun: any = null;
   const cachedPlannerData = getCachedSessionData(plannerCacheKey);
 
   if (cachedPlannerData) {
     plannerThread = cachedPlannerData.thread;
     plannerRun = cachedPlannerData.run;
-
-    if (plannerThread.status === "interrupted") {
-      plannerStatusValue = "paused";
-    } else if (
-      plannerThread.interrupts &&
-      Array.isArray(plannerThread.interrupts) &&
-      plannerThread.interrupts.length > 0
-    ) {
-      plannerStatusValue = "paused";
-    } else if (plannerThread.status === "busy") {
-      plannerStatusValue = "running";
-    } else if (plannerThread.status === "error") {
-      plannerStatusValue = "error";
-    } else if (!plannerRun) {
-      plannerStatusValue = "idle";
-    } else if (plannerRun.status === "running") {
-      plannerStatusValue = "running";
-    } else if (plannerRun.status === "interrupted") {
-      plannerStatusValue = "paused";
-    } else if (plannerRun.status === "timeout") {
-      plannerStatusValue = "error";
-    } else if (
-      plannerRun.status === "success" &&
-      !plannerThread.values?.programmerSession
-    ) {
-      plannerStatusValue = "idle";
-    } else {
-      plannerStatusValue = "idle";
-    }
   } else {
     plannerThread = await client.threads.get<PlannerGraphState>(
       plannerSession.threadId,
     );
 
-    let needsRunCall = false;
-
-    if (plannerThread.status === "interrupted") {
-      plannerStatusValue = "paused";
-    } else if (
-      plannerThread.interrupts &&
-      Array.isArray(plannerThread.interrupts) &&
-      plannerThread.interrupts.length > 0
-    ) {
-      plannerStatusValue = "paused";
-    } else if (plannerThread.status === "busy") {
-      plannerStatusValue = "running";
-    } else if (plannerThread.status === "error") {
-      plannerStatusValue = "error";
-    } else if (plannerThread.status === "idle") {
-      needsRunCall = true;
-    } else {
-      needsRunCall = true;
-    }
-
-    if (needsRunCall) {
+    // Only fetch run if thread is idle and we need timeout detection
+    if (plannerThread.status === "idle") {
       plannerRun = await client.runs.get(
         plannerSession.threadId,
         plannerSession.runId,
       );
-
-      if (plannerRun.status === "running") {
-        plannerStatusValue = "running";
-      } else if (plannerRun.status === "interrupted") {
-        plannerStatusValue = "paused";
-      } else if (plannerRun.status === "timeout") {
-        plannerStatusValue = "error";
-      } else if (
-        plannerRun.status === "success" &&
-        !plannerThread.values?.programmerSession
-      ) {
-        plannerStatusValue = "idle";
-      } else {
-        plannerStatusValue = "idle";
-      }
-    } else {
-      plannerRun = null;
     }
 
     setCachedSessionData(
@@ -451,6 +383,27 @@ async function performFullStatusCheck(
       { thread: plannerThread, run: plannerRun },
       "planner",
     );
+  }
+
+  // Use thread status directly for most cases
+  let plannerStatusValue = mapLangGraphToUIStatus(plannerThread.status);
+
+  // Special case: check for interrupts even if thread status doesn't show interrupted
+  if (
+    plannerThread.interrupts &&
+    Array.isArray(plannerThread.interrupts) &&
+    plannerThread.interrupts.length > 0
+  ) {
+    plannerStatusValue = "paused";
+  }
+
+  // Only check run status if thread is idle and we have run data
+  if (
+    plannerThread.status === "idle" &&
+    plannerRun &&
+    plannerRun.status === "timeout"
+  ) {
+    plannerStatusValue = "error";
   }
 
   const plannerStatus: StatusResult = {
@@ -476,17 +429,24 @@ async function performFullStatusCheck(
   const programmerCacheKey = `programmer:${programmerSession.threadId}:${programmerSession.runId}`;
 
   let programmerThread: any;
-  let programmerRun: any;
+  let programmerRun: any = null;
   const cachedProgrammerData = getCachedSessionData(programmerCacheKey);
 
   if (cachedProgrammerData) {
     programmerThread = cachedProgrammerData.thread;
     programmerRun = cachedProgrammerData.run;
   } else {
-    [programmerRun, programmerThread] = await Promise.all([
-      client.runs.get(programmerSession.threadId, programmerSession.runId),
-      client.threads.get<GraphState>(programmerSession.threadId),
-    ]);
+    programmerThread = await client.threads.get<GraphState>(
+      programmerSession.threadId,
+    );
+
+    // Only fetch run if thread is idle and we need to check for completion/timeout
+    if (programmerThread.status === "idle") {
+      programmerRun = await client.runs.get(
+        programmerSession.threadId,
+        programmerSession.runId,
+      );
+    }
 
     setCachedSessionData(
       programmerCacheKey,
@@ -495,24 +455,20 @@ async function performFullStatusCheck(
     );
   }
 
-  let programmerStatusValue: ThreadUIStatus;
+  // Use thread status directly for most cases
+  let programmerStatusValue = mapLangGraphToUIStatus(programmerThread.status);
 
-  // First check thread status (more real-time) before relying on cached run data
-  if (programmerThread.status === "busy") {
-    programmerStatusValue = "running";
-  } else if (programmerThread.status === "error") {
-    programmerStatusValue = "error";
-  } else if (programmerRun.status === "running") {
-    programmerStatusValue = "running";
-  } else if (programmerRun.status === "timeout") {
-    programmerStatusValue = "error";
-  } else if (
-    programmerRun.status === "success" &&
-    areAllTasksCompleted(programmerThread.values?.taskPlan)
-  ) {
-    programmerStatusValue = "completed";
-  } else {
-    programmerStatusValue = "idle";
+  // Only check run status if thread is idle and we need to determine completed vs idle
+  if (programmerThread.status === "idle" && programmerRun) {
+    if (
+      programmerRun.status === "success" &&
+      areAllTasksCompleted(programmerThread.values?.taskPlan)
+    ) {
+      programmerStatusValue = "completed";
+    } else if (programmerRun.status === "timeout") {
+      programmerStatusValue = "error";
+    }
+    // else keep the mapped thread status (idle)
   }
 
   const programmerStatus: StatusResult = {
