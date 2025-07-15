@@ -70,8 +70,10 @@ The agent should be able to converse with the user, search for info using the we
 
 The goal is to have a working assistant that demonstrates LangGraph basics. We'll probably extend it later with more features.`,
       // LangGraph evaluation inputs
-      test_input: "Search the web for the date when the Wells Fargo Center in Philadelphia first opened to the public, then calculate how many full years it has been open as of today (July 14, 2025), and finally summarize that in one sentence",
-      ground_truth: "The Wells Fargo Center in Philadelphia first opened to the public on August 12, 1996, and as of July 14, 2025, it has been open for 28 full years.",
+      test_input:
+        "Search the web for the date when the Wells Fargo Center in Philadelphia first opened to the public, then calculate how many full years it has been open as of today (July 14, 2025), and finally summarize that in one sentence",
+      ground_truth:
+        "The Wells Fargo Center in Philadelphia first opened to the public on August 12, 1996, and as of July 14, 2025, it has been open for 28 full years.",
     },
   },
 ];
