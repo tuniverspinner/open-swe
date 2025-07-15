@@ -57,7 +57,9 @@ IMPORTANT: We’ll run a LangGraph evaluation script on your code. Make sure to:
 
      compiled_graph = graph
 
-If agent.py is missing or doesn’t export compiled_graph, your submission will score 0. 
+If agent.py is missing or doesn’t export compiled_graph, your submission will score 0.
+Don't add logger or unecessary print statements as they will be captured by the evaluation script,
+interferring with the evaluation.
 `;
 
   const userMessageContent = SIMPLE_PROMPT_TEMPLATE.replace(

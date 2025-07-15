@@ -1,8 +1,14 @@
 import argparse
+import contextlib
 import importlib
+import io
+import logging
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+
+
+logging.disable(logging.CRITICAL)
 
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage
@@ -17,6 +23,8 @@ EXIT_FAILURE = 1
 
 # Add parent directory to Python path for module imports
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
+
+
 
 EVALUATION_PROMPT_TEMPLATE = """
 You are evaluating the output of an AI system. Please evaluate if the output 
@@ -123,10 +131,18 @@ def evaluate_script(
     """
     try:
         input_data = format_user_input(user_input)
-        compiled_graph = load_compiled_graph(file_path)
         
-        output = compiled_graph.invoke(input_data)
+        # Capture all stdout and stderr during both import and invoke
+        buf = io.StringIO()
+        err_buf = io.StringIO()
         
+        with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err_buf):
+            compiled_graph = load_compiled_graph(file_path)
+            output = compiled_graph.invoke(input_data)
+        
+
+        
+        # Proceed to LLM evaluation un-redirected
         ground_truth_section = (
             f"Expected answer/ground truth: {ground_truth}" 
             if ground_truth else ""
