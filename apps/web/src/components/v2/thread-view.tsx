@@ -53,24 +53,20 @@ export function ThreadView({
   const [programmerSession, setProgrammerSession] =
     useState<ManagerGraphState["programmerSession"]>();
 
-  const {
-    status: realTimeStatus,
-    isLoading: statusLoading,
-    error,
-  } = useThreadStatus(displayThread.id);
+  const { status: realTimeStatus } = useThreadStatus(displayThread.id);
 
   const getStatusDotColor = (status: string) => {
     switch (status) {
       case "running":
-        return "bg-blue-500";
+        return "bg-blue-500 dark:bg-blue-400";
       case "completed":
-        return "bg-green-500";
+        return "bg-green-500 dark:bg-green-400";
       case "paused":
-        return "bg-yellow-500";
+        return "bg-yellow-500 dark:bg-yellow-400";
       case "error":
-        return "bg-red-500";
+        return "bg-red-500 dark:bg-red-400";
       default:
-        return "bg-gray-500";
+        return "bg-gray-500 dark:bg-gray-400";
     }
   };
 
