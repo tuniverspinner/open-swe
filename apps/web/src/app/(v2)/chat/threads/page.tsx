@@ -17,7 +17,6 @@ import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { useThreadsStatus } from "@/hooks/useThreadsStatus";
 import { cn } from "@/lib/utils";
 
-
 type FilterStatus =
   | "all"
   | "running"

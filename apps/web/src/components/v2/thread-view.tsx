@@ -127,7 +127,6 @@ export function ThreadView({
               className={cn(
                 "size-2 flex-shrink-0 rounded-full",
                 getStatusDotColor(realTimeStatus),
-
               )}
             ></div>
             <span className="text-muted-foreground max-w-[500px] truncate font-mono text-sm">

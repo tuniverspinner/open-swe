@@ -112,7 +112,6 @@ export function ThreadCard({ thread, status, statusLoading }: ThreadCardProps) {
                 ? "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                 : getStatusColor(displayStatus),
             )}
-
           >
             <div className="flex items-center gap-1">
               {isStatusLoading ? (
