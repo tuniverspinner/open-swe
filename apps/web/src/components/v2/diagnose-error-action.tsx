@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useActionDisplay } from "@/contexts/action-display-context";
 import {
   AlertTriangle,
   Loader2,
@@ -87,3 +88,4 @@ export function DiagnoseErrorAction({
     </div>
   );
 }
+
