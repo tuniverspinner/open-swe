@@ -15,6 +15,8 @@ import { InstallationSelector } from "@/components/github/installation-selector"
 import { GitHubAppProvider } from "@/providers/GitHubApp";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { useThreadsStatus } from "@/hooks/useThreadsStatus";
+import { cn } from "@/lib/utils";
+
 
 type FilterStatus =
   | "all"
@@ -146,11 +148,12 @@ function AllThreadsPageContent() {
                   key={status}
                   variant={statusFilter === status ? "secondary" : "ghost"}
                   size="sm"
-                  className={`h-7 text-xs ${
+                  className={cn(
+                    "h-7 text-xs",
                     statusFilter === status
                       ? "bg-muted text-foreground dark:bg-gray-700"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  }`}
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  )}
                   onClick={() => setStatusFilter(status)}
                 >
                   {status === "all"

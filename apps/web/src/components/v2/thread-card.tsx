@@ -112,6 +112,7 @@ export function ThreadCard({ thread, status, statusLoading }: ThreadCardProps) {
                 ? "bg-gray-200 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                 : getStatusColor(displayStatus),
             )}
+
           >
             <div className="flex items-center gap-1">
               {isStatusLoading ? (
@@ -157,7 +158,10 @@ export function ThreadCard({ thread, status, statusLoading }: ThreadCardProps) {
               <Button
                 variant="ghost"
                 size="sm"
-                className={`h-5 w-5 p-0 hover:text-gray-300 ${getPRStatusColor(thread.pullRequest.status)}`}
+                className={cn(
+                  "h-5 w-5 p-0 hover:text-gray-300",
+                  getPRStatusColor(thread.pullRequest.status),
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(thread.pullRequest!.url, "_blank");
