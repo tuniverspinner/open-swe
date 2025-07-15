@@ -190,6 +190,13 @@ function MatchWholeWordIcon({ matchWholeWord }: { matchWholeWord: boolean }) {
 
 function ActionItem(props: ActionItemProps) {
   const [expanded, setExpanded] = useState(false);
+  const { getEffectiveOutputState } = useActionDisplay();
+  
+  // Local state for individual component output toggle
+  const [localShowOutput, setLocalShowOutput] = useState(true);
+  
+  // Get effective state from context (respects global overrides)
+  const showOutput = getEffectiveOutputState(localShowOutput);
 
   const getStatusIcon = () => {
     switch (props.status) {
@@ -623,4 +630,5 @@ function formatDiff(diff: string) {
     })
     .join("\n");
 }
+
 
