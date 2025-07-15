@@ -177,8 +177,6 @@ async function checkLastKnownGraph(
             areAllTasksCompleted(programmerThread.values?.taskPlan)
           ) {
             programmerStatusValue = "completed";
-          } else if (programmerRun.status === "timeout") {
-            programmerStatusValue = "error";
           }
           // else keep the mapped thread status (idle)
         }
@@ -220,17 +218,7 @@ async function checkLastKnownGraph(
           plannerStatusValue = "paused";
         }
 
-        // Only check run status if thread is idle and we need timeout detection
-        if (plannerThread.status === "idle") {
-          const plannerRun = await client.runs.get(
-            lastState.threadId,
-            lastState.runId,
-          );
-          if (plannerRun.status === "timeout") {
-            plannerStatusValue = "error";
-          }
-          // else keep the mapped thread status (idle)
-        }
+        // No need to check run status for planners - thread status is sufficient
 
         const plannerStatus: StatusResult = {
           graph: "planner",
@@ -270,8 +258,6 @@ async function checkLastKnownGraph(
               areAllTasksCompleted(programmerThread.values?.taskPlan)
             ) {
               programmerStatusValue = "completed";
-            } else if (programmerRun.status === "timeout") {
-              programmerStatusValue = "error";
             }
             // else keep the mapped thread status (idle)
           }
@@ -370,13 +356,7 @@ async function performFullStatusCheck(
       plannerSession.threadId,
     );
 
-    // Only fetch run if thread is idle and we need timeout detection
-    if (plannerThread.status === "idle") {
-      plannerRun = await client.runs.get(
-        plannerSession.threadId,
-        plannerSession.runId,
-      );
-    }
+    // No run fetch needed for planners - thread status is sufficient
 
     setCachedSessionData(
       plannerCacheKey,
@@ -397,14 +377,7 @@ async function performFullStatusCheck(
     plannerStatusValue = "paused";
   }
 
-  // Only check run status if thread is idle and we have run data
-  if (
-    plannerThread.status === "idle" &&
-    plannerRun &&
-    plannerRun.status === "timeout"
-  ) {
-    plannerStatusValue = "error";
-  }
+  // No run status check needed for planners
 
   const plannerStatus: StatusResult = {
     graph: "planner",
@@ -465,8 +438,6 @@ async function performFullStatusCheck(
       areAllTasksCompleted(programmerThread.values?.taskPlan)
     ) {
       programmerStatusValue = "completed";
-    } else if (programmerRun.status === "timeout") {
-      programmerStatusValue = "error";
     }
     // else keep the mapped thread status (idle)
   }
