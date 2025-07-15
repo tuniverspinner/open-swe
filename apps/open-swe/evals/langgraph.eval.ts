@@ -12,11 +12,14 @@ import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { withRetry } from "./utils/retry.js";
+import { DATASET } from "./utils/dataset.js";
 
 const logger = createLogger(LogLevel.DEBUG, "Evaluator");
 
 // Configuration constants
-const RUN_AGENT_PIPELINE = process.env.RUN_AGENT_PIPELINE === "true" || false;
+const RUN_AGENT_PIPELINE = process.env.RUN_AGENT_PIPELINE === "true" || true;
+let programmerRunUrl =
+  "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/projects/p/eba94921-7f40-4be0-b153-e88ab6fdcfdd/r/";
 const DATASET_NAME = process.env.DATASET_NAME || "";
 // const RUN_NAME = `${DATASET_NAME}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 
@@ -39,44 +42,7 @@ const DATASET_NAME = process.env.DATASET_NAME || "";
 //   })),
 // );
 
-const DATASET = [
-  {
-    inputs: {
-      repo: "mai-sandbox/open-swe_write_ReAct_eval",
-      branch: "open-swe/c28c8398-97b4-4884-964c-ddcabf32a81e",
-      user_input: `Hey, we need a basic chat assistant for our project. Nothing too crazy, just something that can chat with users and handle a couple of simple tasks.
 
-We want users to be able to:
-- Have normal conversations with the assistant
-- Ask it to search for stuff online when they need current info
-- Get help with basic math calculations
-
-The assistant should be smart enough to know when to use tools vs just chat normally.
-
-- Use LangGraph for the main workflow (we're standardizing on this)
-- Anthropic Claude for the LLM (we have API keys already)
-- Keep it simple - this is a proof of concept
-
-Just implement 2 tools:
-1. **Search tool** - for when users ask about current events, facts, etc.
-2. **Calculator tool** - for when they need math help
-
-The agent should be able to converse with the user, search for info using the web tool, and use the calculator tool for arithmetic.
-
-- Make sure it actually compiles and runs without errors
-- Add type hints (our code standards require them)
-- Handle errors gracefully - tools might fail sometimes
-- Don't overthink the routing logic, simple is fine
-
-The goal is to have a working assistant that demonstrates LangGraph basics. We'll probably extend it later with more features.`,
-      // LangGraph evaluation inputs
-      test_input:
-        "Search the web for the date when the Wells Fargo Center in Philadelphia first opened to the public, then calculate how many full years it has been open as of today (July 14, 2025), and finally summarize that in one sentence",
-      ground_truth:
-        "The Wells Fargo Center in Philadelphia first opened to the public on August 12, 1996, and as of July 14, 2025, it has been open for 28 full years.",
-    },
-  },
-];
 
 logger.info(`Starting evals over ${DATASET.length} examples...`);
 
@@ -249,6 +215,7 @@ ls.describe(DATASET_NAME, () => {
         }
 
         let programmerRun;
+        programmerRunUrl = `${programmerRunUrl}${programmerSession.runId}`;
         try {
           programmerRun = await withRetry(() =>
             lgClient.runs.join(
@@ -286,6 +253,8 @@ ls.describe(DATASET_NAME, () => {
         }
 
         const programmerState = programmerRun as unknown as GraphState;
+        console.log("programmerState", programmerState);
+        console.log("programmerState.branchName", programmerState.branchName);
         const agentBranchName = programmerState?.branchName;
 
         if (!agentBranchName) {
@@ -336,7 +305,10 @@ ls.describe(DATASET_NAME, () => {
         thread_id: threadId,
         evalResult,
       });
-      return evalResult;
+      return {
+        evalResult,
+        ...(RUN_AGENT_PIPELINE && { programmerRunUrl }),
+      };
     },
     7200_000,
   );

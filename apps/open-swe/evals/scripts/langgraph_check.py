@@ -2,6 +2,7 @@ import argparse
 import contextlib
 import importlib
 import io
+import json
 import logging
 import sys
 from pathlib import Path
@@ -30,8 +31,6 @@ EVALUATION_PROMPT_TEMPLATE = """
 You are evaluating the output of an AI system. Please evaluate if the output 
 provides a reasonable and coherent response to the input. You must evaluate the output based on the 
 ground truth. If the output is not as detailed as the ground truth, you should not give a good score.
-You should try to give binary scores, i.e. 0 or 1, unless you are very confident about the score being
-in the range of 0-1.
 
 Input: {inputs}
 Generated output: {outputs}
@@ -69,6 +68,24 @@ def format_user_input(user_input: str) -> Dict[str, Any]:
     return {
         "messages": [HumanMessage(content=user_input)]
     }
+
+
+def format_output_for_evaluation(output: Any) -> str:
+    """
+    Format the output in a readable way for LLM evaluation.
+    
+    Args:
+        output: The raw output from the compiled graph
+        
+    Returns:
+        Formatted string representation of the output
+    """
+    try:
+        if isinstance(output, (dict, list)):
+            return json.dumps(output, indent=2, ensure_ascii=False)
+        return str(output)
+    except (TypeError, ValueError):
+        return str(output)
 
 
 def parse_file_path(file_path: str) -> Tuple[str, str]:
@@ -140,7 +157,8 @@ def evaluate_script(
             compiled_graph = load_compiled_graph(file_path)
             output = compiled_graph.invoke(input_data)
         
-
+        # Format output for better readability in evaluation
+        formatted_output = format_output_for_evaluation(output)
         
         # Proceed to LLM evaluation un-redirected
         ground_truth_section = (
@@ -153,7 +171,7 @@ def evaluate_script(
         
         evaluation_prompt = EVALUATION_PROMPT_TEMPLATE.format(
             inputs=input_data,
-            outputs=output,
+            outputs=formatted_output,
             ground_truth_section=ground_truth_section
         )
         
