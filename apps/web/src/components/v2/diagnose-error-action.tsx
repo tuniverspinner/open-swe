@@ -57,7 +57,7 @@ export function DiagnoseErrorAction({
       {reasoningText && (
         <div className="border-b border-blue-100 bg-blue-50 p-2 dark:border-blue-800 dark:bg-blue-950">
           <button
-            onClick={() => setShowReasoning(!showReasoning)}
+            onClick={() => setLocalShowReasoning(!localShowReasoning)}
             className="flex items-center gap-1 text-xs font-normal text-blue-700 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
           >
             <MessageSquare className="h-3 w-3" />
@@ -94,5 +94,6 @@ export function DiagnoseErrorAction({
     </div>
   );
 }
+
 
 
