@@ -17,8 +17,6 @@ export default function ChatPage() {
     return <div>No threads</div>;
   }
 
-  // Convert Thread objects to ThreadMetadata for UI
-  // Real-time status will be handled by individual ThreadCard components
   const threadMetadata: ThreadMetadata[] = threads.map(threadToMetadata);
 
   return (

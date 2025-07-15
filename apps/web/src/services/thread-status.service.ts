@@ -10,6 +10,7 @@ interface StatusResult {
   runId: string;
   threadId: string;
   status: ThreadUIStatus;
+  taskPlan?: any;
 }
 
 /**
@@ -193,6 +194,7 @@ async function checkLastKnownGraph(
           runId: lastState.runId,
           threadId: lastState.threadId,
           status: programmerStatusValue,
+          taskPlan: programmerThread.values?.taskPlan,
         };
 
         if (
@@ -282,6 +284,7 @@ async function checkLastKnownGraph(
             runId: programmerSession.runId,
             threadId: programmerSession.threadId,
             status: programmerStatusValue,
+            taskPlan: programmerThread.values?.taskPlan,
           };
 
           return resolver.resolve(
@@ -511,6 +514,7 @@ async function performFullStatusCheck(
     runId: programmerSession.runId,
     threadId: programmerSession.threadId,
     status: programmerStatusValue,
+    taskPlan: programmerThread.values?.taskPlan,
   };
 
   return resolver.resolve(managerStatus, plannerStatus, programmerStatus);

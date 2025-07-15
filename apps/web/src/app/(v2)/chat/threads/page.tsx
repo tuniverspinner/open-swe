@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +37,6 @@ function AllThreadsPageContent() {
   const threadMetadata: ThreadMetadata[] = threads?.map(threadToMetadata) ?? [];
   const threadIds = threadMetadata.map((thread) => thread.id);
 
-  // Get real thread statuses
   const {
     statusMap,
     statusCounts,
@@ -46,20 +44,17 @@ function AllThreadsPageContent() {
     isLoading: statusLoading,
   } = useThreadsStatus(threadIds, threads);
 
-  // Filter and search threads
   const filteredThreads = threadMetadata.filter((thread) => {
     const matchesSearch =
       thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       thread.repository.toLowerCase().includes(searchQuery.toLowerCase());
 
-    // Filter by status if not "all"
     const matchesStatus =
       statusFilter === "all" || statusMap[thread.id] === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
 
-  // Group filtered threads by their actual status
   const realGroupedThreads = {
     running: filteredThreads.filter(
       (thread: ThreadMetadata) => statusMap[thread.id] === "running",
@@ -177,7 +172,6 @@ function AllThreadsPageContent() {
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-6xl p-4">
             {statusFilter === "all" ? (
-              // Show grouped view when "all" is selected
               <div className="space-y-6">
                 {Object.entries(realGroupedThreads).map(([status, threads]) => {
                   if (threads.length === 0) return null;
@@ -209,7 +203,6 @@ function AllThreadsPageContent() {
                 })}
               </div>
             ) : (
-              // Show flat list when specific status is selected
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {filteredThreads.map((thread) => (
                   <ThreadCard

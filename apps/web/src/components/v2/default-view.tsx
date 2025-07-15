@@ -56,11 +56,9 @@ export function DefaultView({
   } = useFileUpload();
   const [autoAccept, setAutoAccept] = useState(false);
 
-  // Get thread IDs for the threads we want to display (first 4)
   const displayThreads = threads.slice(0, 4);
   const displayThreadIds = displayThreads.map((thread) => thread.id);
 
-  // Batch fetch statuses for displayed threads only
   const { statusMap, isLoading: statusLoading } = useThreadsStatus(
     displayThreadIds,
     originalThreads,

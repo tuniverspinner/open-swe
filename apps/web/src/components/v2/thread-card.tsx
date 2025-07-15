@@ -27,9 +27,7 @@ interface ThreadCardProps {
 export function ThreadCard({ thread, status, statusLoading }: ThreadCardProps) {
   const router = useRouter();
 
-  // Show loading state when status is being fetched and not yet available
   const isStatusLoading = statusLoading && !status;
-  // Use provided status or fallback to idle only when not loading
   const displayStatus = status || ("idle" as ThreadUIStatus);
 
   const getStatusColor = (status: ThreadUIStatus) => {

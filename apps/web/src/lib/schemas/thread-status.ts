@@ -40,4 +40,5 @@ export interface ThreadStatusData {
   runId: string;
   threadId: string;
   status: ThreadUIStatus;
+  taskPlan?: any; // Task plan data when available from programmer sessions
 }
