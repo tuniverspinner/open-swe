@@ -39,9 +39,20 @@ interface UseThreadsStatusResult {
   hasErrors: boolean;
 }
 
+const sessionDataCache = new Map<
+  string,
+  {
+    plannerData?: { thread: any; run: any };
+    programmerData?: { thread: any; run: any };
+    timestamp: number;
+  }
+>();
+
+const CACHE_TTL = 30000;
+
 /**
  * Fetches statuses for multiple threads in parallel
- * Uses and updates lastPollingStates for optimization
+ * Uses session caching to achieve "single request per thread + cache sessions" goal
  */
 async function fetchAllThreadStatuses(
   threadIds: string[],
@@ -54,13 +65,16 @@ async function fetchAllThreadStatuses(
   const statusPromises = threadIds.map(async (threadId) => {
     try {
       const lastState = lastPollingStates.get(threadId) || null;
+
       const managerThread = managerThreads?.find(
         (t) => t.thread_id === threadId,
       );
+
       const statusData = await fetchThreadStatus(
         threadId,
         lastState,
         managerThread,
+        sessionDataCache,
       );
       return { threadId, status: statusData.status, statusData };
     } catch (error) {
@@ -95,26 +109,37 @@ export function useThreadsStatus(
   threadIds: string[],
   managerThreads?: Thread<ManagerGraphState>[],
 ): UseThreadsStatusResult {
-  // Store last polling states for optimization
   const lastPollingStatesRef = useRef<Map<string, ThreadStatusData>>(new Map());
 
   // Create a stable key for the thread IDs array
-  const threadIdsKey = threadIds.sort().join(",");
+  const sortedThreadIds = threadIds.sort();
+  const threadIdsKey = sortedThreadIds.join(",");
 
-  // Fetch all thread statuses in a single SWR call
+  const swrKey =
+    threadIds.length > 0
+      ? threadIds.length <= 4
+        ? `threads-status-batch-${threadIds.length}-${threadIdsKey}`
+        : `threads-status-${threadIdsKey}`
+      : null;
+
   const {
     data: fetchResult,
     isLoading,
     error,
   } = useSWR(
-    threadIds.length > 0 ? `threads-status-${threadIdsKey}` : null,
+    swrKey,
     async () => {
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `[Status SWR] Fetching statuses for ${threadIds.length} threads`,
+        );
+      }
+
       const result = await fetchAllThreadStatuses(
-        threadIds,
+        sortedThreadIds, // Use sorted array for consistency
         lastPollingStatesRef.current,
         managerThreads,
       );
-      // Update the stored states
       lastPollingStatesRef.current = result.updatedStates;
       return result;
     },
@@ -134,7 +159,6 @@ export function useThreadsStatus(
       error: [],
     };
 
-    // If we have status data, group threads by status
     if (statusMap) {
       Object.entries(statusMap).forEach(([threadId, status]) => {
         if (groupedThreads[status]) {
@@ -143,7 +167,6 @@ export function useThreadsStatus(
       });
     }
 
-    // Calculate status counts
     const statusCounts: ThreadStatusCounts = {
       all: threadIds.length,
       running: groupedThreads.running.length,

@@ -5,12 +5,12 @@
  * across all thread data fetching in the application.
  */
 export const THREAD_SWR_CONFIG = {
-  refreshInterval: 15000, // 15 seconds - standard polling interval
-  revalidateOnFocus: false, // Avoid excessive API calls on focus
-  revalidateOnReconnect: true, // Refresh when network reconnects
-  errorRetryCount: 3, // Retry failed requests 3 times
-  errorRetryInterval: 5000, // Wait 5 seconds between retries
-  dedupingInterval: 2000, // Dedupe identical requests within 2 seconds
+  refreshInterval: 15000,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: true,
+  errorRetryCount: 3,
+  errorRetryInterval: 5000,
+  dedupingInterval: 2000,
 } as const;
 
 /**
@@ -19,7 +19,8 @@ export const THREAD_SWR_CONFIG = {
  */
 export const THREAD_STATUS_SWR_CONFIG = {
   ...THREAD_SWR_CONFIG,
-  revalidateOnFocus: true, // Status updates benefit from focus revalidation
+  revalidateOnFocus: true,
+  dedupingInterval: 5000,
 } as const;
 
 /**

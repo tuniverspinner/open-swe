@@ -1,10 +1,6 @@
-import { Thread, Run } from "@langchain/langgraph-sdk";
+import { Thread } from "@langchain/langgraph-sdk";
 import { createClient } from "@/providers/client";
-import {
-  ThreadUIStatus,
-  ThreadStatusData,
-  mapLangGraphToUIStatus,
-} from "@/lib/schemas/thread-status";
+import { ThreadUIStatus, ThreadStatusData } from "@/lib/schemas/thread-status";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
@@ -44,178 +40,87 @@ function mapLangGraphStatusToDisplay(status: string): ThreadUIStatus {
   }
 }
 
-/**
- * Fetches manager thread status
- */
-async function getManagerStatus(
-  client: ReturnType<typeof createClient>,
-  threadId: string,
-): Promise<StatusResult> {
-  const managerThread = await client.threads.get<ManagerGraphState>(threadId);
-  const status = mapLangGraphStatusToDisplay(managerThread.status);
-
-  return {
-    graph: "manager",
-    runId: "",
-    threadId,
-    status,
-  };
-}
-
-/**
- * Fetches planner run and thread status
- */
-async function getPlannerStatus(
-  client: ReturnType<typeof createClient>,
-  plannerSession: {
-    threadId: string;
-    runId: string;
-  },
-): Promise<StatusResult> {
-  const [plannerRun, plannerThread] = await Promise.all([
-    client.runs.get(plannerSession.threadId, plannerSession.runId),
-    client.threads.get<PlannerGraphState>(plannerSession.threadId),
-  ]);
-
-  let status: ThreadUIStatus;
-
-  // First check if the thread itself is interrupted (plan waiting for approval)
-  if (plannerThread.status === "interrupted") {
-    status = "paused";
-  }
-  // Then check if the thread has interrupts (plan waiting for approval)
-  else if (
-    plannerThread.interrupts &&
-    Array.isArray(plannerThread.interrupts) &&
-    plannerThread.interrupts.length > 0
-  ) {
-    status = "paused";
-  } else if (plannerRun.status === "running") {
-    status = "running";
-  } else if (plannerRun.status === "interrupted") {
-    status = "paused";
-  } else if (plannerRun.status === "timeout") {
-    status = "error";
-  } else if (
-    plannerRun.status === "success" &&
-    !plannerThread.values?.programmerSession
-  ) {
-    status = "idle";
-  } else {
-    status = "idle";
-  }
-
-  return {
-    graph: "planner",
-    runId: plannerSession.runId,
-    threadId: plannerSession.threadId,
-    status,
-  };
-}
-
-/**
- * Fetches programmer run and thread status
- */
-async function getProgrammerStatus(
-  client: ReturnType<typeof createClient>,
-  programmerSession: {
-    threadId: string;
-    runId: string;
-  },
-): Promise<StatusResult> {
-  const [programmerRun, programmerThread] = await Promise.all([
-    client.runs.get(programmerSession.threadId, programmerSession.runId),
-    client.threads.get<GraphState>(programmerSession.threadId),
-  ]);
-
-  let status: ThreadUIStatus;
-  if (programmerRun.status === "running") {
-    status = "running";
-  } else if (programmerRun.status === "timeout") {
-    status = "error";
-  } else if (
-    programmerRun.status === "success" &&
-    areAllTasksCompleted(programmerThread.values?.taskPlan)
-  ) {
-    status = "completed";
-  } else {
-    status = "idle";
-  }
-
-  return {
-    graph: "programmer",
-    runId: programmerSession.runId,
-    threadId: programmerSession.threadId,
-    status,
-  };
-}
-
-/**
- * Status resolver using priority logic:
- * manager running > planner running > planner interrupted (paused) > programmer running > completed/idle/error
- */
 export class StatusResolver {
   resolve(
     manager: StatusResult,
     planner?: StatusResult,
     programmer?: StatusResult,
   ): ThreadStatusData {
-    // Priority 1: Manager is running or has error
     if (manager.status === "running" || manager.status === "error") {
-      const result = manager;
-      return result;
+      return manager;
     }
 
-    // Priority 2: No planner session - manager is idle
     if (!planner) {
-      const result = manager;
-      return result;
+      return manager;
     }
 
-    // Priority 3: Planner is running or paused (interrupted)
     if (planner.status === "running" || planner.status === "paused") {
-      const result = planner;
-      return result;
+      return planner;
     }
 
-    // Priority 4: Planner has error
     if (planner.status === "error") {
-      const result = planner;
-      return result;
+      return planner;
     }
 
-    // Priority 5: No programmer session - planner is idle
     if (!programmer) {
-      const result = planner;
-      return result;
+      return planner;
     }
 
-    // Priority 6: Return programmer status (running, completed, idle, or error)
-    const result = programmer;
-    return result;
+    return programmer;
   }
 }
 
-/**
- * Main service function to fetch thread status
- * Uses lastPollingState to optimize API calls by checking the previously active graph first
- */
+const sessionDataCache = new Map<
+  string,
+  {
+    data: any;
+    timestamp: number;
+    type: "planner" | "programmer";
+  }
+>();
+
+const CACHE_TTL = 30 * 1000;
+
+function getCachedSessionData(sessionKey: string): any | null {
+  const cached = sessionDataCache.get(sessionKey);
+  if (!cached) return null;
+
+  const isExpired = Date.now() - cached.timestamp > CACHE_TTL;
+  if (isExpired) {
+    sessionDataCache.delete(sessionKey);
+    return null;
+  }
+
+  return cached.data;
+}
+
+function setCachedSessionData(
+  sessionKey: string,
+  data: any,
+  type: "planner" | "programmer",
+): void {
+  sessionDataCache.set(sessionKey, {
+    data,
+    timestamp: Date.now(),
+    type,
+  });
+}
+
 export async function fetchThreadStatus(
   threadId: string,
   lastPollingState: ThreadStatusData | null = null,
   managerThreadData?: Thread<ManagerGraphState> | null,
+  sessionCache?: Map<string, any>,
 ): Promise<ThreadStatusData> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
     if (!apiUrl) {
-      console.error("[fetchThreadStatus] Missing API URL");
       throw new Error("API URL not configured");
     }
 
     const client = createClient(apiUrl);
     const resolver = new StatusResolver();
 
-    // Optimization: If we have lastPollingState, check that graph first
     if (lastPollingState) {
       try {
         const optimizedResult = await checkLastKnownGraph(
@@ -226,17 +131,14 @@ export async function fetchThreadStatus(
         if (optimizedResult) {
           return optimizedResult;
         }
-        // If optimization failed, fall through to full check
       } catch (error) {
         console.warn(
           "Optimization check failed, falling back to full status check:",
           error,
         );
-        // Fall through to full check
       }
     }
 
-    // Full status check - same logic as before but more efficient
     return await performFullStatusCheck(
       client,
       threadId,
@@ -244,9 +146,8 @@ export async function fetchThreadStatus(
       managerThreadData,
     );
   } catch (error) {
-    console.error(`[fetchThreadStatus] Error for thread ${threadId}:`, error);
+    console.error(`Error fetching thread status for ${threadId}:`, error);
 
-    // Return error status with fallback information
     const graph = lastPollingState?.graph || "manager";
     const runId = lastPollingState?.runId || "";
     const errorThreadId = lastPollingState?.threadId || threadId;
@@ -260,19 +161,14 @@ export async function fetchThreadStatus(
   }
 }
 
-/**
- * Optimized status check using last known state with smart early returns
- */
 async function checkLastKnownGraph(
   client: ReturnType<typeof createClient>,
   lastState: ThreadStatusData,
   resolver: StatusResolver,
 ): Promise<ThreadStatusData | null> {
-  // Check the status of the last known active graph directly
   switch (lastState.graph) {
     case "programmer":
       if (lastState.threadId && lastState.runId) {
-        // Check if programmer is still active (2 API calls)
         const [programmerRun, programmerThread] = await Promise.all([
           client.runs.get(lastState.threadId, lastState.runId),
           client.threads.get<GraphState>(lastState.threadId),
@@ -299,7 +195,6 @@ async function checkLastKnownGraph(
           status: programmerStatusValue,
         };
 
-        // ✅ EARLY RETURN: Programmer is still active (2 API calls total)
         if (
           programmerStatus.status === "running" ||
           programmerStatus.status === "error"
@@ -307,18 +202,15 @@ async function checkLastKnownGraph(
           return programmerStatus;
         }
 
-        // Programmer finished, fall back to full check
         return null;
       }
       break;
 
     case "planner":
       if (lastState.threadId && lastState.runId) {
-        // Check if planner is still active (2 API calls)
-        const [plannerRun, plannerThread] = await Promise.all([
-          client.runs.get(lastState.threadId, lastState.runId),
-          client.threads.get<PlannerGraphState>(lastState.threadId),
-        ]);
+        const plannerThread = await client.threads.get<PlannerGraphState>(
+          lastState.threadId,
+        );
 
         let plannerStatusValue: ThreadUIStatus;
         if (plannerThread.status === "interrupted") {
@@ -329,14 +221,21 @@ async function checkLastKnownGraph(
           plannerThread.interrupts.length > 0
         ) {
           plannerStatusValue = "paused";
-        } else if (plannerRun.status === "running") {
-          plannerStatusValue = "running";
-        } else if (plannerRun.status === "interrupted") {
-          plannerStatusValue = "paused";
-        } else if (plannerRun.status === "timeout") {
-          plannerStatusValue = "error";
         } else {
-          plannerStatusValue = "idle";
+          const plannerRun = await client.runs.get(
+            lastState.threadId,
+            lastState.runId,
+          );
+
+          if (plannerRun.status === "running") {
+            plannerStatusValue = "running";
+          } else if (plannerRun.status === "interrupted") {
+            plannerStatusValue = "paused";
+          } else if (plannerRun.status === "timeout") {
+            plannerStatusValue = "error";
+          } else {
+            plannerStatusValue = "idle";
+          }
         }
 
         const plannerStatus: StatusResult = {
@@ -346,7 +245,6 @@ async function checkLastKnownGraph(
           status: plannerStatusValue,
         };
 
-        // ✅ EARLY RETURN: Planner is still active (2 API calls total)
         if (
           plannerStatus.status === "running" ||
           plannerStatus.status === "paused" ||
@@ -355,9 +253,7 @@ async function checkLastKnownGraph(
           return plannerStatus;
         }
 
-        // Planner finished, check if programmer started
         if (plannerThread.values?.programmerSession) {
-          // Programmer started, check programmer status (2 more API calls)
           const programmerSession = plannerThread.values.programmerSession;
           const [programmerRun, programmerThread] = await Promise.all([
             client.runs.get(
@@ -400,13 +296,11 @@ async function checkLastKnownGraph(
           );
         }
 
-        // No programmer session, planner is idle
         return plannerStatus;
       }
       break;
 
     case "manager": {
-      // Check if manager is still active (1 API call)
       const managerThread = await client.threads.get<ManagerGraphState>(
         lastState.threadId,
       );
@@ -417,7 +311,6 @@ async function checkLastKnownGraph(
         status: mapLangGraphStatusToDisplay(managerThread.status),
       };
 
-      // ✅ EARLY RETURN: Manager is still active (1 API call total)
       if (
         managerStatus.status === "running" ||
         managerStatus.status === "error"
@@ -425,7 +318,6 @@ async function checkLastKnownGraph(
         return managerStatus;
       }
 
-      // Manager not running, fall back to full check
       return null;
     }
   }
@@ -433,20 +325,20 @@ async function checkLastKnownGraph(
   return null;
 }
 
-/**
- * Full status check with smart early returns
- * Checks manager → planner → programmer sequentially, stopping as soon as active status found
- */
 async function performFullStatusCheck(
   client: ReturnType<typeof createClient>,
   threadId: string,
   resolver: StatusResolver,
   managerThreadData?: Thread<ManagerGraphState> | null,
 ): Promise<ThreadStatusData> {
-  // Step 1: Get manager status (use pre-fetched data if available, otherwise fetch)
-  const managerThread =
-    managerThreadData ||
-    (await client.threads.get<ManagerGraphState>(threadId));
+  let managerThread: Thread<ManagerGraphState>;
+
+  if (managerThreadData) {
+    managerThread = managerThreadData;
+  } else {
+    managerThread = await client.threads.get<ManagerGraphState>(threadId);
+  }
+
   const managerStatus: StatusResult = {
     graph: "manager",
     runId: "",
@@ -454,46 +346,108 @@ async function performFullStatusCheck(
     status: mapLangGraphStatusToDisplay(managerThread.status),
   };
 
-  // ✅ EARLY RETURN: Manager is active - stop here (1 API call total)
   if (managerStatus.status === "running" || managerStatus.status === "error") {
     return resolver.resolve(managerStatus);
   }
 
-  // ✅ EARLY RETURN: No planner session - manager is idle (1 API call total)
   if (!managerThread.values?.plannerSession) {
     return resolver.resolve(managerStatus);
   }
 
-  // Step 2: Manager is idle, check planner status (2 more API calls)
   const plannerSession = managerThread.values.plannerSession;
-  const [plannerRun, plannerThread] = await Promise.all([
-    client.runs.get(plannerSession.threadId, plannerSession.runId),
-    client.threads.get<PlannerGraphState>(plannerSession.threadId),
-  ]);
+  const plannerCacheKey = `planner:${plannerSession.threadId}:${plannerSession.runId}`;
 
-  // Build planner status
-  let plannerStatusValue: ThreadUIStatus;
-  if (plannerThread.status === "interrupted") {
-    plannerStatusValue = "paused";
-  } else if (
-    plannerThread.interrupts &&
-    Array.isArray(plannerThread.interrupts) &&
-    plannerThread.interrupts.length > 0
-  ) {
-    plannerStatusValue = "paused";
-  } else if (plannerRun.status === "running") {
-    plannerStatusValue = "running";
-  } else if (plannerRun.status === "interrupted") {
-    plannerStatusValue = "paused";
-  } else if (plannerRun.status === "timeout") {
-    plannerStatusValue = "error";
-  } else if (
-    plannerRun.status === "success" &&
-    !plannerThread.values?.programmerSession
-  ) {
-    plannerStatusValue = "idle";
+  let plannerThread: any;
+  let plannerRun: any;
+  let plannerStatusValue: ThreadUIStatus = "idle";
+  const cachedPlannerData = getCachedSessionData(plannerCacheKey);
+
+  if (cachedPlannerData) {
+    plannerThread = cachedPlannerData.thread;
+    plannerRun = cachedPlannerData.run;
+
+    if (plannerThread.status === "interrupted") {
+      plannerStatusValue = "paused";
+    } else if (
+      plannerThread.interrupts &&
+      Array.isArray(plannerThread.interrupts) &&
+      plannerThread.interrupts.length > 0
+    ) {
+      plannerStatusValue = "paused";
+    } else if (plannerThread.status === "busy") {
+      plannerStatusValue = "running";
+    } else if (plannerThread.status === "error") {
+      plannerStatusValue = "error";
+    } else if (!plannerRun) {
+      plannerStatusValue = "idle";
+    } else if (plannerRun.status === "running") {
+      plannerStatusValue = "running";
+    } else if (plannerRun.status === "interrupted") {
+      plannerStatusValue = "paused";
+    } else if (plannerRun.status === "timeout") {
+      plannerStatusValue = "error";
+    } else if (
+      plannerRun.status === "success" &&
+      !plannerThread.values?.programmerSession
+    ) {
+      plannerStatusValue = "idle";
+    } else {
+      plannerStatusValue = "idle";
+    }
   } else {
-    plannerStatusValue = "idle";
+    plannerThread = await client.threads.get<PlannerGraphState>(
+      plannerSession.threadId,
+    );
+
+    let needsRunCall = false;
+
+    if (plannerThread.status === "interrupted") {
+      plannerStatusValue = "paused";
+    } else if (
+      plannerThread.interrupts &&
+      Array.isArray(plannerThread.interrupts) &&
+      plannerThread.interrupts.length > 0
+    ) {
+      plannerStatusValue = "paused";
+    } else if (plannerThread.status === "busy") {
+      plannerStatusValue = "running";
+    } else if (plannerThread.status === "error") {
+      plannerStatusValue = "error";
+    } else if (plannerThread.status === "idle") {
+      needsRunCall = true;
+    } else {
+      needsRunCall = true;
+    }
+
+    if (needsRunCall) {
+      plannerRun = await client.runs.get(
+        plannerSession.threadId,
+        plannerSession.runId,
+      );
+
+      if (plannerRun.status === "running") {
+        plannerStatusValue = "running";
+      } else if (plannerRun.status === "interrupted") {
+        plannerStatusValue = "paused";
+      } else if (plannerRun.status === "timeout") {
+        plannerStatusValue = "error";
+      } else if (
+        plannerRun.status === "success" &&
+        !plannerThread.values?.programmerSession
+      ) {
+        plannerStatusValue = "idle";
+      } else {
+        plannerStatusValue = "idle";
+      }
+    } else {
+      plannerRun = null;
+    }
+
+    setCachedSessionData(
+      plannerCacheKey,
+      { thread: plannerThread, run: plannerRun },
+      "planner",
+    );
   }
 
   const plannerStatus: StatusResult = {
@@ -503,7 +457,6 @@ async function performFullStatusCheck(
     status: plannerStatusValue,
   };
 
-  // ✅ EARLY RETURN: Planner is active - stop here (3 API calls total)
   if (
     plannerStatus.status === "running" ||
     plannerStatus.status === "paused" ||
@@ -512,19 +465,33 @@ async function performFullStatusCheck(
     return resolver.resolve(managerStatus, plannerStatus);
   }
 
-  // ✅ EARLY RETURN: No programmer session - planner is idle (3 API calls total)
   if (!plannerThread.values?.programmerSession) {
     return resolver.resolve(managerStatus, plannerStatus);
   }
 
-  // Step 3: Both manager and planner idle, check programmer (2 more API calls)
   const programmerSession = plannerThread.values.programmerSession;
-  const [programmerRun, programmerThread] = await Promise.all([
-    client.runs.get(programmerSession.threadId, programmerSession.runId),
-    client.threads.get<GraphState>(programmerSession.threadId),
-  ]);
+  const programmerCacheKey = `programmer:${programmerSession.threadId}:${programmerSession.runId}`;
 
-  // Build programmer status
+  let programmerThread: any;
+  let programmerRun: any;
+  const cachedProgrammerData = getCachedSessionData(programmerCacheKey);
+
+  if (cachedProgrammerData) {
+    programmerThread = cachedProgrammerData.thread;
+    programmerRun = cachedProgrammerData.run;
+  } else {
+    [programmerRun, programmerThread] = await Promise.all([
+      client.runs.get(programmerSession.threadId, programmerSession.runId),
+      client.threads.get<GraphState>(programmerSession.threadId),
+    ]);
+
+    setCachedSessionData(
+      programmerCacheKey,
+      { thread: programmerThread, run: programmerRun },
+      "programmer",
+    );
+  }
+
   let programmerStatusValue: ThreadUIStatus;
   if (programmerRun.status === "running") {
     programmerStatusValue = "running";
@@ -546,6 +513,5 @@ async function performFullStatusCheck(
     status: programmerStatusValue,
   };
 
-  // Final status (5 API calls total - only when all levels need checking)
   return resolver.resolve(managerStatus, plannerStatus, programmerStatus);
 }
