@@ -42,8 +42,6 @@ const DATASET_NAME = process.env.DATASET_NAME || "";
 //   })),
 // );
 
-
-
 logger.info(`Starting evals over ${DATASET.length} examples...`);
 
 //const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
@@ -253,8 +251,6 @@ ls.describe(DATASET_NAME, () => {
         }
 
         const programmerState = programmerRun as unknown as GraphState;
-        console.log("programmerState", programmerState);
-        console.log("programmerState.branchName", programmerState.branchName);
         const agentBranchName = programmerState?.branchName;
 
         if (!agentBranchName) {
