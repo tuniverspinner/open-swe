@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { createLogger, LogLevel } from "../../../utils/logger.js";
 import {
   GraphConfig,
@@ -65,7 +66,7 @@ export async function progressPlanStep(
 ): Promise<Command> {
   const markNotCompletedTool = createMarkTaskNotCompletedToolFields();
   const markCompletedTool = createMarkTaskCompletedToolFields();
-  const model = await loadModel(config, Task.PROGRESS_PLAN_CHECKER);
+  const model = await loadModel(config, Task.SUMMARIZER);
   const modelWithTools = model.bindTools(
     [markNotCompletedTool, markCompletedTool],
     {
@@ -108,6 +109,7 @@ Once you've determined the status of the current task, call either the \`mark_ta
   const isCompleted = toolCall.name === markCompletedTool.name;
   const currentTask = getCurrentPlanItem(activePlanItems);
   const toolMessage = new ToolMessage({
+    id: uuidv4(),
     tool_call_id: toolCall.id ?? "",
     content: `Saved task status as ${isCompleted ? "completed" : "not completed"} for task ${currentTask?.plan || "unknown"}`,
     name: toolCall.name,
@@ -117,6 +119,11 @@ Once you've determined the status of the current task, call either the \`mark_ta
 
   const totalInternalTokenCount = calculateConversationHistoryTokenCount(
     state.internalMessages,
+    {
+      // Retain the last 20 messages from state
+      excludeHiddenMessages: true,
+      excludeCountFromEnd: 20,
+    },
   );
 
   if (!isCompleted) {

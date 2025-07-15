@@ -49,7 +49,7 @@ export async function generatePlan(
   state: PlannerGraphState,
   config: GraphConfig,
 ): Promise<PlannerGraphUpdate> {
-  const model = await loadModel(config, Task.PLANNER);
+  const model = await loadModel(config, Task.PROGRAMMER);
   const sessionPlanTool = createSessionPlanToolFields();
   const modelWithTools = model.bindTools([sessionPlanTool], {
     tool_choice: sessionPlanTool.name,
@@ -61,6 +61,7 @@ export async function generatePlan(
   if (isAIMessage(lastMessage) && lastMessage.tool_calls?.[0]) {
     const lastMessageToolCall = lastMessage.tool_calls?.[0];
     optionalToolMessage = new ToolMessage({
+      id: uuidv4(),
       tool_call_id: lastMessageToolCall.id ?? "",
       name: lastMessageToolCall.name,
       content: "Tool call not executed. Max actions reached.",
