@@ -7,10 +7,6 @@ import logging
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
-
-
-logging.disable(logging.CRITICAL)
-
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel, Field
@@ -24,6 +20,7 @@ EXIT_FAILURE = 1
 
 # Add parent directory to Python path for module imports
 sys.path.append(str(Path(__file__).parent.parent.absolute()))
+logging.disable(logging.CRITICAL)
 
 
 
@@ -60,15 +57,10 @@ class EvaluationResult(BaseModel):
         description="A brief explanation of the evaluation score"
     )
 
-
-
-
-
 def format_user_input(user_input: str) -> Dict[str, Any]:
     return {
         "messages": [HumanMessage(content=user_input)]
     }
-
 
 def format_output_for_evaluation(output: Any) -> str:
     """
@@ -87,7 +79,6 @@ def format_output_for_evaluation(output: Any) -> str:
     except (TypeError, ValueError):
         return str(output)
 
-
 def parse_file_path(file_path: str) -> Tuple[str, str]:
     path = Path(file_path)
     script_name = path.name
@@ -96,7 +87,6 @@ def parse_file_path(file_path: str) -> Tuple[str, str]:
     normalized_path = module_path.replace('/', '.').replace('\\', '.')
     
     return normalized_path, script_name
-
 
 def load_compiled_graph(file_path: str) -> Any:
     """
@@ -128,7 +118,6 @@ def load_compiled_graph(file_path: str) -> Any:
         raise ImportError(f"Could not import module {module_path}: {e}")
     except Exception as e:
         raise Exception(f"Error loading graph from {file_path}: {e}")
-
 
 def evaluate_script(
     file_path: str, 
@@ -183,7 +172,6 @@ def evaluate_script(
         error_msg = f"Evaluation failed: {str(e)}"
         return MIN_SCORE, error_msg
 
-
 def run_evaluation(
     file_path: str, 
     user_input: str, 
@@ -206,7 +194,6 @@ def run_evaluation(
     except Exception as e:
         print(f"{MIN_SCORE:.2f}")
         print(f"Critical error: {str(e)}")
-
 
 def create_argument_parser() -> argparse.ArgumentParser:
     """
@@ -237,7 +224,6 @@ def create_argument_parser() -> argparse.ArgumentParser:
     )
     
     return parser
-
 
 def main() -> int:
     """
@@ -274,7 +260,6 @@ def main() -> int:
         print(f"{MIN_SCORE:.2f}")
         print(f"Unexpected error: {str(e)}")
         return EXIT_FAILURE
-
 
 if __name__ == "__main__":
     sys.exit(main())
