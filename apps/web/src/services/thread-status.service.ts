@@ -496,7 +496,13 @@ async function performFullStatusCheck(
   }
 
   let programmerStatusValue: ThreadUIStatus;
-  if (programmerRun.status === "running") {
+
+  // First check thread status (more real-time) before relying on cached run data
+  if (programmerThread.status === "busy") {
+    programmerStatusValue = "running";
+  } else if (programmerThread.status === "error") {
+    programmerStatusValue = "error";
+  } else if (programmerRun.status === "running") {
     programmerStatusValue = "running";
   } else if (programmerRun.status === "timeout") {
     programmerStatusValue = "error";
