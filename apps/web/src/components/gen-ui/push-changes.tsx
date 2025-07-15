@@ -83,7 +83,7 @@ export function PushChanges({
       {reasoningText && (
         <div className="border-b border-blue-100 bg-blue-50 p-2">
           <button
-            onClick={() => setShowReasoning(!showReasoning)}
+            onClick={() => setLocalShowReasoning(!localShowReasoning)}
             className="flex items-center gap-1 text-xs font-normal text-blue-700 hover:text-blue-800"
           >
             <MessageSquare className="h-3 w-3" />
@@ -155,7 +155,7 @@ export function PushChanges({
       {summaryText && status === "done" && (
         <div className="border-t border-green-100 bg-green-50 p-2">
           <button
-            onClick={() => setShowSummary(!showSummary)}
+            onClick={() => setLocalShowSummary(!localShowSummary)}
             className="flex items-center gap-1 text-xs font-normal text-green-700 hover:text-green-800"
           >
             <FileText className="h-3 w-3" />
@@ -171,5 +171,6 @@ export function PushChanges({
     </div>
   );
 }
+
 
 
