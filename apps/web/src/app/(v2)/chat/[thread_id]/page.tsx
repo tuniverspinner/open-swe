@@ -1,6 +1,7 @@
 "use client";
 
 import { ThreadView } from "@/components/v2/thread-view";
+import { ActionDisplayProvider } from "@/contexts/action-display-context";
 import { ThreadViewLoading } from "@/components/v2/thread-view-loading";
 import { ThreadDisplayInfo, threadToDisplayInfo } from "@/components/v2/types";
 import { useThreads } from "@/hooks/useThreads";
@@ -49,12 +50,15 @@ export default function ThreadPage({
 
   return (
     <div className="bg-background fixed inset-0">
-      <ThreadView
-        stream={stream}
-        displayThread={currentDisplayThread}
-        allDisplayThreads={displayThreads}
-        onBackToHome={handleBackToHome}
-      />
+      <ActionDisplayProvider>
+        <ThreadView
+          stream={stream}
+          displayThread={currentDisplayThread}
+          allDisplayThreads={displayThreads}
+          onBackToHome={handleBackToHome}
+        />
+      </ActionDisplayProvider>
     </div>
   );
 }
+
