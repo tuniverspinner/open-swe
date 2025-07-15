@@ -57,39 +57,36 @@ export class StatusResolver {
   }
 }
 
-const sessionDataCache = new Map<
-  string,
-  {
-    data: any;
-    timestamp: number;
-    type: "planner" | "programmer";
-  }
->();
-
 const CACHE_TTL = 30 * 1000;
 
-function getCachedSessionData(sessionKey: string): any | null {
-  const cached = sessionDataCache.get(sessionKey);
+function getCachedSessionData(
+  sessionCache: Map<string, any> | undefined,
+  sessionKey: string,
+): any | null {
+  if (!sessionCache) return null;
+
+  const cached = sessionCache.get(sessionKey);
   if (!cached) return null;
 
   const isExpired = Date.now() - cached.timestamp > CACHE_TTL;
   if (isExpired) {
-    sessionDataCache.delete(sessionKey);
+    sessionCache.delete(sessionKey);
     return null;
   }
 
-  return cached.data;
+  return cached;
 }
 
 function setCachedSessionData(
+  sessionCache: Map<string, any> | undefined,
   sessionKey: string,
   data: any,
-  type: "planner" | "programmer",
 ): void {
-  sessionDataCache.set(sessionKey, {
-    data,
+  if (!sessionCache) return;
+
+  sessionCache.set(sessionKey, {
+    ...data,
     timestamp: Date.now(),
-    type,
   });
 }
 
@@ -131,6 +128,7 @@ export async function fetchThreadStatus(
       threadId,
       resolver,
       managerThreadData,
+      sessionCache,
     );
   } catch (error) {
     console.error(`Error fetching thread status for ${threadId}:`, error);
@@ -300,6 +298,7 @@ async function performFullStatusCheck(
   threadId: string,
   resolver: StatusResolver,
   managerThreadData?: Thread<ManagerGraphState> | null,
+  sessionCache?: Map<string, any>,
 ): Promise<ThreadStatusData> {
   let managerThread: Thread<ManagerGraphState>;
 
@@ -329,10 +328,10 @@ async function performFullStatusCheck(
   const plannerCacheKey = `planner:${plannerSession.threadId}:${plannerSession.runId}`;
 
   let plannerThread: any;
-  const cachedPlannerData = getCachedSessionData(plannerCacheKey);
+  const cachedPlannerData = getCachedSessionData(sessionCache, plannerCacheKey);
 
-  if (cachedPlannerData) {
-    plannerThread = cachedPlannerData.thread;
+  if (cachedPlannerData?.plannerData) {
+    plannerThread = cachedPlannerData.plannerData.thread;
   } else {
     plannerThread = await client.threads.get<PlannerGraphState>(
       plannerSession.threadId,
@@ -340,11 +339,9 @@ async function performFullStatusCheck(
 
     // No run fetch needed for planners - thread status is sufficient
 
-    setCachedSessionData(
-      plannerCacheKey,
-      { thread: plannerThread, run: null },
-      "planner",
-    );
+    setCachedSessionData(sessionCache, plannerCacheKey, {
+      plannerData: { thread: plannerThread, run: null },
+    });
   }
 
   // Use thread status directly for most cases
@@ -384,10 +381,13 @@ async function performFullStatusCheck(
   const programmerCacheKey = `programmer:${programmerSession.threadId}:${programmerSession.runId}`;
 
   let programmerThread: any;
-  const cachedProgrammerData = getCachedSessionData(programmerCacheKey);
+  const cachedProgrammerData = getCachedSessionData(
+    sessionCache,
+    programmerCacheKey,
+  );
 
-  if (cachedProgrammerData) {
-    programmerThread = cachedProgrammerData.thread;
+  if (cachedProgrammerData?.programmerData) {
+    programmerThread = cachedProgrammerData.programmerData.thread;
   } else {
     programmerThread = await client.threads.get<GraphState>(
       programmerSession.threadId,
@@ -395,11 +395,9 @@ async function performFullStatusCheck(
 
     // No run fetch needed - we only check task completion from thread data
 
-    setCachedSessionData(
-      programmerCacheKey,
-      { thread: programmerThread, run: null },
-      "programmer",
-    );
+    setCachedSessionData(sessionCache, programmerCacheKey, {
+      programmerData: { thread: programmerThread, run: null },
+    });
   }
 
   // Use thread status directly for most cases

@@ -4,6 +4,7 @@ import {
   PROGRAMMER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { ThreadStatus } from "@langchain/langgraph-sdk";
+import { TaskPlan } from "@open-swe/shared/open-swe/types";
 
 /**
  * UI-specific thread status that extends LangGraph's states
@@ -40,5 +41,5 @@ export interface ThreadStatusData {
   runId: string;
   threadId: string;
   status: ThreadUIStatus;
-  taskPlan?: any; // Task plan data when available from programmer sessions
+  taskPlan?: TaskPlan; // Task plan data when available from programmer sessions
 }
