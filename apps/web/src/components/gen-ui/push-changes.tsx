@@ -2,6 +2,7 @@
 
 import "../app/globals.css";
 import { useState } from "react";
+import { useActionDisplay } from "@/contexts/action-display-context";
 import {
   GitCommit,
   Loader2,
@@ -162,3 +163,4 @@ export function PushChanges({
     </div>
   );
 }
+
