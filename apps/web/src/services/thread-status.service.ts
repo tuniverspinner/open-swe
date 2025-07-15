@@ -165,20 +165,12 @@ async function checkLastKnownGraph(
           programmerThread.status,
         );
 
-        // Only check run status if thread is idle and we need to determine completed vs idle
-        if (programmerThread.status === "idle") {
-          const programmerRun = await client.runs.get(
-            lastState.threadId,
-            lastState.runId,
-          );
-
-          if (
-            programmerRun.status === "success" &&
-            areAllTasksCompleted(programmerThread.values?.taskPlan)
-          ) {
-            programmerStatusValue = "completed";
-          }
-          // else keep the mapped thread status (idle)
+        // Check task completion when thread is idle - no run status needed
+        if (
+          programmerThread.status === "idle" &&
+          areAllTasksCompleted(programmerThread.values?.taskPlan)
+        ) {
+          programmerStatusValue = "completed";
         }
 
         const programmerStatus: StatusResult = {
@@ -246,20 +238,12 @@ async function checkLastKnownGraph(
             programmerThread.status,
           );
 
-          // Only check run status if thread is idle and we need to determine completed vs idle
-          if (programmerThread.status === "idle") {
-            const programmerRun = await client.runs.get(
-              programmerSession.threadId,
-              programmerSession.runId,
-            );
-
-            if (
-              programmerRun.status === "success" &&
-              areAllTasksCompleted(programmerThread.values?.taskPlan)
-            ) {
-              programmerStatusValue = "completed";
-            }
-            // else keep the mapped thread status (idle)
+          // Check task completion when thread is idle - no run status needed
+          if (
+            programmerThread.status === "idle" &&
+            areAllTasksCompleted(programmerThread.values?.taskPlan)
+          ) {
+            programmerStatusValue = "completed";
           }
 
           const programmerStatus: StatusResult = {
@@ -345,12 +329,10 @@ async function performFullStatusCheck(
   const plannerCacheKey = `planner:${plannerSession.threadId}:${plannerSession.runId}`;
 
   let plannerThread: any;
-  let plannerRun: any = null;
   const cachedPlannerData = getCachedSessionData(plannerCacheKey);
 
   if (cachedPlannerData) {
     plannerThread = cachedPlannerData.thread;
-    plannerRun = cachedPlannerData.run;
   } else {
     plannerThread = await client.threads.get<PlannerGraphState>(
       plannerSession.threadId,
@@ -360,7 +342,7 @@ async function performFullStatusCheck(
 
     setCachedSessionData(
       plannerCacheKey,
-      { thread: plannerThread, run: plannerRun },
+      { thread: plannerThread, run: null },
       "planner",
     );
   }
@@ -402,28 +384,20 @@ async function performFullStatusCheck(
   const programmerCacheKey = `programmer:${programmerSession.threadId}:${programmerSession.runId}`;
 
   let programmerThread: any;
-  let programmerRun: any = null;
   const cachedProgrammerData = getCachedSessionData(programmerCacheKey);
 
   if (cachedProgrammerData) {
     programmerThread = cachedProgrammerData.thread;
-    programmerRun = cachedProgrammerData.run;
   } else {
     programmerThread = await client.threads.get<GraphState>(
       programmerSession.threadId,
     );
 
-    // Only fetch run if thread is idle and we need to check for completion/timeout
-    if (programmerThread.status === "idle") {
-      programmerRun = await client.runs.get(
-        programmerSession.threadId,
-        programmerSession.runId,
-      );
-    }
+    // No run fetch needed - we only check task completion from thread data
 
     setCachedSessionData(
       programmerCacheKey,
-      { thread: programmerThread, run: programmerRun },
+      { thread: programmerThread, run: null },
       "programmer",
     );
   }
@@ -431,15 +405,12 @@ async function performFullStatusCheck(
   // Use thread status directly for most cases
   let programmerStatusValue = mapLangGraphToUIStatus(programmerThread.status);
 
-  // Only check run status if thread is idle and we need to determine completed vs idle
-  if (programmerThread.status === "idle" && programmerRun) {
-    if (
-      programmerRun.status === "success" &&
-      areAllTasksCompleted(programmerThread.values?.taskPlan)
-    ) {
-      programmerStatusValue = "completed";
-    }
-    // else keep the mapped thread status (idle)
+  // Check task completion when thread is idle - no run status needed
+  if (
+    programmerThread.status === "idle" &&
+    areAllTasksCompleted(programmerThread.values?.taskPlan)
+  ) {
+    programmerStatusValue = "completed";
   }
 
   const programmerStatus: StatusResult = {
