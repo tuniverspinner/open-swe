@@ -5,6 +5,16 @@ import { THREAD_STATUS_SWR_CONFIG } from "@/lib/swr-config";
 import { useMemo, useRef } from "react";
 import { Thread } from "@langchain/langgraph-sdk";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
+import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
+import { GraphState } from "@open-swe/shared/open-swe/types";
+
+export interface SessionCacheData {
+  plannerData?: { thread: Thread<PlannerGraphState>; run: null };
+  programmerData?: { thread: Thread<GraphState>; run: null };
+  timestamp: number;
+}
+
+export type SessionCache = Map<string, SessionCacheData>;
 
 interface ThreadStatusMap {
   [threadId: string]: ThreadUIStatus;
@@ -39,14 +49,7 @@ interface UseThreadsStatusResult {
   hasErrors: boolean;
 }
 
-const sessionDataCache = new Map<
-  string,
-  {
-    plannerData?: { thread: any; run: any };
-    programmerData?: { thread: any; run: any };
-    timestamp: number;
-  }
->();
+const sessionDataCache: SessionCache = new Map();
 
 const CACHE_TTL = 30000;
 

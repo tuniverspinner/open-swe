@@ -6,9 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search, Filter } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ThreadMetadata, threadToMetadata } from "@/components/v2/types";
+import { ThreadMetadata } from "@/components/v2/types";
 import { useThreadsSWR } from "@/hooks/useThreadsSWR";
-import { GraphState } from "@open-swe/shared/open-swe/types";
 import { ThreadCard, ThreadCardLoading } from "@/components/v2/thread-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { InstallationSelector } from "@/components/github/installation-selector";
@@ -29,23 +28,25 @@ type FilterStatus =
 
 function AllThreadsPageContent() {
   const router = useRouter();
-  const { threads, isLoading: threadsLoading } = useThreadsSWR<GraphState>({
+  const {
+    threads,
+    threadsMetadata,
+    isLoading: threadsLoading,
+  } = useThreadsSWR({
     assistantId: MANAGER_GRAPH_ID,
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
 
-  const threadMetadata: ThreadMetadata[] = threads?.map(threadToMetadata) ?? [];
-  const threadIds = threadMetadata.map((thread) => thread.id);
+  const threadIds = threadsMetadata.map((thread) => thread.id);
 
   const {
     statusMap,
     statusCounts,
-    groupedThreads,
     isLoading: statusLoading,
   } = useThreadsStatus(threadIds, threads);
 
-  const filteredThreads = threadMetadata.filter((thread) => {
+  const filteredThreads = threadsMetadata.filter((thread: ThreadMetadata) => {
     const matchesSearch =
       thread.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       thread.repository.toLowerCase().includes(searchQuery.toLowerCase());
@@ -56,7 +57,7 @@ function AllThreadsPageContent() {
     return matchesSearch && matchesStatus;
   });
 
-  const realGroupedThreads = {
+  const groupedThreads = {
     running: filteredThreads.filter(
       (thread: ThreadMetadata) => statusMap[thread.id] === "running",
     ),
@@ -175,7 +176,7 @@ function AllThreadsPageContent() {
           <div className="mx-auto max-w-6xl p-4">
             {statusFilter === "all" ? (
               <div className="space-y-6">
-                {Object.entries(realGroupedThreads).map(([status, threads]) => {
+                {Object.entries(groupedThreads).map(([status, threads]) => {
                   if (threads.length === 0) return null;
                   return (
                     <div key={status}>

@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, GitBranch, Terminal, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreadSwitcher } from "./thread-switcher";
-import { ThreadDisplayInfo, ThreadMetadata } from "./types";
+import { ThreadMetadata } from "./types";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
@@ -33,7 +33,7 @@ import { CancelStreamButton } from "./cancel-stream-button";
 
 interface ThreadViewProps {
   stream: ReturnType<typeof useStream<ManagerGraphState>>;
-  displayThread: ThreadDisplayInfo;
+  displayThread: ThreadMetadata;
   allDisplayThreads: ThreadMetadata[];
   onBackToHome: () => void;
 }

@@ -1,4 +1,4 @@
-import { Thread } from "@langchain/langgraph-sdk";
+import { Client, Thread } from "@langchain/langgraph-sdk";
 import { createClient } from "@/providers/client";
 import {
   ThreadUIStatus,
@@ -9,6 +9,7 @@ import { GraphState, TaskPlan } from "@open-swe/shared/open-swe/types";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import { getActivePlanItems } from "@open-swe/shared/open-swe/tasks";
+import { SessionCache, SessionCacheData } from "@/hooks/useThreadsStatus";
 
 interface StatusResult {
   graph: "manager" | "planner" | "programmer";
@@ -62,9 +63,9 @@ export class StatusResolver {
 const CACHE_TTL = 30 * 1000;
 
 function getCachedSessionData(
-  sessionCache: Map<string, any> | undefined,
+  sessionCache: SessionCache | undefined,
   sessionKey: string,
-): any | null {
+): SessionCacheData | null {
   if (!sessionCache) return null;
 
   const cached = sessionCache.get(sessionKey);
@@ -80,9 +81,9 @@ function getCachedSessionData(
 }
 
 function setCachedSessionData(
-  sessionCache: Map<string, any> | undefined,
+  sessionCache: SessionCache | undefined,
   sessionKey: string,
-  data: any,
+  data: Partial<SessionCacheData>,
 ): void {
   if (!sessionCache) return;
 
@@ -96,7 +97,7 @@ export async function fetchThreadStatus(
   threadId: string,
   lastPollingState: ThreadStatusData | null = null,
   managerThreadData?: Thread<ManagerGraphState> | null,
-  sessionCache?: Map<string, any>,
+  sessionCache?: SessionCache,
 ): Promise<ThreadStatusData> {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -149,7 +150,7 @@ export async function fetchThreadStatus(
 }
 
 async function checkLastKnownGraph(
-  client: ReturnType<typeof createClient>,
+  client: Client,
   lastState: ThreadStatusData,
   resolver: StatusResolver,
 ): Promise<ThreadStatusData | null> {
@@ -296,11 +297,11 @@ async function checkLastKnownGraph(
 }
 
 async function performFullStatusCheck(
-  client: ReturnType<typeof createClient>,
+  client: Client,
   threadId: string,
   resolver: StatusResolver,
   managerThreadData?: Thread<ManagerGraphState> | null,
-  sessionCache?: Map<string, any>,
+  sessionCache?: SessionCache,
 ): Promise<ThreadStatusData> {
   let managerThread: Thread<ManagerGraphState>;
 
@@ -329,7 +330,7 @@ async function performFullStatusCheck(
   const plannerSession = managerThread.values.plannerSession;
   const plannerCacheKey = `planner:${plannerSession.threadId}:${plannerSession.runId}`;
 
-  let plannerThread: any;
+  let plannerThread: Thread<PlannerGraphState>;
   const cachedPlannerData = getCachedSessionData(sessionCache, plannerCacheKey);
 
   if (cachedPlannerData?.plannerData) {
@@ -382,7 +383,7 @@ async function performFullStatusCheck(
   const programmerSession = plannerThread.values.programmerSession;
   const programmerCacheKey = `programmer:${programmerSession.threadId}:${programmerSession.runId}`;
 
-  let programmerThread: any;
+  let programmerThread: Thread<GraphState>;
   const cachedProgrammerData = getCachedSessionData(
     sessionCache,
     programmerCacheKey,

@@ -2,13 +2,12 @@
 
 import { ThreadView } from "@/components/v2/thread-view";
 import { ThreadViewLoading } from "@/components/v2/thread-view-loading";
-import { ThreadMetadata, threadToMetadata } from "@/components/v2/types";
-import { useThreadDisplayInfo } from "@/hooks/useThreadDisplayInfo";
+import { ThreadMetadata } from "@/components/v2/types";
+import { useThreadMetadata } from "@/hooks/useThreadMetadata";
 import { useThreadsSWR } from "@/hooks/useThreadsSWR";
 import { useStream } from "@langchain/langgraph-sdk/react";
 import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
-import { GraphState } from "@open-swe/shared/open-swe/types";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { use } from "react";
@@ -31,7 +30,11 @@ export default function ThreadPage({
     reconnectOnMount: true,
   });
 
-  const { threads, isLoading: threadsLoading } = useThreadsSWR<GraphState>({
+  const {
+    threads,
+    threadsMetadata,
+    isLoading: threadsLoading,
+  } = useThreadsSWR({
     assistantId: MANAGER_GRAPH_ID,
   });
 
@@ -47,7 +50,7 @@ export default function ThreadPage({
     created_at: new Date().toISOString(),
   };
 
-  const { displayInfo: currentDisplayThread } = useThreadDisplayInfo(
+  const { metadata: currentDisplayThread } = useThreadMetadata(
     dummyThread as any,
   );
 
@@ -59,15 +62,14 @@ export default function ThreadPage({
     return <ThreadViewLoading onBackToHome={handleBackToHome} />;
   }
 
-  // Convert all threads to metadata format
-  const threadMetadata: ThreadMetadata[] = threads.map(threadToMetadata);
+  // Threads metadata is already computed by the hook
 
   return (
     <div className="bg-background fixed inset-0">
       <ThreadView
         stream={stream}
         displayThread={currentDisplayThread}
-        allDisplayThreads={threadMetadata}
+        allDisplayThreads={threadsMetadata}
         onBackToHome={handleBackToHome}
       />
     </div>
