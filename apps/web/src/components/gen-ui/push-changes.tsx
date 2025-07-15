@@ -37,8 +37,16 @@ export function PushChanges({
   const [expanded, setExpanded] = useState(
     Boolean(status === "done" && gitStatus),
   );
-  const [showReasoning, setShowReasoning] = useState(true);
-  const [showSummary, setShowSummary] = useState(true);
+  
+  const { getEffectiveReasoningState, getEffectiveSummaryState } = useActionDisplay();
+  
+  // Local state for individual component toggles
+  const [localShowReasoning, setLocalShowReasoning] = useState(true);
+  const [localShowSummary, setLocalShowSummary] = useState(true);
+  
+  // Get effective state from context (respects global overrides)
+  const showReasoning = getEffectiveReasoningState(localShowReasoning);
+  const showSummary = getEffectiveSummaryState(localShowSummary);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -163,4 +171,5 @@ export function PushChanges({
     </div>
   );
 }
+
 
