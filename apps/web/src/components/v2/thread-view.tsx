@@ -30,6 +30,8 @@ import {
 } from "../../utils/scroll-utils";
 import { ManagerChat } from "./manager-chat";
 import { CancelStreamButton } from "./cancel-stream-button";
+import { TaskPlanProgress } from "./task-plan-progress";
+import { usePolledTaskPlan } from "@/hooks/usePolledTaskPlan";
 
 interface ThreadViewProps {
   stream: ReturnType<typeof useStream<ManagerGraphState>>;
@@ -54,6 +56,7 @@ export function ThreadView({
     useState<ManagerGraphState["programmerSession"]>();
 
   const { status: realTimeStatus } = useThreadStatus(displayThread.id);
+  const { taskPlan, isProgrammerActive } = usePolledTaskPlan(displayThread.id);
 
   const getStatusDotColor = (status: string) => {
     switch (status) {
@@ -179,6 +182,11 @@ export function ThreadView({
                         <TabsTrigger value="planner">Planner</TabsTrigger>
                         <TabsTrigger value="programmer">Programmer</TabsTrigger>
                       </TabsList>
+
+                      {/* TaskPlan Progress - only show when programmer is active */}
+                      {isProgrammerActive && taskPlan && (
+                        <TaskPlanProgress taskPlan={taskPlan} />
+                      )}
 
                       <div className="flex gap-2">
                         {selectedTab === "planner" &&
