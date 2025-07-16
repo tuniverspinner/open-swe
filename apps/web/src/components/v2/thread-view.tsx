@@ -30,6 +30,9 @@ import {
 } from "../../utils/scroll-utils";
 import { ManagerChat } from "./manager-chat";
 import { CancelStreamButton } from "./cancel-stream-button";
+import { ProgressBar } from "../tasks/progress-bar";
+import { TasksSidebar } from "../tasks";
+import { useActiveTaskPlan } from "../tasks/useTaskPlan";
 
 interface ThreadViewProps {
   stream: ReturnType<typeof useStream<ManagerGraphState>>;
@@ -52,6 +55,13 @@ export function ThreadView({
   const plannerRunId = stream.values?.plannerSession?.runId;
   const [programmerSession, setProgrammerSession] =
     useState<ManagerGraphState["programmerSession"]>();
+  const [isTaskSidebarOpen, setIsTaskSidebarOpen] = useState(false);
+
+  // Get the active task plan from the correct source (programmer thread when active, fallback to display thread)
+  const { taskPlan: activeTaskPlan, isProgrammerActive } = useActiveTaskPlan(
+    displayThread.taskPlan,
+    programmerSession,
+  );
 
   const { status: realTimeStatus } = useThreadStatus(displayThread.id);
 
@@ -175,10 +185,22 @@ export function ThreadView({
                     }
                   >
                     <div className="flex items-center justify-between">
-                      <TabsList className="bg-muted/70 dark:bg-gray-800">
-                        <TabsTrigger value="planner">Planner</TabsTrigger>
-                        <TabsTrigger value="programmer">Programmer</TabsTrigger>
-                      </TabsList>
+                      <div className="flex items-center gap-3">
+                        <TabsList className="bg-muted/70 dark:bg-gray-800">
+                          <TabsTrigger value="planner">Planner</TabsTrigger>
+                          <TabsTrigger value="programmer">
+                            Programmer
+                          </TabsTrigger>
+                        </TabsList>
+
+                        {/* Task Progress Bar */}
+                        {activeTaskPlan && (
+                          <ProgressBar
+                            taskPlan={activeTaskPlan}
+                            onOpenSidebar={() => setIsTaskSidebarOpen(true)}
+                          />
+                        )}
+                      </div>
 
                       <div className="flex gap-2">
                         {selectedTab === "planner" &&
@@ -274,6 +296,15 @@ export function ThreadView({
           </div>
         </div>
       </div>
+
+      {/* Tasks Sidebar */}
+      {activeTaskPlan && (
+        <TasksSidebar
+          isOpen={isTaskSidebarOpen}
+          onClose={() => setIsTaskSidebarOpen(false)}
+          taskPlan={activeTaskPlan}
+        />
+      )}
     </div>
   );
 }
