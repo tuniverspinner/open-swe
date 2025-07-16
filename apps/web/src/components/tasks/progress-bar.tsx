@@ -7,9 +7,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { List, HelpCircle } from "lucide-react";
+import { List } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
 import { PlanItem, TaskPlan } from "@open-swe/shared/open-swe/types";
 import {
   HoverCard,
@@ -28,7 +27,6 @@ export function ProgressBar({
   className,
   onOpenSidebar,
 }: ProgressBarProps) {
-  const [showLegend, setShowLegend] = useState(false);
 
   if (!taskPlan || !taskPlan.tasks.length) {
     return (
@@ -103,101 +101,41 @@ export function ProgressBar({
   return (
     <div
       className={cn(
-        "w-full rounded-md border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900",
+        "w-96 rounded-md border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900",
         className,
       )}
     >
-      {/* Compact header */}
-      <div className="overflow-hidden px-1 py-1.5 sm:px-2">
-        <div className="mb-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-700 sm:text-sm dark:text-gray-200">
+      {/* Compact header - 2 rows instead of 3 */}
+      <div className="overflow-hidden px-2 py-1">
+        {/* Row 1: Title, progress stats, and Tasks button */}
+        <div className="mb-1 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-gray-700 dark:text-gray-200">
               Plan Progress
             </span>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0 sm:h-5 sm:w-5"
-                    onClick={() => setShowLegend(!showLegend)}
-                  >
-                    <HelpCircle className="h-3 w-3 text-gray-500" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-xs p-2 text-xs"
-                >
-                  <div className="space-y-1">
-                    <p className="font-medium">Plan Progress</p>
-                    <p>
-                      Shows the current progress of the AI agent's plan
-                      execution.
-                    </p>
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 sm:text-sm dark:text-gray-400">
+            <span className="text-xs text-gray-600 dark:text-gray-300">
+              {completedCount} of {planItems.length} completed
+            </span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">
               {Math.round(progressPercentage)}%
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onOpenSidebar}
-              className="h-6 border-blue-200 text-xs hover:bg-blue-50"
-            >
-              <List className="size-3" />
-              <span className="hidden sm:inline">Tasks</span>
-              <span className="sm:hidden">View</span>
-            </Button>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenSidebar}
+            className="h-6 border-blue-200 text-xs hover:bg-blue-50"
+          >
+            <List className="size-3" />
+            <span className="hidden sm:inline">Tasks</span>
+            <span className="sm:hidden">View</span>
+          </Button>
         </div>
 
-        {/* Legend - conditionally shown */}
-        {showLegend && (
-          <div className="mb-2 flex flex-wrap items-center gap-2 rounded border border-gray-200 bg-gray-50 px-2 py-1 text-xs sm:gap-3 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-            <div className="flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full bg-green-400"></div>
-              <span>Completed</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-blue-400"></div>
-              <span>Current</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="h-2 w-2 rounded-full bg-gray-200"></div>
-              <span>Pending</span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-auto h-4 touch-manipulation p-0 text-xs"
-              onClick={() => setShowLegend(false)}
-            >
-              ×
-            </Button>
-          </div>
-        )}
-
-        {/* Progress Stats */}
-        <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-xs text-gray-600 sm:text-sm dark:text-gray-300">
-            {completedCount} of {planItems.length} tasks completed
-          </span>
-          <span className="text-xs text-gray-500 sm:text-sm dark:text-gray-400">
-            Task #{currentTask.taskIndex + 1}
-          </span>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="space-y-2">
+        {/* Row 2: Progress Bar */}
+        <div>
           <div
-            className="flex h-3 cursor-pointer touch-manipulation gap-[1px] overflow-hidden rounded-sm bg-gray-100 transition-all sm:h-2 dark:bg-gray-700"
+            className="flex h-4 cursor-pointer touch-manipulation gap-[1px] overflow-hidden rounded-sm bg-gray-100 transition-all dark:bg-gray-700"
             onClick={onOpenSidebar}
             aria-label="Click to view all tasks"
             title="Click to view all tasks"

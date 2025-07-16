@@ -1,4 +1,3 @@
-import { useStreamContext } from "@/providers/Stream";
 import { TaskPlan } from "@open-swe/shared/open-swe/types";
 import { useEffect, useState } from "react";
 import { useStream } from "@langchain/langgraph-sdk/react";
@@ -6,26 +5,8 @@ import { PROGRAMMER_GRAPH_ID } from "@open-swe/shared/constants";
 import { GraphState } from "@open-swe/shared/open-swe/types";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 
-// V1 hook that uses StreamContext
-export function useTaskPlan() {
-  const { values } = useStreamContext();
-  const [taskPlan, setTaskPlan] = useState<TaskPlan>();
-
-  useEffect(() => {
-    const currentPlanStr = JSON.stringify(taskPlan, null, 2);
-    const newPlanStr = JSON.stringify(values?.taskPlan, null, 2);
-    if (currentPlanStr !== newPlanStr) {
-      setTaskPlan(values?.taskPlan);
-    }
-  }, [values?.taskPlan]);
-
-  return {
-    taskPlan,
-  };
-}
-
-// V2 hook that works with task plan data directly
-export function useTaskPlanV2(taskPlan?: TaskPlan) {
+// Hook that works with task plan data directly
+export function useTaskPlan(taskPlan?: TaskPlan) {
   const [currentTaskPlan, setCurrentTaskPlan] = useState<TaskPlan>();
 
   useEffect(() => {
