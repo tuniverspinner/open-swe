@@ -7,7 +7,7 @@ import {
 import { getGitHubTokensFromConfig } from "../../../utils/github-tokens.js";
 import { HumanMessage, isHumanMessage } from "@langchain/core/messages";
 import { getIssue } from "../../../utils/github/api.js";
-import { extractTasksFromIssueContent } from "../../../utils/github/issue-task.js";
+import { getTaskPlanFromPollingSystem } from "../../../utils/github/issue-task.js";
 import { getMessageContentFromIssue } from "../../../utils/github/issue-messages.js";
 
 /**
@@ -22,22 +22,18 @@ export async function initializeGithubIssue(
   let taskPlan = state.taskPlan;
 
   if (state.messages.length && state.messages.some(isHumanMessage)) {
-    // If there are messages, & at least one is a human message, only attempt to read the updated plan from the issue.
+    // If there are messages, & at least one is a human message, only attempt to read the updated plan from the polling system.
     if (state.githubIssueId) {
-      const issue = await getIssue({
-        owner: state.targetRepository.owner,
-        repo: state.targetRepository.repo,
-        issueNumber: state.githubIssueId,
-        githubInstallationToken,
-      });
-      if (!issue) {
-        throw new Error("Issue not found");
-      }
-      if (issue.body) {
-        const extractedTaskPlan = extractTasksFromIssueContent(issue.body);
-        if (extractedTaskPlan) {
-          taskPlan = extractedTaskPlan;
-        }
+      const { taskPlan: extractedTaskPlan } =
+        await getTaskPlanFromPollingSystem(
+          {
+            githubIssueId: state.githubIssueId,
+            targetRepository: state.targetRepository,
+          },
+          config,
+        );
+      if (extractedTaskPlan) {
+        taskPlan = extractedTaskPlan;
       }
     }
 
@@ -54,6 +50,19 @@ export async function initializeGithubIssue(
     throw new Error("Target repository not provided");
   }
 
+  // Get task plan from polling system instead of GitHub issue parsing
+  const { taskPlan: extractedTaskPlan } = await getTaskPlanFromPollingSystem(
+    {
+      githubIssueId: state.githubIssueId,
+      targetRepository: state.targetRepository,
+    },
+    config,
+  );
+  if (extractedTaskPlan) {
+    taskPlan = extractedTaskPlan;
+  }
+
+  // Still need to get the issue for the message content
   const issue = await getIssue({
     owner: state.targetRepository.owner,
     repo: state.targetRepository.repo,
@@ -62,12 +71,6 @@ export async function initializeGithubIssue(
   });
   if (!issue) {
     throw new Error("Issue not found");
-  }
-  if (issue.body) {
-    const extractedTaskPlan = extractTasksFromIssueContent(issue.body);
-    if (extractedTaskPlan) {
-      taskPlan = extractedTaskPlan;
-    }
   }
 
   const newMessage = new HumanMessage({

@@ -6,18 +6,27 @@ import {
 import { getIssue, updateIssue } from "./api.js";
 import { getGitHubTokensFromConfig } from "../github-tokens.js";
 import { createLogger, LogLevel } from "../logger.js";
+import { createLangGraphClient } from "../langgraph-client.js";
+import { getDefaultHeaders } from "../default-headers.js";
+import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
+import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
+import { GraphState } from "@open-swe/shared/open-swe/types";
 
 const logger = createLogger(LogLevel.INFO, "IssueTaskString");
 
 export const TASK_OPEN_TAG = "<open-swe-do-not-edit-task-plan>";
 export const TASK_CLOSE_TAG = "</open-swe-do-not-edit-task-plan>";
-
 export const PROPOSED_PLAN_OPEN_TAG = "<open-swe-do-not-edit-proposed-plan>";
 export const PROPOSED_PLAN_CLOSE_TAG = "</open-swe-do-not-edit-proposed-plan>";
 
 const DETAILS_OPEN_TAG = "<details>";
 const DETAILS_CLOSE_TAG = "</details>";
 const AGENT_CONTEXT_DETAILS_SUMMARY = "<summary>Agent Context</summary>";
+
+interface GetIssueTaskPlanInput {
+  githubIssueId: number;
+  targetRepository: TargetRepository;
+}
 
 function typeNarrowTaskPlan(taskPlan: unknown): taskPlan is TaskPlan {
   return !!(
@@ -31,6 +40,107 @@ function typeNarrowTaskPlan(taskPlan: unknown): taskPlan is TaskPlan {
   );
 }
 
+/**
+ * NEW: Get task plan from LangGraph polling system instead of GitHub issue parsing
+ * This function retrieves the most up-to-date task plan directly from the thread state
+ */
+export async function getTaskPlanFromPollingSystem(
+  input: GetIssueTaskPlanInput,
+  config: GraphConfig,
+): Promise<{
+  taskPlan: TaskPlan | null;
+  proposedPlan: string[] | null;
+}> {
+  try {
+    const langGraphClient = createLangGraphClient({
+      defaultHeaders: getDefaultHeaders(config),
+    });
+
+    // Find the manager thread for this GitHub issue
+    const managerThreads =
+      await langGraphClient.threads.search<ManagerGraphState>({
+        metadata: {
+          graph_id: "manager",
+        },
+      });
+
+    const managerThread = managerThreads.find(
+      (thread) => thread.values?.githubIssueId === input.githubIssueId,
+    );
+
+    if (!managerThread) {
+      logger.info("No manager thread found for GitHub issue", {
+        githubIssueId: input.githubIssueId,
+      });
+      return { taskPlan: null, proposedPlan: null };
+    }
+
+    let taskPlan: TaskPlan | null = managerThread.values?.taskPlan || null;
+    let proposedPlan: string[] | null = null;
+
+    // Check if there's an active planner session with more recent data
+    if (managerThread.values?.plannerSession) {
+      try {
+        const plannerThread =
+          await langGraphClient.threads.get<PlannerGraphState>(
+            managerThread.values.plannerSession.threadId,
+          );
+
+        // Get proposed plan from planner if available
+        if (plannerThread.values?.proposedPlan) {
+          proposedPlan = plannerThread.values.proposedPlan;
+        }
+
+        // Check if there's an active programmer session with the latest task plan
+        if (plannerThread.values?.programmerSession) {
+          try {
+            const programmerThread =
+              await langGraphClient.threads.get<GraphState>(
+                plannerThread.values.programmerSession.threadId,
+              );
+
+            // Use programmer's task plan as it has the most up-to-date progress
+            if (programmerThread.values?.taskPlan) {
+              taskPlan = programmerThread.values.taskPlan;
+            }
+          } catch (error) {
+            logger.warn("Failed to get programmer thread data", {
+              programmerThreadId:
+                plannerThread.values.programmerSession.threadId,
+              error,
+            });
+          }
+        }
+      } catch (error) {
+        logger.warn("Failed to get planner thread data", {
+          plannerThreadId: managerThread.values.plannerSession.threadId,
+          error,
+        });
+      }
+    }
+
+    logger.info("Retrieved task plan from polling system", {
+      githubIssueId: input.githubIssueId,
+      managerThreadId: managerThread.thread_id,
+      hasTaskPlan: !!taskPlan,
+      hasProposedPlan: !!proposedPlan,
+      taskCount: taskPlan?.tasks?.length || 0,
+    });
+
+    return { taskPlan, proposedPlan };
+  } catch (error) {
+    logger.error("Failed to get task plan from polling system", {
+      githubIssueId: input.githubIssueId,
+      error,
+    });
+    return { taskPlan: null, proposedPlan: null };
+  }
+}
+
+/**
+ * @deprecated Use getTaskPlanFromPollingSystem instead
+ * Legacy function that parses task plan from GitHub issue content
+ */
 export function extractTasksFromIssueContent(content: string): TaskPlan | null {
   if (!content.includes(TASK_OPEN_TAG) || !content.includes(TASK_CLOSE_TAG)) {
     return null;
@@ -83,11 +193,10 @@ function extractProposedPlanFromIssueContent(content: string): string[] | null {
   }
 }
 
-type GetIssueTaskPlanInput = {
-  githubIssueId: number;
-  targetRepository: TargetRepository;
-};
-
+/**
+ * @deprecated Use getTaskPlanFromPollingSystem instead
+ * Legacy function that fetches task plan from GitHub issue
+ */
 export async function getPlansFromIssue(
   input: GetIssueTaskPlanInput,
   config: GraphConfig,
