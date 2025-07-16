@@ -1,5 +1,8 @@
-import { initChatModel } from "langchain/chat_models/universal";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
+import { getModelManager, ModelManagerConfig } from "./model-manager.js";
+import { createLogger, LogLevel } from "./logger.js";
+
+const logger = createLogger(LogLevel.INFO, "LoadModel");
 
 export enum Task {
   /**
@@ -20,62 +23,35 @@ export enum Task {
   SUMMARIZER = "summarizer",
 }
 
-const TASK_TO_CONFIG_DEFAULTS_MAP = {
-  [Task.PROGRAMMER]: {
-    modelName: "anthropic:claude-sonnet-4-0",
-    temperature: 0,
-  },
-  [Task.ROUTER]: {
-    modelName: "anthropic:claude-3-5-haiku-latest",
-    temperature: 0,
-  },
-  [Task.SUMMARIZER]: {
-    modelName: "anthropic:claude-sonnet-4-0",
-    temperature: 0,
-  },
-};
-
 export async function loadModel(config: GraphConfig, task: Task) {
-  const modelStr =
-    config.configurable?.[`${task}ModelName`] ??
-    TASK_TO_CONFIG_DEFAULTS_MAP[task].modelName;
-  const temperature =
-    config.configurable?.[`${task}Temperature`] ??
-    TASK_TO_CONFIG_DEFAULTS_MAP[task].temperature;
+  const startTime = Date.now();
 
-  const [modelProvider, ...modelNameParts] = modelStr.split(":");
+  const modelManagerConfig: Partial<ModelManagerConfig> = {
+    circuitBreakerFailureThreshold: process.env.MODEL_CIRCUIT_BREAKER_THRESHOLD
+      ? parseInt(process.env.MODEL_CIRCUIT_BREAKER_THRESHOLD)
+      : undefined,
+  };
 
-  let thinkingModel = false;
-  if (modelNameParts[0] === "extended-thinking") {
-    // Using a thinking model. Remove it from the model name.
-    modelNameParts.shift();
-    thinkingModel = true;
+  const modelManager = getModelManager(modelManagerConfig);
+
+  try {
+    const model = await modelManager.loadModelWithFallback(config, task);
+    return model;
+  } catch (error) {
+    const loadTime = Date.now() - startTime;
+    logger.error("Failed to load model with all fallbacks", {
+      task,
+      loadTime,
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              name: error.name,
+              stack: error.stack,
+            }
+          : String(error),
+    });
+
+    throw error;
   }
-
-  const modelName = modelNameParts.join(":");
-  if (modelProvider === "openai" && modelName.startsWith("o")) {
-    thinkingModel = true;
-  }
-
-  const thinkingBudgetTokens = 5000;
-  const thinkingMaxTokens = thinkingBudgetTokens * 4;
-
-  let maxTokens = config.configurable?.maxTokens ?? 10_000;
-  if (modelName.includes("claude-3-5-haiku")) {
-    // The max tokens for haiku is 8192
-    maxTokens = maxTokens > 8_192 ? 8_192 : maxTokens;
-  }
-
-  const model = await initChatModel(modelName, {
-    modelProvider,
-    temperature: thinkingModel ? undefined : temperature,
-    ...(thinkingModel && modelProvider === "anthropic"
-      ? {
-          thinking: { budget_tokens: thinkingBudgetTokens, type: "enabled" },
-          maxTokens: thinkingMaxTokens,
-        }
-      : { maxTokens }),
-  });
-
-  return model;
 }
