@@ -27,7 +27,6 @@ export function ProgressBar({
   className,
   onOpenSidebar,
 }: ProgressBarProps) {
-
   if (!taskPlan || !taskPlan.tasks.length) {
     return (
       <div
