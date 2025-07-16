@@ -56,6 +56,11 @@ export class StatusResolver {
       return planner;
     }
 
+    // Priority fix: If programmer is running or has error, return programmer data
+    if (programmer.status === "running" || programmer.status === "error") {
+      return programmer;
+    }
+
     return programmer;
   }
 }
@@ -218,6 +223,7 @@ async function checkLastKnownGraph(
           runId: lastState.runId,
           threadId: lastState.threadId,
           status: plannerStatusValue,
+          taskPlan: plannerThread.values?.taskPlan,
         };
 
         if (
@@ -261,6 +267,7 @@ async function checkLastKnownGraph(
               runId: "",
               threadId: lastState.threadId,
               status: "idle",
+              taskPlan: undefined, // Manager thread doesn't have task plan in this context
             },
             plannerStatus,
             programmerStatus,
@@ -280,6 +287,7 @@ async function checkLastKnownGraph(
         runId: "",
         threadId: lastState.threadId,
         status: mapLangGraphToUIStatus(managerThread.status),
+        taskPlan: managerThread.values?.taskPlan,
       };
 
       if (
@@ -316,6 +324,7 @@ async function performFullStatusCheck(
     runId: "",
     threadId,
     status: mapLangGraphToUIStatus(managerThread.status),
+    taskPlan: managerThread.values?.taskPlan,
   };
 
   // If manager is running or has error, return immediately without checking sub-sessions
@@ -366,6 +375,7 @@ async function performFullStatusCheck(
     runId: plannerSession.runId,
     threadId: plannerSession.threadId,
     status: plannerStatusValue,
+    taskPlan: plannerThread.values?.taskPlan,
   };
 
   if (

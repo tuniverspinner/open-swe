@@ -15,6 +15,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { memo } from "react";
 
 interface ProgressBarProps {
   taskPlan?: TaskPlan;
@@ -22,11 +23,12 @@ interface ProgressBarProps {
   onOpenSidebar?: () => void;
 }
 
-export function ProgressBar({
+export const ProgressBar = memo(function ProgressBar({
   taskPlan,
   className,
   onOpenSidebar,
 }: ProgressBarProps) {
+  // Early return for no task plan
   if (!taskPlan || !taskPlan.tasks.length) {
     return (
       <div
@@ -97,12 +99,16 @@ export function ProgressBar({
     }
   };
 
+  // Create a unique key based on completion state to force re-render when tasks complete
+  const progressKey = `${taskPlan.activeTaskIndex}-${currentTask.activeRevisionIndex}-${completedCount}-${planItems.length}`;
+
   return (
     <div
       className={cn(
         "w-96 rounded-md border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900",
         className,
       )}
+      key={progressKey}
     >
       {/* Compact header - 2 rows instead of 3 */}
       <div className="overflow-hidden px-2 py-1">
@@ -144,7 +150,7 @@ export function ProgressBar({
               const segmentWidth = `${100 / planItems.length}%`;
 
               return (
-                <HoverCard key={item.index}>
+                <HoverCard key={`${progressKey}-item-${item.index}`}>
                   <HoverCardTrigger asChild>
                     <div
                       className={cn(
@@ -183,4 +189,4 @@ export function ProgressBar({
       </div>
     </div>
   );
-}
+});

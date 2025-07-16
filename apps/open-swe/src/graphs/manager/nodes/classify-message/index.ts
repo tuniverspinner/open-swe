@@ -26,7 +26,7 @@ import {
 } from "../../../../utils/github/issue-messages.js";
 import { getDefaultHeaders } from "../../../../utils/default-headers.js";
 import { BASE_CLASSIFICATION_SCHEMA } from "./schemas.js";
-import { getTaskPlanFromPollingSystem } from "../../../../utils/github/issue-task.js";
+import { getPlansFromIssue } from "../../../../utils/github/issue-task.js";
 import { HumanResponse } from "@langchain/langgraph/prebuilt";
 import { PLANNER_GRAPH_ID } from "@open-swe/shared/constants";
 import { createLogger, LogLevel } from "../../../../utils/logger.js";
@@ -71,7 +71,7 @@ export async function classifyMessage(
 
   // If the githubIssueId is defined, fetch the most recent task plan (if exists). Otherwise fallback to state task plan
   const issuePlans = state.githubIssueId
-    ? await getTaskPlanFromPollingSystem(
+    ? await getPlansFromIssue(
         {
           githubIssueId: state.githubIssueId,
           targetRepository: state.targetRepository!,

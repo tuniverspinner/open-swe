@@ -17,7 +17,7 @@ import {
 import { SYSTEM_PROMPT } from "./prompt.js";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getMissingMessages } from "../../../../utils/github/issue-messages.js";
-import { getTaskPlanFromPollingSystem } from "../../../../utils/github/issue-task.js";
+import { getPlansFromIssue } from "../../../../utils/github/issue-task.js";
 import { createSearchTool } from "../../../../tools/search.js";
 import { formatCustomRulesPrompt } from "../../../../utils/custom-rules.js";
 import { createPlannerNotesTool } from "../../../../tools/planner-notes.js";
@@ -71,7 +71,7 @@ export async function generateAction(
 
   const [missingMessages, { taskPlan: latestTaskPlan }] = await Promise.all([
     getMissingMessages(state, config),
-    getTaskPlanFromPollingSystem(
+    getPlansFromIssue(
       {
         githubIssueId: state.githubIssueId!,
         targetRepository: state.targetRepository!,

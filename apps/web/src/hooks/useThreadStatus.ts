@@ -15,6 +15,14 @@ interface ThreadStatusResult {
   mutate: () => void;
 }
 
+interface ThreadStatusDataResult {
+  statusData: ThreadStatusData | null;
+  status: ThreadUIStatus;
+  isLoading: boolean;
+  error: Error | null;
+  mutate: () => void;
+}
+
 /**
  * Thread status hook using SWR for real-time status updates
  * Uses SWR caching directly instead of manual Zustand cache
@@ -40,6 +48,39 @@ export function useThreadStatus(
   );
 
   return {
+    status: data?.status || "idle",
+    isLoading,
+    error,
+    mutate,
+  };
+}
+
+/**
+ * Thread status hook that returns full status data including task plan
+ * Uses SWR caching directly instead of manual Zustand cache
+ */
+export function useThreadStatusData(
+  threadId: string,
+  options: UseThreadStatusOptions = {},
+): ThreadStatusDataResult {
+  const {
+    enabled = true,
+    refreshInterval = THREAD_STATUS_SWR_CONFIG.refreshInterval,
+  } = options;
+
+  const swrKey = enabled ? `thread-status-data-${threadId}` : null;
+
+  const { data, error, isLoading, mutate } = useSWR<ThreadStatusData>(
+    swrKey,
+    () => fetchThreadStatus(threadId),
+    {
+      ...THREAD_STATUS_SWR_CONFIG,
+      refreshInterval,
+    },
+  );
+
+  return {
+    statusData: data || null,
     status: data?.status || "idle",
     isLoading,
     error,

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Collapsible,
@@ -40,7 +40,7 @@ interface TaskPlanViewProps {
 type FilterType = "all" | "completed" | "current" | "pending";
 
 // Tasks Sidebar Component
-export function TasksSidebar({
+export const TasksSidebar = memo(function TasksSidebar({
   isOpen,
   onClose,
   taskPlan,
@@ -59,6 +59,11 @@ export function TasksSidebar({
   const isLatestTask = currentTaskIndex === taskPlan.activeTaskIndex;
   const isLatestRevision =
     currentRevisionIndex === currentTask?.activeRevisionIndex;
+
+  // Reset state when taskPlan changes
+  useEffect(() => {
+    setCurrentTaskIndex(taskPlan.activeTaskIndex);
+  }, [taskPlan.activeTaskIndex]);
 
   useEffect(() => {
     if (currentTask?.planRevisions) {
@@ -134,12 +139,17 @@ export function TasksSidebar({
     return new Date(timestamp).toLocaleString();
   };
 
+  // Create a unique key to force re-render when task status changes
+  const completedCount = sortedItems.filter((item) => item.completed).length;
+  const sidebarKey = `${taskPlan.activeTaskIndex}-${currentTask.activeRevisionIndex}-${completedCount}`;
+
   return (
     <div
       className={cn(
         "fixed top-0 right-0 z-10 h-screen border-l border-gray-200 bg-white shadow-lg transition-all duration-300 dark:border-gray-700 dark:bg-gray-900",
         isOpen ? "w-80 md:w-xl" : "w-0 overflow-hidden border-l-0",
       )}
+      key={sidebarKey}
     >
       <div
         className={cn(
@@ -305,7 +315,7 @@ export function TasksSidebar({
 
                 return (
                   <div
-                    key={item.index}
+                    key={`${sidebarKey}-item-${item.index}`}
                     className={cn(
                       "rounded-lg border p-3",
                       state === "current" &&
@@ -399,7 +409,7 @@ export function TasksSidebar({
       </div>
     </div>
   );
-}
+});
 
 // Main TaskPlan View Component
 export function TaskPlanView({ taskPlan, onTaskChange }: TaskPlanViewProps) {

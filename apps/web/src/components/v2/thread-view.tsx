@@ -61,6 +61,7 @@ export function ThreadView({
   const { taskPlan: activeTaskPlan, isProgrammerActive } = useActiveTaskPlan(
     displayThread.taskPlan,
     programmerSession,
+    displayThread.id,
   );
 
   const { status: realTimeStatus } = useThreadStatus(displayThread.id);
@@ -200,6 +201,25 @@ export function ThreadView({
                             onOpenSidebar={() => setIsTaskSidebarOpen(true)}
                           />
                         )}
+
+                        {/* DEBUG: Temporary task plan debug info */}
+                        <div className="rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">
+                          <div>
+                            Active Task Plan: {activeTaskPlan ? "✅" : "❌"}
+                          </div>
+                          <div>
+                            Display Task Plan:{" "}
+                            {displayThread.taskPlan ? "✅" : "❌"}
+                          </div>
+                          <div>
+                            Programmer Session:{" "}
+                            {programmerSession ? "✅" : "❌"}
+                          </div>
+                          <div>
+                            Programmer Thread ID:{" "}
+                            {programmerSession?.threadId || "none"}
+                          </div>
+                        </div>
                       </div>
 
                       <div className="flex gap-2">
