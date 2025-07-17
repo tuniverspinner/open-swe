@@ -5,14 +5,22 @@ import { useState } from "react";
 import { StickToBottom } from "use-stick-to-bottom";
 import { TooltipIconButton } from "../ui/tooltip-icon-button";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, Copy, CopyCheck, Send, User, Loader2 } from "lucide-react";
+import {
+  Bot,
+  Copy,
+  CopyCheck,
+  Send,
+  User,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
-import { useStream } from "@langchain/langgraph-sdk/react";
-import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { cn } from "@/lib/utils";
 import { isAIMessageSDK } from "@/lib/langchain-messages";
 import { BasicMarkdownText } from "../thread/markdown-text";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+
 function MessageCopyButton({ content }: { content: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -67,6 +75,7 @@ interface ManagerChatProps {
   handleSendMessage: () => void;
   isLoading: boolean;
   cancelRun: () => void;
+  errorMessage?: string;
 }
 
 function extractResponseFromMessage(message: Message): string {
@@ -89,6 +98,7 @@ export function ManagerChat({
   handleSendMessage,
   isLoading,
   cancelRun,
+  errorMessage,
 }: ManagerChatProps) {
   return (
     <div className="border-border bg-muted/30 flex h-full w-1/3 flex-col border-r dark:bg-gray-950">
@@ -98,7 +108,7 @@ export function ManagerChat({
           initial={true}
         >
           <StickyToBottomContent
-            className="h-full overflow-y-auto"
+            className="scrollbar-pretty-auto h-full"
             contentClassName="space-y-4 p-4"
             content={
               <>
@@ -121,7 +131,7 @@ export function ManagerChat({
                           </div>
                         )}
                       </div>
-                      <div className="relative flex-1 space-y-1">
+                      <div className="relative min-w-0 flex-1 space-y-1 overflow-x-hidden">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-muted-foreground text-xs font-medium">
                             {message.type === "human" ? "You" : "Agent"}
@@ -130,13 +140,20 @@ export function ManagerChat({
                             <MessageCopyButton content={messageContentString} />
                           </div>
                         </div>
-                        <BasicMarkdownText className="text-foreground text-sm">
+                        <BasicMarkdownText className="text-foreground overflow-x-hidden text-sm">
                           {messageContentString}
                         </BasicMarkdownText>
                       </div>
                     </div>
                   );
                 })}
+                {errorMessage ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertTitle>An error occurred:</AlertTitle>
+                    <AlertDescription>{errorMessage}</AlertDescription>
+                  </Alert>
+                ) : null}
               </>
             }
             footer={

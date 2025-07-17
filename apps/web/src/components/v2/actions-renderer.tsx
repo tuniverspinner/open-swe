@@ -1,7 +1,14 @@
 import { isAIMessageSDK, isHumanMessageSDK } from "@/lib/langchain-messages";
 import { UseStream, useStream } from "@langchain/langgraph-sdk/react";
 import { AssistantMessage } from "../thread/messages/ai";
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { useCancelStream } from "@/hooks/useCancelStream";
 import {
@@ -23,6 +30,8 @@ import { GraphState, PlanItem } from "@open-swe/shared/open-swe/types";
 import { HumanResponse } from "@langchain/langgraph/prebuilt";
 import { LoadingActionsCardContent } from "./thread-view-loading";
 import { Interrupt } from "../thread/messages/interrupt";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 interface AcceptedPlanEventData {
   planTitle: string;
@@ -109,6 +118,7 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
   );
   const joinedRunId = useRef<string | undefined>(undefined);
   const [streamLoading, setStreamLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const stream = useStream<State>({
     apiUrl: process.env.NEXT_PUBLIC_API_URL,
@@ -123,6 +133,18 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
     fetchStateHistory: false,
   });
 
+  useEffect(() => {
+    if (stream.error) {
+      const errorMessage =
+        typeof stream.error === "object" && "message" in stream.error
+          ? (stream.error.message as string)
+          : "An unknown error occurred in the manager";
+      setErrorMessage(errorMessage);
+    } else {
+      setErrorMessage("");
+    }
+  }, [stream.error]);
+
   const { cancelRun } = useCancelStream<State>({
     stream,
     threadId,
@@ -130,12 +152,20 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
     streamName: graphId === "planner" ? "Planner" : "Programmer",
   });
 
-  const initializeEvents = customNodeEvents.filter(
-    (e) => e.nodeId === INITIALIZE_NODE_ID,
+  const initializeEvents = useMemo(
+    () =>
+      customNodeEvents.filter(
+        (e) => e.nodeId === INITIALIZE_NODE_ID && e.data.runId === runId,
+      ),
+    [customNodeEvents, runId],
   );
 
-  const acceptedPlanEvents = customNodeEvents.filter(
-    (e) => e.nodeId === ACCEPTED_PLAN_NODE_ID,
+  const acceptedPlanEvents = useMemo(
+    () =>
+      customNodeEvents.filter(
+        (e) => e.nodeId === ACCEPTED_PLAN_NODE_ID && e.data.runId === runId,
+      ),
+    [customNodeEvents, runId],
   );
 
   const steps = mapCustomEventsToSteps(initializeEvents);
@@ -243,10 +273,6 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
     }
   }, [stream.values, graphId]);
 
-  useEffect(() => {
-    console.log(stream.messages);
-  }, [stream.messages]);
-
   if (streamLoading) {
     return <LoadingActionsCardContent />;
   }
@@ -258,7 +284,6 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
           status={initStatus}
           steps={steps}
           success={allSuccess}
-          collapse={initStatus === "done" && allSuccess}
         />
       )}
       {filteredMessages?.map((m) => (
@@ -274,9 +299,16 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
       {acceptedPlanEvents.length > 0 &&
         isAcceptedPlanEvents(acceptedPlanEvents) && (
           <AcceptedPlanStep
-            planTitle={acceptedPlanEvents[0].data.planTitle}
-            planItems={acceptedPlanEvents[0].data.planItems}
-            interruptType={acceptedPlanEvents[0].data.interruptType}
+            planTitle={
+              acceptedPlanEvents[acceptedPlanEvents.length - 1].data.planTitle
+            }
+            planItems={
+              acceptedPlanEvents[acceptedPlanEvents.length - 1].data.planItems
+            }
+            interruptType={
+              acceptedPlanEvents[acceptedPlanEvents.length - 1].data
+                .interruptType
+            }
           />
         )}
       {/* If the last message is hidden, but there's an interrupt, we must manually render the interrupt */}
@@ -286,6 +318,13 @@ export function ActionsRenderer<State extends PlannerGraphState | GraphState>({
           isLastMessage={true}
           thread={stream as UseStream<Record<string, unknown>>}
         />
+      ) : null}
+      {errorMessage ? (
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertTitle>An error occurred:</AlertTitle>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
       ) : null}
     </div>
   );

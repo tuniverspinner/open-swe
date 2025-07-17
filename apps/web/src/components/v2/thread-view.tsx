@@ -48,10 +48,39 @@ export function ThreadView({
   const [selectedTab, setSelectedTab] = useState<"planner" | "programmer">(
     "planner",
   );
-  const plannerThreadId = stream.values?.plannerSession?.threadId;
-  const plannerRunId = stream.values?.plannerSession?.runId;
+  const [plannerSession, setPlannerSession] =
+    useState<ManagerGraphState["plannerSession"]>();
   const [programmerSession, setProgrammerSession] =
     useState<ManagerGraphState["programmerSession"]>();
+  const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (
+      stream?.values?.plannerSession &&
+      plannerSession?.runId !== stream.values.plannerSession.runId
+    ) {
+      // State shouldn't update before we use it below, but still create a copy to avoid race conditions
+      const prevPlannerSession = plannerSession;
+      setPlannerSession(stream.values.plannerSession);
+
+      if (prevPlannerSession && selectedTab === "programmer") {
+        // If we already has a planner session, and the user is currently on the programmer tab, bring them back to the planner tab
+        setSelectedTab("planner");
+      }
+    }
+  }, [stream?.values]);
+
+  useEffect(() => {
+    if (stream.error) {
+      const errorMessage =
+        typeof stream.error === "object" && "message" in stream.error
+          ? (stream.error.message as string)
+          : "An unknown error occurred in the manager";
+      setErrorMessage(errorMessage);
+    } else {
+      setErrorMessage("");
+    }
+  }, [stream.error]);
 
   const { status: realTimeStatus } = useThreadStatus(displayThread.id);
 
@@ -154,6 +183,7 @@ export function ThreadView({
           handleSendMessage={handleSendMessage}
           isLoading={stream.isLoading}
           cancelRun={cancelRun}
+          errorMessage={errorMessage}
         />
         {/* Right Side - Actions & Plan */}
         <div className="flex h-full flex-1 flex-col">
@@ -185,8 +215,8 @@ export function ThreadView({
                           plannerCancelRef.current && (
                             <CancelStreamButton
                               stream={stream}
-                              threadId={plannerThreadId}
-                              runId={plannerRunId}
+                              threadId={plannerSession?.threadId}
+                              runId={plannerSession?.runId}
                               streamName="Planner"
                             />
                           )}
@@ -195,8 +225,8 @@ export function ThreadView({
                           programmerCancelRef.current && (
                             <CancelStreamButton
                               stream={stream}
-                              threadId={plannerThreadId}
-                              runId={plannerRunId}
+                              threadId={programmerSession?.threadId}
+                              runId={programmerSession?.runId}
                               streamName="Programmer"
                             />
                           )}
@@ -206,11 +236,11 @@ export function ThreadView({
                     <TabsContent value="planner">
                       <Card className="border-border bg-card px-0 py-4 dark:bg-gray-950">
                         <CardContent className="space-y-2 p-3 pt-0">
-                          {plannerThreadId && plannerRunId && (
+                          {plannerSession && (
                             <ActionsRenderer<PlannerGraphState>
                               graphId={PLANNER_GRAPH_ID}
-                              threadId={plannerThreadId}
-                              runId={plannerRunId}
+                              threadId={plannerSession.threadId}
+                              runId={plannerSession.runId}
                               setProgrammerSession={setProgrammerSession}
                               programmerSession={programmerSession}
                               setSelectedTab={setSelectedTab}
@@ -223,7 +253,7 @@ export function ThreadView({
                               }}
                             />
                           )}
-                          {!(plannerThreadId && plannerRunId) && (
+                          {!plannerSession && (
                             <div className="flex items-center justify-center gap-2 py-8">
                               <Clock className="text-muted-foreground size-4" />
                               <span className="text-muted-foreground text-sm">
