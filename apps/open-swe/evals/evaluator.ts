@@ -356,14 +356,17 @@ export async function evaluator(inputs: {
       {
         key: "ruff-score",
         score: analysisResult.ruffScore,
+        comment: analysisResult.details.ruff.issues.join("\n"),
       },
       {
         key: "mypy-score",
         score: analysisResult.mypyScore,
+        comment: analysisResult.details.mypy.issues.join("\n"),
       },
       {
         key: "langgraph-score",
         score: analysisResult.langGraphScore,
+        comment: analysisResult.details.langGraph.explanation,
       },
     ];
   } catch (error) {
