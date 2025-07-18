@@ -20,7 +20,8 @@ const logger = createLogger(LogLevel.DEBUG, "Evaluator");
 const RUN_AGENT_PIPELINE = process.env.RUN_AGENT_PIPELINE === "true" || true;
 let programmerRunUrl =
   "https://smith.langchain.com/o/ebbaf2eb-769b-4505-aca2-d11de10372a4/projects/p/eba94921-7f40-4be0-b153-e88ab6fdcfdd/r/";
-const DATASET_NAME = process.env.DATASET_NAME || "aliyan-open-swe-langgraph-eval";
+const DATASET_NAME =
+  process.env.DATASET_NAME || "aliyan-open-swe-langgraph-eval";
 // const RUN_NAME = `${DATASET_NAME}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 
 // async function loadDataset(): Promise<Example[]> {
