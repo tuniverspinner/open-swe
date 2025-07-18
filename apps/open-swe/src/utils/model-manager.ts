@@ -3,6 +3,8 @@ import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { createLogger, LogLevel } from "./logger.js";
 import { Task } from "./load-model.js";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
+import { isAllowedUser } from "./github/allowed-users.js";
+import { decryptSecret } from "@open-swe/shared/crypto";
 
 const logger = createLogger(LogLevel.INFO, "ModelManager");
 
@@ -49,6 +51,22 @@ export const DEFAULT_MODEL_MANAGER_CONFIG: ModelManagerConfig = {
 const MAX_RETRIES = 3;
 const THINKING_BUDGET_TOKENS = 5000;
 
+const providerToApiKey = (
+  providerName: string,
+  apiKeys: Record<string, string>,
+): string => {
+  switch (providerName) {
+    case "openai":
+      return apiKeys.openaiApiKey;
+    case "anthropic":
+      return apiKeys.anthropicApiKey;
+    case "google-genai":
+      return apiKeys.googleApiKey;
+    default:
+      throw new Error(`Unknown provider: ${providerName}`);
+  }
+};
+
 export class ModelManager {
   private config: ModelManagerConfig;
   private circuitBreakers: Map<string, CircuitBreakerState> = new Map();
@@ -70,13 +88,16 @@ export class ModelManager {
 
     if (baseConfig.modelName) {
       try {
-        const model = await this.initializeModel({
-          ...baseConfig,
-          temperature: baseConfig.temperature,
-          maxTokens: baseConfig.maxTokens,
-          thinkingModel: baseConfig.thinkingModel,
-          thinkingBudgetTokens: baseConfig.thinkingBudgetTokens,
-        });
+        const model = await this.initializeModel(
+          {
+            ...baseConfig,
+            temperature: baseConfig.temperature,
+            maxTokens: baseConfig.maxTokens,
+            thinkingModel: baseConfig.thinkingModel,
+            thinkingBudgetTokens: baseConfig.thinkingBudgetTokens,
+          },
+          graphConfig,
+        );
 
         return model;
       } catch (error) {
@@ -98,7 +119,10 @@ export class ModelManager {
    * Initialize the model instance
    */
   // should be set to return configurable chat model
-  public async initializeModel(config: ModelLoadConfig) {
+  public async initializeModel(
+    config: ModelLoadConfig,
+    graphConfig?: GraphConfig,
+  ) {
     const {
       provider,
       modelName,
@@ -117,10 +141,40 @@ export class ModelManager {
       finalMaxTokens = finalMaxTokens > 8_192 ? 8_192 : finalMaxTokens;
     }
 
+    // Handle user authentication and API keys
+    let apiKey: string | null = null;
+    if (graphConfig) {
+      const userLogin = (graphConfig.configurable as any)?.langgraph_auth_user
+        ?.display_name;
+      const secretsEncryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+      if (!secretsEncryptionKey) {
+        throw new Error(
+          "SECRETS_ENCRYPTION_KEY environment variable is required",
+        );
+      }
+      if (!userLogin) {
+        throw new Error("User login not found in config");
+      }
+      const apiKeys = graphConfig.configurable?.apiKeys;
+      if (!isAllowedUser(userLogin)) {
+        if (!apiKeys) {
+          throw new Error("API keys not found in config");
+        }
+        apiKey = decryptSecret(
+          providerToApiKey(provider, apiKeys),
+          secretsEncryptionKey,
+        );
+        if (!apiKey) {
+          throw new Error("No API key found for provider: " + provider);
+        }
+      }
+    }
+
     const modelOptions: any = {
       modelProvider: provider,
       temperature: thinkingModel ? undefined : temperature,
       max_retries: MAX_RETRIES,
+      ...(apiKey ? { apiKey } : {}),
       ...(thinkingModel && provider === "anthropic"
         ? {
             thinking: { budget_tokens: thinkingBudgetTokens, type: "enabled" },
@@ -202,21 +256,21 @@ export class ModelManager {
     const taskMap = {
       [Task.PROGRAMMER]: {
         modelName:
-          config.configurable?.programmerModelName ??
-          "google-genai:gemini-2.5-flash-preview-05-20",
-        temperature: config.configurable?.programmerTemperature ?? 0,
+          config.configurable?.[`${task}ModelName`] ??
+          "anthropic:claude-sonnet-4-0",
+        temperature: config.configurable?.[`${task}Temperature`] ?? 0,
       },
       [Task.ROUTER]: {
         modelName:
-          config.configurable?.routerModelName ??
-          "google-genai:gemini-2.5-flash-preview-05-20",
-        temperature: config.configurable?.routerTemperature ?? 0,
+          config.configurable?.[`${task}ModelName`] ??
+          "anthropic:claude-3-5-haiku-latest",
+        temperature: config.configurable?.[`${task}Temperature`] ?? 0,
       },
       [Task.SUMMARIZER]: {
         modelName:
-          config.configurable?.summarizerModelName ??
-          "google-genai:gemini-2.5-flash-preview-05-20",
-        temperature: config.configurable?.summarizerTemperature ?? 0,
+          config.configurable?.[`${task}ModelName`] ??
+          "anthropic:claude-sonnet-4-0",
+        temperature: config.configurable?.[`${task}Temperature`] ?? 0,
       },
     };
 
@@ -357,6 +411,9 @@ export class ModelManager {
         {
           modelKey,
           timeoutMs: this.config.circuitBreakerTimeoutMs,
+          willRetryAt: new Date(
+            now + this.config.circuitBreakerTimeoutMs,
+          ).toISOString(),
         },
       );
     }
