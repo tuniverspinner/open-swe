@@ -2,7 +2,6 @@ import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { getModelManager, ModelManagerConfig } from "./model-manager.js";
 import { FallbackRunnable } from "./runtime-fallback.js";
 import { createLogger, LogLevel } from "./logger.js";
-import { ConfigurableModel } from "langchain/chat_models/universal";
 
 const logger = createLogger(LogLevel.INFO, "LoadModel");
 
@@ -13,24 +12,21 @@ export enum Task {
 }
 
 export async function loadModel(config: GraphConfig, task: Task) {
-  const modelManagerConfig: Partial<ModelManagerConfig> = {
-    circuitBreakerFailureThreshold: process.env.MODEL_CIRCUIT_BREAKER_THRESHOLD
-      ? parseInt(process.env.MODEL_CIRCUIT_BREAKER_THRESHOLD)
-      : undefined,
-  };
-
+  const modelManagerConfig: Partial<ModelManagerConfig> = {};
   const modelManager = getModelManager(modelManagerConfig);
 
   try {
     const model = await modelManager.loadModel(config, task);
+    if (!model) {
+      throw new Error(`Model loading returned undefined for task: ${task}`);
+    }
     const fallbackModel = new FallbackRunnable(
       model,
       config,
       task,
       modelManager,
     );
-    // Cast to ConfigurableModel for type compatibility
-    return fallbackModel as any as ConfigurableModel<any, any>;
+    return fallbackModel;
   } catch (error) {
     logger.error("Model loading failed", {
       task,

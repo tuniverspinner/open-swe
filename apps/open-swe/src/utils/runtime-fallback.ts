@@ -2,37 +2,37 @@ import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { Task } from "./load-model.js";
 import { ModelManager } from "./model-manager.js";
 import { createLogger, LogLevel } from "./logger.js";
-import { Runnable, RunnableConfig } from "@langchain/core/runnables";
-import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { StructuredToolInterface, tool } from "@langchain/core/tools";
-//import { RunnableBinding } from "@langchain/core/runnables";
+import { RunnableConfig } from "@langchain/core/runnables";
+import { StructuredToolInterface } from "@langchain/core/tools";
+import { ConfigurableModel } from "langchain/chat_models/universal";
+import { BaseMessage } from "@langchain/core/messages";
+import { ChatResult, ChatGeneration } from "@langchain/core/outputs";
 
-const logger = createLogger(LogLevel.INFO, "FallbackRunnable");
+const logger = createLogger(LogLevel.DEBUG, "FallbackRunnable");
 
 interface ExtractedTools {
   tools: StructuredToolInterface[];
   kwargs: Record<string, any>;
 }
 
-// Allow both proper tools and plain objects
-type ToolInput = StructuredToolInterface | { name: string; description: string; schema: any; };
-
-export class FallbackRunnable<
-  RunInput,
-  RunOutput extends Record<string, any>,
-> extends Runnable<RunInput, RunOutput> {
-  private primaryRunnable: Runnable<RunInput, RunOutput>;
+export class FallbackRunnable extends ConfigurableModel<any, any> {
+  private primaryRunnable: any;
   private config: GraphConfig;
   private task: Task;
   private modelManager: ModelManager;
 
   constructor(
-    primaryRunnable: Runnable<RunInput, RunOutput>,
+    primaryRunnable: any,
     config: GraphConfig,
     task: Task,
     modelManager: ModelManager,
   ) {
-    super();
+    super({
+      configurableFields: "any",
+      configPrefix: "fallback",
+      queuedMethodOperations: {},
+      disableStreaming: false,
+    });
     this.primaryRunnable = primaryRunnable;
     this.config = config;
     this.task = task;
@@ -40,80 +40,24 @@ export class FallbackRunnable<
   }
 
   lc_serializable = false;
+  lc_namespace = ["open-swe", "fallback"];
 
-  get lc_namespace(): string[] {
-    return ["langchain", "fallback"];
+  async _generate(messages: BaseMessage[], options?: any): Promise<ChatResult> {
+    const result = await this.invoke(messages as any, options);
+    const generation: ChatGeneration = {
+      message: result,
+      text:
+        typeof result?.content === "string"
+          ? result.content
+          : JSON.stringify(result?.content) || "",
+    };
+    return {
+      generations: [generation],
+      llmOutput: {},
+    };
   }
 
-  // Add required properties from ConfigurableModel interface
-  get _llmType(): string {
-    return (this.primaryRunnable as any)._llmType || "fallback_chat";
-  }
-
-  get _configurableFields(): any {
-    return (this.primaryRunnable as any)._configurableFields || {};
-  }
-
-  get _configPrefix(): string {
-    return (this.primaryRunnable as any)._configPrefix || "fallback";
-  }
-
-  get _queuedMethodOperations(): any {
-    return (this.primaryRunnable as any)._queuedMethodOperations || {};
-  }
-
-  // Forward other common model properties required by ConfigurableModel
-  call(messages: any, options?: any): Promise<any> {
-    return this.invoke(messages, options);
-  }
-
-  get returnDirect(): boolean {
-    return (this.primaryRunnable as any).returnDirect || false;
-  }
-
-  // Additional ConfigurableModel-compatible methods
-  async stream(input: RunInput, options?: any): Promise<any> {
-    return (this.primaryRunnable as any).stream?.(input, options) ?? this.invoke(input, options);
-  }
-
-  async batch(inputs: RunInput[], options?: any, batchOptions?: any): Promise<RunOutput[]> {
-    return (this.primaryRunnable as any).batch?.(inputs, options, batchOptions) ?? 
-           Promise.all(inputs.map(input => this.invoke(input, options)));
-  }
-
-  withStructuredOutput(schema: any, options?: any): any {
-    return (this.primaryRunnable as any).withStructuredOutput?.(schema, options) ?? this;
-  }
-
-  get _defaultConfig(): Record<string, any> {
-    return (this.primaryRunnable as any)._defaultConfig || {};
-  }
-
-  // Additional ConfigurableModel properties that were missing
-  get _model(): any {
-    return (this.primaryRunnable as any)._model || this.primaryRunnable;
-  }
-
-  async _generate(messages: any[], options?: any): Promise<any> {
-    return (this.primaryRunnable as any)._generate?.(messages, options) ?? 
-           this.invoke(messages as any, options);
-  }
-
-  get _modelParams(): Record<string, any> {
-    return (this.primaryRunnable as any)._modelParams || {};
-  }
-
-  _removePrefix(key: string): string {
-    return (this.primaryRunnable as any)._removePrefix?.(key) ?? key;
-  }
-
-  // Forward any other missing methods/properties generically
-  [key: string]: any;
-
-  async invoke(
-    input: RunInput,
-    options?: Partial<RunnableConfig>,
-  ): Promise<RunOutput> {
+  async invoke(input: any, options?: Partial<RunnableConfig>): Promise<any> {
     const modelConfigs = this.modelManager.getModelConfigs(
       this.config,
       this.task,
@@ -162,33 +106,12 @@ export class FallbackRunnable<
     );
   }
 
-  // Accept both proper tools and plain objects, convert internally
   bindTools(
-    tools: ToolInput[],
+    tools: any[],
     kwargs?: Record<string, any>,
-  ): FallbackRunnable<RunInput, RunOutput> {
-    // Convert plain objects to proper tools
-    const structuredTools: StructuredToolInterface[] = tools.map(toolInput => {
-      if ('invoke' in toolInput && 'lc_namespace' in toolInput) {
-        // Already a proper StructuredToolInterface
-        return toolInput as StructuredToolInterface;
-      } else {
-        // Plain object - convert to proper tool
-        const plainTool = toolInput as { name: string; description: string; schema: any; };
-        return tool(
-          () => ({}), // Dummy function - the actual logic is handled elsewhere
-          {
-            name: plainTool.name,
-            description: plainTool.description,
-            schema: plainTool.schema,
-          }
-        );
-      }
-    });
-
+  ): ConfigurableModel<any, any> {
     const boundPrimary =
-      (this.primaryRunnable as any).bindTools?.(structuredTools, kwargs) ??
-      this.primaryRunnable;
+      this.primaryRunnable.bindTools?.(tools, kwargs) ?? this.primaryRunnable;
     return new FallbackRunnable(
       boundPrimary,
       this.config,
@@ -197,10 +120,9 @@ export class FallbackRunnable<
     );
   }
 
-  withConfig(
-    config: Partial<RunnableConfig>,
-  ): FallbackRunnable<RunInput, RunOutput> {
-    const configuredPrimary = this.primaryRunnable.withConfig(config);
+  withConfig(config?: RunnableConfig): any {
+    const configuredPrimary =
+      this.primaryRunnable.withConfig?.(config) ?? this.primaryRunnable;
     return new FallbackRunnable(
       configuredPrimary,
       this.config,
@@ -209,22 +131,24 @@ export class FallbackRunnable<
     );
   }
 
-  // change this to ConfigurableChatModel
-  private getPrimaryModel(): BaseChatModel {
+  private getPrimaryModel(): any {
     let current: any = this.primaryRunnable;
 
+    // Unwrap any LangChain bindings to get to the actual model
     while (current?.bound) {
       current = current.bound;
     }
 
-    if (current?._llmType) {
-      return current as BaseChatModel;
+    // The unwrapped object should be a chat model with _llmType
+    if (current && typeof current._llmType !== "undefined") {
+      return current;
     }
 
-    throw new Error("Could not extract primary model from runnable");
+    throw new Error(
+      "Could not extract primary model from runnable - no _llmType found",
+    );
   }
 
-  // bind tools returns RunnableBinding
   private extractBoundTools(): ExtractedTools | null {
     let current: any = this.primaryRunnable;
 
@@ -252,7 +176,6 @@ export class FallbackRunnable<
     return null;
   }
 
-  // ConfigurableChatModel
   private extractConfig(): Partial<RunnableConfig> | null {
     let current: any = this.primaryRunnable;
 
