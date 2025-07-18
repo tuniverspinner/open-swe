@@ -31,6 +31,7 @@ import { createInstallDependenciesTool } from "../../../tools/install-dependenci
 import { createSearchTool } from "../../../tools/search.js";
 import { getMcpTools } from "../../../utils/mcp-client.js";
 import { shouldDiagnoseError } from "../../../utils/tool-message-error.js";
+import { createLangGraphServerStartupTool } from "../../../tools/py-dev-server.js";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
 
@@ -49,6 +50,7 @@ export async function takeAction(
   const searchTool = createSearchTool(state);
   const installDependenciesTool = createInstallDependenciesTool(state);
   const getURLContentTool = createGetURLContentTool();
+  const langGraphServerStartupTool = createLangGraphServerStartupTool(state);
 
   const mcpTools = await getMcpTools(config);
 
@@ -58,6 +60,7 @@ export async function takeAction(
     installDependenciesTool,
     applyPatchTool,
     getURLContentTool,
+    langGraphServerStartupTool,
     ...mcpTools,
   ];
   const toolsMap = Object.fromEntries(

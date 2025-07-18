@@ -166,6 +166,10 @@ def evaluate_script(
         
         eval_result = evaluator.invoke(evaluation_prompt)
         
+        # Ensure we have an EvaluationResult instance
+        if not isinstance(eval_result, EvaluationResult):
+            raise TypeError(f"Expected EvaluationResult, got {type(eval_result)}")
+        
         return eval_result.score, eval_result.explanation
         
     except Exception as e:

@@ -43,8 +43,8 @@ export interface ModelManagerConfig {
 }
 
 export const DEFAULT_MODEL_MANAGER_CONFIG: ModelManagerConfig = {
-  circuitBreakerFailureThreshold: 3, // Open after 3 failures
-  circuitBreakerTimeoutMs: 300000, // 5 minutes timeout
+  circuitBreakerFailureThreshold: 2, // Open after 3 failures
+  circuitBreakerTimeoutMs: 180000, // 3 minutes timeout
   fallbackOrder: [...PROVIDER_FALLBACK_ORDER],
 };
 

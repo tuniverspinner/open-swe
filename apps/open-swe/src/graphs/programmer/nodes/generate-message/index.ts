@@ -33,6 +33,7 @@ import { getPlansFromIssue } from "../../../../utils/github/issue-task.js";
 import { createSearchTool } from "../../../../tools/search.js";
 import { createInstallDependenciesTool } from "../../../../tools/install-dependencies.js";
 import { formatCustomRulesPrompt } from "../../../../utils/custom-rules.js";
+import { createLangGraphServerStartupTool } from "../../../../tools/py-dev-server.js";
 import { getMcpTools } from "../../../../utils/mcp-client.js";
 import {
   formatCodeReviewPrompt,
@@ -106,6 +107,7 @@ export async function generateAction(
     createRequestHumanHelpToolFields(),
     createUpdatePlanToolFields(),
     createGetURLContentTool(),
+    createLangGraphServerStartupTool(state),
     ...mcpTools,
     // Only provide the dependencies installed tool if they're not already installed.
     ...(state.dependenciesInstalled

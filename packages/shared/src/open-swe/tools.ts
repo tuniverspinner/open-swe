@@ -472,3 +472,37 @@ export function createReviewStartedToolFields() {
     schema: reviewStartedSchema,
   };
 }
+
+export function createLangGraphServerStartupToolFields(
+  targetRepository: TargetRepository,
+) {
+  const repoRoot = getRepoAbsolutePath(targetRepository);
+  
+  const langGraphServerStartupSchema = z.object({
+    filename: z
+      .string()
+      .describe(
+        "Path to the Python file containing the LangGraph graph definition (relative to repo root). " +
+        "This should be the main file that defines or imports the graph object, typically containing " +
+        "code like 'from my_graph import graph' or 'graph = StateGraph(...)'. " +
+        "Examples: 'graph.py', 'main.py', 'agent.py'"
+      ),
+  });
+
+  return {
+    name: "check_langgraph_server_startup",
+    description:
+      `Validates that a LangGraph server can start successfully without errors. ` +
+      `This tool performs a dry-run startup check by importing the specified graph file ` +
+      `and verifying that all dependencies resolve correctly, the graph compiles properly, ` +
+      `and there are no syntax or runtime errors during initialization. ` +
+      `\n\nRepository root: \`${repoRoot}\`\n\n Ensure the file path is relative to the repository root.` +
+      `Use this tool to:
+      • Verify graph definitions are syntactically correct
+      • Check that all imports and dependencies are available
+      • Validate graph compilation before deployment
+      • Debug startup issues in LangGraph applications
+      • Ensure code changes don't break graph initialization`,
+    schema: langGraphServerStartupSchema,
+  };
+}
