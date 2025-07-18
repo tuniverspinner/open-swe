@@ -4,7 +4,7 @@ import { ModelManager } from "./model-manager.js";
 import { createLogger, LogLevel } from "./logger.js";
 import { Runnable, RunnableConfig } from "@langchain/core/runnables";
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { StructuredToolInterface } from "@langchain/core/tools";
+import { StructuredToolInterface, tool } from "@langchain/core/tools";
 //import { RunnableBinding } from "@langchain/core/runnables";
 
 const logger = createLogger(LogLevel.INFO, "FallbackRunnable");
@@ -13,6 +13,9 @@ interface ExtractedTools {
   tools: StructuredToolInterface[];
   kwargs: Record<string, any>;
 }
+
+// Allow both proper tools and plain objects
+type ToolInput = StructuredToolInterface | { name: string; description: string; schema: any; };
 
 export class FallbackRunnable<
   RunInput,
@@ -41,6 +44,71 @@ export class FallbackRunnable<
   get lc_namespace(): string[] {
     return ["langchain", "fallback"];
   }
+
+  // Add required properties from ConfigurableModel interface
+  get _llmType(): string {
+    return (this.primaryRunnable as any)._llmType || "fallback_chat";
+  }
+
+  get _configurableFields(): any {
+    return (this.primaryRunnable as any)._configurableFields || {};
+  }
+
+  get _configPrefix(): string {
+    return (this.primaryRunnable as any)._configPrefix || "fallback";
+  }
+
+  get _queuedMethodOperations(): any {
+    return (this.primaryRunnable as any)._queuedMethodOperations || {};
+  }
+
+  // Forward other common model properties required by ConfigurableModel
+  call(messages: any, options?: any): Promise<any> {
+    return this.invoke(messages, options);
+  }
+
+  get returnDirect(): boolean {
+    return (this.primaryRunnable as any).returnDirect || false;
+  }
+
+  // Additional ConfigurableModel-compatible methods
+  async stream(input: RunInput, options?: any): Promise<any> {
+    return (this.primaryRunnable as any).stream?.(input, options) ?? this.invoke(input, options);
+  }
+
+  async batch(inputs: RunInput[], options?: any, batchOptions?: any): Promise<RunOutput[]> {
+    return (this.primaryRunnable as any).batch?.(inputs, options, batchOptions) ?? 
+           Promise.all(inputs.map(input => this.invoke(input, options)));
+  }
+
+  withStructuredOutput(schema: any, options?: any): any {
+    return (this.primaryRunnable as any).withStructuredOutput?.(schema, options) ?? this;
+  }
+
+  get _defaultConfig(): Record<string, any> {
+    return (this.primaryRunnable as any)._defaultConfig || {};
+  }
+
+  // Additional ConfigurableModel properties that were missing
+  get _model(): any {
+    return (this.primaryRunnable as any)._model || this.primaryRunnable;
+  }
+
+  async _generate(messages: any[], options?: any): Promise<any> {
+    return (this.primaryRunnable as any)._generate?.(messages, options) ?? 
+           this.invoke(messages as any, options);
+  }
+
+  get _modelParams(): Record<string, any> {
+    return (this.primaryRunnable as any)._modelParams || {};
+  }
+
+  _removePrefix(key: string): string {
+    return (this.primaryRunnable as any)._removePrefix?.(key) ?? key;
+  }
+
+  // Forward any other missing methods/properties generically
+  [key: string]: any;
 
   async invoke(
     input: RunInput,
@@ -94,13 +162,32 @@ export class FallbackRunnable<
     );
   }
 
-  // use type for StructuedToolInterface[], record string any for args should work
+  // Accept both proper tools and plain objects, convert internally
   bindTools(
-    tools: StructuredToolInterface[],
+    tools: ToolInput[],
     kwargs?: Record<string, any>,
   ): FallbackRunnable<RunInput, RunOutput> {
+    // Convert plain objects to proper tools
+    const structuredTools: StructuredToolInterface[] = tools.map(toolInput => {
+      if ('invoke' in toolInput && 'lc_namespace' in toolInput) {
+        // Already a proper StructuredToolInterface
+        return toolInput as StructuredToolInterface;
+      } else {
+        // Plain object - convert to proper tool
+        const plainTool = toolInput as { name: string; description: string; schema: any; };
+        return tool(
+          () => ({}), // Dummy function - the actual logic is handled elsewhere
+          {
+            name: plainTool.name,
+            description: plainTool.description,
+            schema: plainTool.schema,
+          }
+        );
+      }
+    });
+
     const boundPrimary =
-      (this.primaryRunnable as any).bindTools?.(tools, kwargs) ??
+      (this.primaryRunnable as any).bindTools?.(structuredTools, kwargs) ??
       this.primaryRunnable;
     return new FallbackRunnable(
       boundPrimary,

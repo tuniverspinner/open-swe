@@ -209,13 +209,13 @@ export class ModelManager {
       [Task.ROUTER]: {
         modelName:
           config.configurable?.routerModelName ??
-          "anthropic:claude-3-5-haiku-latest",
+          "google-genai:gemini-2.5-flash-preview-05-20",
         temperature: config.configurable?.routerTemperature ?? 0,
       },
       [Task.SUMMARIZER]: {
         modelName:
           config.configurable?.summarizerModelName ??
-          "anthropic:claude-sonnet-4-0",
+          "google-genai:gemini-2.5-flash-preview-05-20",
         temperature: config.configurable?.summarizerTemperature ?? 0,
       },
     };

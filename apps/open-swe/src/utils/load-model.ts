@@ -2,6 +2,7 @@ import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { getModelManager, ModelManagerConfig } from "./model-manager.js";
 import { FallbackRunnable } from "./runtime-fallback.js";
 import { createLogger, LogLevel } from "./logger.js";
+import { ConfigurableModel } from "langchain/chat_models/universal";
 
 const logger = createLogger(LogLevel.INFO, "LoadModel");
 
@@ -28,7 +29,8 @@ export async function loadModel(config: GraphConfig, task: Task) {
       task,
       modelManager,
     );
-    return fallbackModel;
+    // Cast to ConfigurableModel for type compatibility
+    return fallbackModel as any as ConfigurableModel<any, any>;
   } catch (error) {
     logger.error("Model loading failed", {
       task,
