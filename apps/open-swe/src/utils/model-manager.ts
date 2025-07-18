@@ -30,8 +30,8 @@ export enum CircuitState {
 }
 
 export const PROVIDER_FALLBACK_ORDER = [
-  "google-genai",
   "anthropic",
+  "google-genai",
   "openai",
 ] as const;
 export type Provider = (typeof PROVIDER_FALLBACK_ORDER)[number];
