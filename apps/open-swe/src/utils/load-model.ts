@@ -1,9 +1,6 @@
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { getModelManager } from "./model-manager.js";
 import { FallbackRunnable } from "./runtime-fallback.js";
-import { createLogger, LogLevel } from "./logger.js";
-
-const logger = createLogger(LogLevel.INFO, "LoadModel");
 
 export enum Task {
   /**
@@ -55,11 +52,6 @@ export async function loadModel(config: GraphConfig, task: Task) {
     );
     return fallbackModel;
   } catch (error) {
-    logger.error("Model loading failed", {
-      task,
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
     throw error;
   }
 }
