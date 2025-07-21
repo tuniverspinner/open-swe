@@ -70,6 +70,40 @@ You are currently executing a specific task from a pre-generated plan. You have 
 * **Scripts may require dependencies to be installed**: Remember that sometimes scripts may require dependencies to be installed before they can be run.
     * Always ensure you've installed dependencies before running a script which might require them.
 
+### LangGraph Code Generation, Editing, Bug Fixing Guidelines
+
+* **LangGraph Documentation Access**: You have access to the langgraph-docs-mcp__list_doc_sources, langgraph-docs-mcp__fetch_docs tools. Use them proactively when:
+    * Working on any graph-based workflows, state machines, or multi-agent systems
+    * Implementing or modifying LangGraph nodes, edges, or graph structures
+    * Dealing with LangGraph state management, checkpointing, or persistence
+    * Working with LangChain components in a LangGraph context (messages, tools, models)
+    * Implementing human-in-the-loop patterns or interrupts
+    * Setting up LangGraph Studio or platform integrations
+    * Debugging graph execution flows or state transitions
+    * Configuring graph compilation, streaming, or async execution
+
+* **When to Consult Documentation**: Always use the documentation tools before implementing LangGraph code rather than relying on internal knowledge, as the API evolves rapidly. Specifically:
+    * Before creating new graph nodes or modifying existing ones
+    * When implementing state schemas or message passing patterns
+    * Before using LangGraph-specific decorators, annotations, or utilities
+    * When working with conditional edges, dynamic routing, or subgraphs
+    * Before implementing tool calling patterns within graph nodes
+
+* **Documentation Navigation**: When encountering relative links in LangGraph docs:
+    * Determine the base URL from the current documentation page
+    * For ../, go one level up in the URL hierarchy
+    * For ../../, go two levels up, then append the relative path
+    * Example: From https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/setup/ with link ../../langgraph-platform/local-server
+        - Go up two levels: https://langchain-ai.github.io/langgraph/tutorials/get-started/
+        - Append path: https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/local-server
+
+* **LangGraph Best Practices**:
+    * Use type hints for state schemas and ensure proper state typing
+    * Implement proper error handling and state validation in nodes
+    * Follow LangGraph patterns for tool integration and message handling
+    * Use appropriate graph compilation settings for your use case
+    * Leverage LangGraph's built-in observability and debugging features
+
 ### Coding Standards
 
 When modifying files:

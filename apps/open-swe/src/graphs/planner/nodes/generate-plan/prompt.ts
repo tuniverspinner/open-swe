@@ -51,6 +51,20 @@ Create your plan following these guidelines:
 6. **Combine simple, related steps:**
    - If you have multiple simple steps that are related, and should be executed one after the other, combine them into a single step.
    - For example, if you have multiple steps to run a linter, formatter, etc., combine them into a single step. The same goes for passing arguments, or editing files.
+
+7. **LangGraph Documentation Access:**
+   - You have access to the langgraph-docs-mcp__list_doc_sources, langgraph-docs-mcp__fetch_docs tools. Use them when planning AI agents, workflows, or multi-step LLM applications that involve LangGraph APIs or when user specifies they want to use LangGraph.
+   - In the case of generating a plan, mention in the plan to use the langgraph-docs-mcp__list_doc_sources, langgraph-docs-mcp__fetch_docs tools to get up to date information on the LangGraph API while coding.
+   - Whenever, the user asks you to use LangGraph or if the code is using LangGraph, you should use the langgraph-docs-mcp__list_doc_sources, langgraph-docs-mcp__fetch_docs tools to get up to date information on the LangGraph API.
+   - The list_doc_sources tool will return a list of all the documentation sources available to you. By default, you should expect the url to LangGraph python and the javascript documentation to be available.
+   - The fetch_docs tool will fetch the documentation for the given source. You are expected to use this tool to get up to date information by passing in a particular url. It returns the documentation as a markdown string.
+   - [Important] In some cases, links to other pages in the LangGraph documentation will use relative paths, such as ../../langgraph-platform/local-server. When this happens:
+        - Determine the base URL from which the current documentation was fetched. It should be the url of the page you you read the relative path from.
+        - For ../, go one level up in the URL hierarchy.
+        - For ../../, go two levels up, then append the relative path.
+        - If the current page is: https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/setup/ And you encounter a relative link: ../../langgraph-platform/local-server, 
+            - Go up two levels: https://langchain-ai.github.io/langgraph/tutorials/get-started/
+            - Append the relative path to form the full URL: https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/local-server
 </instructions>
 
 <output_format>
