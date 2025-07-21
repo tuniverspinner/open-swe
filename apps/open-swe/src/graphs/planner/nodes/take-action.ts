@@ -52,6 +52,11 @@ export async function takeActions(
   const getURLContentTool = createGetURLContentTool();
   const mcpTools = await getMcpTools(config);
 
+  const higherContextLimitToolNames = [
+    ...mcpTools.map((t) => t.name),
+    getURLContentTool.name,
+  ];
+
   const allTools = [
     shellTool,
     searchTool,
@@ -142,14 +147,13 @@ export async function takeActions(
       }
     }
 
-    const truncatedOutput =
-      toolCall.name === getURLContentTool.name
-        ? // Allow for more context to be included from URL contents.
-          truncateOutput(result, {
-            numStartCharacters: 10000,
-            numEndCharacters: 10000,
-          })
-        : truncateOutput(result);
+    const truncatedOutput = higherContextLimitToolNames.includes(toolCall.name)
+      ? // Allow for more context to be included from URL contents.
+        truncateOutput(result, {
+          numStartCharacters: 20000,
+          numEndCharacters: 20000,
+        })
+      : truncateOutput(result);
 
     const toolMessage = new ToolMessage({
       id: uuidv4(),

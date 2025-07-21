@@ -96,6 +96,7 @@ You are currently executing a specific task from a pre-generated plan. You have 
     * Example: From https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/setup/ with link ../../langgraph-platform/local-server
         - Go up two levels: https://langchain-ai.github.io/langgraph/tutorials/get-started/
         - Append path: https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/local-server
+    * If you get a reponse like Encountered an HTTP error: Client error '404' for url, it probably means that the url you created with relative path is incorrect so you should try constructing it again. 
 
 * **LangGraph Best Practices**:
     * Use type hints for state schemas and ensure proper state typing
