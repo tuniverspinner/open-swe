@@ -1,7 +1,5 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
 import express from 'express';
-import fetch from 'node-fetch';
 import type { Request, Response } from 'express';
 import fs from 'fs';
 import os from 'os';
@@ -9,24 +7,41 @@ import path from 'path';
 
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
-const PORT = process.env.PORT || 3456;
-const CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || `http://localhost:${PORT}/api/auth/github/callback`;
+const PORT = 3000;
+const CALLBACK_URL = "http://localhost:3000/api/auth/github/callback";
 
 const TOKEN_PATH = path.join(os.homedir(), '.open-swe-cli', 'github_token.json');
 
 let accessToken: string | null = null;
 
-function saveToken(tokenData: any) {
+interface GitHubTokenResponse {
+  access_token?: string;
+  token_type?: string;
+  scope?: string;
+  error?: string;
+  error_description?: string;
+  error_uri?: string;
+}
+
+function saveToken(tokenData: GitHubTokenResponse) {
   const dir = path.dirname(TOKEN_PATH);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    }
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokenData, null, 2), { mode: 0o600 });
+  } catch (err) {
+    console.error('Failed to save token:', err);
   }
-  fs.writeFileSync(TOKEN_PATH, JSON.stringify(tokenData, null, 2), { mode: 0o600 });
 }
 
 function loadToken() {
-  if (fs.existsSync(TOKEN_PATH)) {
-    return JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
+  try {
+    if (fs.existsSync(TOKEN_PATH)) {
+      return JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf8'));
+    }
+  } catch (err) {
+    console.error('Failed to load token:', err);
   }
   return null;
 }
@@ -36,8 +51,12 @@ const app = express();
 // 1. Start OAuth flow
 app.get('/api/auth/github/login', (_req: Request, res: Response) => {
   const state = Math.random().toString(36).substring(2);
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(CALLBACK_URL)}&state=${state}`;
-  res.redirect(githubAuthUrl);
+  const baseGithubAuthUrl = "https://github.com/login/oauth/authorize";
+  const url = new URL(baseGithubAuthUrl);
+  url.searchParams.set("client_id", CLIENT_ID);
+  url.searchParams.set("redirect_uri", CALLBACK_URL);
+  url.searchParams.set("state", state);
+  res.redirect(url.toString());
 });
 
 // 2. Handle OAuth callback

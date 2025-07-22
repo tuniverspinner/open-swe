@@ -33,7 +33,7 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit
 const App: React.FC = () => {
 	const [authPrompt, setAuthPrompt] = useState<null | boolean>(null);
 	const [authInput, setAuthInput] = useState("");
-	const [submitted, setSubmitted] = useState<string | null>(null);
+	const [message, setMessage] = useState<string | null>(null);
 	const [exit, setExit] = useState(false);
 	const [authStarted, setAuthStarted] = useState(false);
 	const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -45,6 +45,20 @@ const App: React.FC = () => {
 			setIsLoggedIn(true);
 		}
 	}, []);
+
+	// Poll for token after auth flow starts
+	useEffect(() => {
+		if (authStarted && !isLoggedIn) {
+			const interval = setInterval(() => {
+				const token = getAccessToken();
+				if (token) {
+					setIsLoggedIn(true);
+					clearInterval(interval);
+				}
+			}, 1000);
+			return () => clearInterval(interval);
+		}
+	}, [authStarted, isLoggedIn]);
 
 	// Handle yes/no input for auth prompt
 	useInput((input, key) => {
@@ -77,12 +91,22 @@ const App: React.FC = () => {
 		if (authPrompt === true && !authStarted) {
 			setAuthStarted(true);
 			startAuthServer();
-			open("http://localhost:3456/api/auth/github/login");
+			open("http://localhost:3000/api/auth/github/login");
 		}
 	}, [authPrompt, authStarted]);
 
 	if (isLoggedIn) {
-		return <TerminalInterface submitted={submitted} setSubmitted={setSubmitted} CustomInput={CustomInput} />;
+		return (
+			<Box flexDirection="column" height={"100%"}>
+				<TerminalInterface message={message} setMessage={setMessage} CustomInput={CustomInput} />
+				<Box flexGrow={1} />
+				<Box width="100%" justifyContent="flex-end">
+					<Text color="gray" dimColor>
+						logged in
+					</Text>
+				</Box>
+			</Box>
+		);
 	}
 
 	if (authPrompt === null) {
@@ -105,12 +129,12 @@ const App: React.FC = () => {
 			<Box justifyContent="center" marginBottom={1}>
 				<Text bold color="magenta">LangChain Open SWE CLI</Text>
 			</Box>
-			{!submitted && (
-				<CustomInput onSubmit={setSubmitted} />
+			{!message && (
+				<CustomInput onSubmit={setMessage} />
 			)}
-			{submitted && (
+			{message && (
 				<Box marginTop={1}>
-					<Text color="green">You typed: {submitted}</Text>
+					<Text color="green">You typed: {message}</Text>
 				</Box>
 			)}
 		</Box>

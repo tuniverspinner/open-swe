@@ -1,27 +1,28 @@
 import React from "react";
 import { Box, Text } from "ink";
 
+
 interface TerminalInterfaceProps {
-	submitted: string | null;
-	setSubmitted: (value: string) => void;
+	message: string | null;
+	setMessage: (value: string) => void;
 	CustomInput: React.FC<{ onSubmit: (value: string) => void }>;
 }
 
-const TerminalInterface: React.FC<TerminalInterfaceProps> = ({ submitted, setSubmitted, CustomInput }) => {
+const TerminalInterface: React.FC<TerminalInterfaceProps> = ({ message, setMessage, CustomInput }) => {
 	return (
 		<Box flexDirection="column" padding={1}>
-			<Box justifyContent="center" marginBottom={1}>
-				<Text bold color="magenta">LangChain Open SWE CLI</Text>
+			<Box justifyContent="center" marginBottom={0}>
+				<Text bold>LangChain Open SWE CLI</Text>
 			</Box>
-			<Box flexDirection="column" marginBottom={1}>
-				<Text>• Describe your coding task or ask a question...</Text>
+			<Box flexDirection="column">
+				<Text>Describe your coding task in as much detail as possible...</Text>
 			</Box>
-			<Box borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginTop={1} marginBottom={1}>
-				<CustomInput onSubmit={setSubmitted} />
+			<Box borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginTop={0} marginBottom={0}>
+				<CustomInput onSubmit={setMessage} />
 			</Box>
-			{submitted && (
+			{message && (
 				<Box marginTop={1}>
-					<Text color="green">You typed: {submitted}</Text>
+					<Text color="green">You typed: {message}</Text>
 				</Box>
 			)}
 		</Box>
