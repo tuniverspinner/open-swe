@@ -23,7 +23,7 @@ import {
   getCurrentPlanItem,
   getRemainingPlanItems,
 } from "../../../utils/current-task.js";
-import { HumanMessage, ToolMessage } from "@langchain/core/messages";
+import { ToolMessage } from "@langchain/core/messages";
 import { addTaskPlanToIssue } from "../../../utils/github/issue-task.js";
 import {
   createMarkTaskNotCompletedToolFields,
@@ -37,9 +37,9 @@ import {
 import { z } from "zod";
 import {
   CacheablePromptSegment,
-  convertMessagesToCacheControlledMessages,
   trackCachePerformance,
 } from "../../../utils/caching.js";
+import { getMessageString } from "../../../utils/message/content.js";
 
 const logger = createLogger(LogLevel.INFO, "ProgressPlanStep");
 
@@ -64,19 +64,48 @@ Once you've determined the status of the current task, call either:
 </task>`;
 
 const systemPlanPrompt = `Here is the plan, along with the summaries of each completed task:
-{PLAN_PROMPT}`;
+{PLAN_PROMPT}
 
-const formatCacheableSystemPrompt = (
-  activePlanItems: PlanItem[],
-): CacheablePromptSegment[] => {
-  const segments: CacheablePromptSegment[] = [
-    // Cache Breakpoint 2: Static Instructions
+<instructions>
+Given all of this context, please inspect the plan, and determine if the current task is complete, or if you still have work left to do.
+
+You are NOT allowed to take any action other than calling the \`mark_task_completed\` or \`mark_task_not_completed\` tool.
+
+Once you've determined the status of the current task, call either the \`mark_task_completed\` or \`mark_task_not_completed\` tool.
+</instructions>
+`;
+
+const formatCacheableSystemPrompt = (): CacheablePromptSegment[] => {
+  return [
     {
       type: "text",
       text: systemPrompt,
       cache_control: { type: "ephemeral" },
     },
-    // Cache Breakpoint 3: Dynamic Context
+  ];
+};
+
+const formatCacheableUserPrompt = (
+  state: GraphState,
+): CacheablePromptSegment[] => {
+  return [
+    {
+      type: "text",
+      text: `The following messages contain the full conversation history including the user's request(s):
+${formatUserRequestPrompt(state.internalMessages)}`,
+    },
+  ];
+};
+
+const formatDynamicUserPrompt = (
+  activePlanItems: PlanItem[],
+): CacheablePromptSegment[] => {
+  return [
+    {
+      type: "text",
+      text: "Take all of the messages above, and determine whether or not you have completed this task in the plan.",
+      cache_control: { type: "ephemeral" },
+    },
     {
       type: "text",
       text: systemPlanPrompt.replace(
@@ -86,43 +115,6 @@ const formatCacheableSystemPrompt = (
       cache_control: { type: "ephemeral" },
     },
   ];
-
-  return segments.filter((segment) => segment.text.trim() !== "");
-};
-
-const formatCacheableUserPromptPrefix = (
-  state: GraphState,
-): CacheablePromptSegment[] => {
-  const segments: CacheablePromptSegment[] = [
-    {
-      type: "text",
-      text: "The following messages contain the full conversation history including the user's request(s):",
-      cache_control: { type: "ephemeral" },
-    },
-    {
-      type: "text",
-      text: `Here is the user's request(s):\n${formatUserRequestPrompt(state.internalMessages)}`,
-      cache_control: { type: "ephemeral" },
-    },
-  ];
-
-  return segments.filter((segment) => segment.text.trim() !== "");
-};
-
-const formatCacheableUserPromptSuffix = (): CacheablePromptSegment[] => {
-  const segments: CacheablePromptSegment[] = [
-    {
-      type: "text",
-      text: `Take all of the messages above, and determine whether or not you have completed this task in the plan.
-
-You are NOT allowed to take any action other than calling the \`mark_task_completed\` or \`mark_task_not_completed\` tool.
-
-Once you've determined the status of the current task, call either the \`mark_task_completed\` or \`mark_task_not_completed\` tool.`,
-      cache_control: { type: "ephemeral" },
-    },
-  ];
-
-  return segments.filter((segment) => segment.text.trim() !== "");
 };
 
 export async function progressPlanStep(
@@ -151,25 +143,25 @@ export async function progressPlanStep(
       : {}),
   });
 
-  const allUserMessages = [
-    new HumanMessage({
-      content: formatCacheableUserPromptPrefix(state),
-    }),
-    ...state.internalMessages,
-    new HumanMessage({
-      content: formatCacheableUserPromptSuffix(),
-    }),
-  ];
-  const allReviewerMessagesWithCache =
-    convertMessagesToCacheControlledMessages(allUserMessages);
-
   const activePlanItems = getActivePlanItems(state.taskPlan);
   const response = await modelWithTools.invoke([
     {
       role: "system",
-      content: formatCacheableSystemPrompt(activePlanItems),
+      content: formatCacheableSystemPrompt(),
     },
-    ...allReviewerMessagesWithCache,
+    {
+      role: "user",
+      content: formatCacheableUserPrompt(state),
+    },
+    ...state.internalMessages,
+    {
+      role: "user",
+      content: formatCacheableUserPrompt(),
+    },
+    {
+      role: "user",
+      content: formatDynamicSystemPrompt(activePlanItems),
+    },
   ]);
   const toolCall = response.tool_calls?.[0];
 
