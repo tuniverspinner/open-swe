@@ -31,6 +31,28 @@ function loadToken() {
   return null;
 }
 
+async function fetchUserRepos(token: string) {
+	const allRepos = [];
+	let page = 1;
+	const perPage = 100;
+	while (true) {
+		const res = await fetch(`https://api.github.com/user/repos?per_page=${perPage}&page=${page}`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				Accept: 'application/vnd.github.v3+json',
+				'User-Agent': 'open-swe-cli',
+			},
+		});
+		if (!res.ok) throw new Error('Failed to fetch repos');
+		const repos = await res.json();
+		allRepos.push(...repos);
+		if (repos.length < perPage) break;
+		page++;
+	}
+  console.log('Fetched repositories:', allRepos);
+	return allRepos;
+}
+
 const app = express();
 
 // 1. Start OAuth flow
@@ -68,6 +90,21 @@ app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
     saveToken(tokenData);
   } catch (err) {
     console.error('Failed to store token in config file:', err);
+  }
+  // Fetch and log user repos
+  try {
+    if (typeof accessToken === 'string' && accessToken) {
+      console.log('Fetching repositories...');
+      const repos = await fetchUserRepos(accessToken);
+      console.log('GitHub repositories:');
+      for (const repo of repos) {
+        console.log(`- ${repo.full_name}`);
+      }
+    } else {
+      console.error('No valid access token available to fetch repositories.');
+    }
+  } catch (err) {
+    console.error('Failed to fetch repos:', err);
   }
   res.send('Authentication successful! You can close this window.');
 });
