@@ -8,79 +8,11 @@ import { v4 as uuidv4 } from "uuid";
 import fetch from "node-fetch";
 import { encryptSecret } from "../../../packages/shared/dist/crypto.js";
 import { MANAGER_GRAPH_ID } from "../../../packages/shared/dist/constants.js";
-import { useStream } from "@langchain/langgraph-sdk/react";
+import { Client } from "@langchain/langgraph-sdk";
 import { useRef } from "react";
 
-const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 
-async function streamManagerRun({ prompt, repo }: { prompt: string, repo: any }) {
-	const userAccessToken = getAccessToken();
-	const installationAccessToken = await getInstallationAccessToken();
-	const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
-	if (!userAccessToken || !installationAccessToken || !encryptionKey) {
-		console.error("Missing access tokens or SECRETS_ENCRYPTION_KEY. Please authenticate, install the app, and set the encryption key.");
-		return;
-	}
-	const encryptedUserToken = encryptSecret(userAccessToken, encryptionKey);
-	const encryptedInstallationToken = encryptSecret(installationAccessToken, encryptionKey);
-	const [owner, repoName] = repo.full_name.split("/");
-	const threadId = uuidv4();
-	console.log("Using threadId:", threadId);
-	const messageId = uuidv4();
-	const runInput = {
-		messages: [
-			{
-				id: messageId,
-				type: "human",
-				content: [{ type: "text", text: prompt }],
-			},
-		],
-		targetRepository: {
-			owner,
-			repo: repoName,
-			branch: repo.default_branch || "main",
-		},
-		autoAcceptPlan: false,
-	};
-	try {
-		const run = await fetch(`${LANGGRAPH_URL}/api/runs/create`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'x-github-access-token': encryptedUserToken,
-				'x-github-installation-token': encryptedInstallationToken,
-			},
-			body: JSON.stringify({
-				threadId,
-				assistantId: MANAGER_GRAPH_ID,
-				input: runInput,
-				config: { recursion_limit: 400 },
-				ifNotExists: "create",
-				streamResumable: true,
-				streamMode: ["values", "messages-tuple", "custom"],
-				multitaskStrategy: "replace",
-			}),
-		});
-		if (!run.ok) {
-			const errorText = await run.text();
-			console.error("Failed to start manager run:", errorText);
-			return;
-		}
-		// Replace browser .getReader() streaming with Node.js stream logic
-		// Example:
-		// run.body.on('data', (chunk) => { process.stdout.write(chunk.toString()); });
-		// run.body.on('end', () => { process.stdout.write('\n'); });
-		run.body.on('data', (chunk) => { process.stdout.write(chunk.toString()); });
-		run.body.on('end', () => { process.stdout.write('\n'); });
-	} catch (err: any) {
-		if (err && err.response) {
-			const errorText = await err.response.text();
-			console.error("Failed to start manager run:", errorText);
-		} else {
-			console.error("Failed to start manager run:", err);
-		}
-	}
-}
+const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 
 // Start the auth server immediately so callback URLs always work
 startAuthServer();
@@ -187,14 +119,14 @@ const StreamTerminal: React.FC<{
   repo: any;
   onDone: () => void;
 }> = ({ prompt, repo, onDone }) => {
-  const [output, setOutput] = useState<string[]>([]);
+  const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDone, setIsDone] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setOutput([]);
+      setResult(null);
       setError(null);
       setIsDone(false);
       // --- Construct payload and headers ---
@@ -226,41 +158,30 @@ const StreamTerminal: React.FC<{
         autoAcceptPlan: false,
       };
       try {
-        const res = await fetch(`${LANGGRAPH_URL}/threads/${threadId}/runs`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-github-access-token': encryptedUserToken,
-            'x-github-installation-token': encryptedInstallationToken,
-            'x-github-installation-name': owner,
+        const client = new Client({
+          apiUrl: LANGGRAPH_URL,
+          defaultHeaders: {
+            "x-github-access-token": encryptedUserToken,
+            "x-github-installation-token": encryptedInstallationToken,
+            "x-github-installation-name": owner,
           },
-          body: JSON.stringify({
-            graph: MANAGER_GRAPH_ID,
-            assistant_id: MANAGER_GRAPH_ID,
+        });
+        const run = await client.runs.create(
+          threadId,
+          MANAGER_GRAPH_ID,
+          {
             input: runInput,
             config: { recursion_limit: 400 },
             ifNotExists: "create",
             streamResumable: true,
-            streamMode: ["values", "messages-tuple", "custom"],
-            multitaskStrategy: "replace",
-          }),
-        });
-        if (!res.ok || !res.body) {
-          setError(await res.text());
-          return;
-        }
-        const chunks: string[] = [];
-        res.body.on('data', (chunk) => {
-          const str = chunk.toString();
-          chunks.push(str);
-          if (!cancelled) setOutput([...chunks]);
-        });
-        res.body.on('end', () => {
-          if (!cancelled) {
-            setIsDone(true);
-            onDone();
+            streamMode: ["values", "messages-tuple", "custom"]
           }
-        });
+        );
+        if (!cancelled) {
+          setResult("Manager run created successfully! Thread ID: " + threadId);
+          setIsDone(true);
+          onDone();
+        }
       } catch (err: any) {
         setError(err?.message || String(err));
       }
@@ -270,13 +191,13 @@ const StreamTerminal: React.FC<{
 
   return (
     <Box flexDirection="column">
-      <Text color="yellow">Streaming output for: {prompt}</Text>
+      <Text color="yellow">Creating manager run for: {prompt}</Text>
       {error ? (
         <Text color="red">{error}</Text>
-      ) : output.length > 0 ? (
-        output.map((msg, idx) => <Text key={idx}>{msg}</Text>)
+      ) : result ? (
+        <Text color="green">{result}</Text>
       ) : (
-        <Text color="gray">Waiting for output...</Text>
+        <Text color="gray">Creating...</Text>
       )}
     </Box>
   );
