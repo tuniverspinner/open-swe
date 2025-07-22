@@ -48,11 +48,16 @@ Create your plan following these guidelines:
 5. **Follow the custom rules:**
    - Carefully read, and follow any instructions provided in the 'custom_rules' section. E.g. if the rules state you must run a linter or formatter, etc., include a plan item to do so.
 
-6. **Combine simple, related steps:**
+6. **LangGraph-specific planning:**
+   - When the user's request involves LangGraph code generation, editing, or bug fixing, ensure the execution agent will have access to up-to-date LangGraph documentation
+   - For new LangGraph agents, plan for modular structure with 'agent.py/agent.ts' containing the compiled graph and 'langgraph.json' in the same directory for local development server compatibility
+   - When LangGraph is involved, include a plan item to reference the langgraph-docs-mcp tools for current API information during implementation
+
+7. **Combine simple, related steps:**
    - If you have multiple simple steps that are related, and should be executed one after the other, combine them into a single step.
    - For example, if you have multiple steps to run a linter, formatter, etc., combine them into a single step. The same goes for passing arguments, or editing files.
 
-7. **LangGraph Documentation Access:**
+8. **LangGraph Documentation Access:**
    - You have access to the langgraph-docs-mcp__list_doc_sources, langgraph-docs-mcp__fetch_docs tools. Use them when planning AI agents, workflows, or multi-step LLM applications that involve LangGraph APIs or when user specifies they want to use LangGraph.
    - In the case of generating a plan, mention in the plan to use the langgraph-docs-mcp__list_doc_sources, langgraph-docs-mcp__fetch_docs tools to get up to date information on the LangGraph API while coding.
    - Whenever, the user asks you to use LangGraph or if the code is using LangGraph, you should use the langgraph-docs-mcp__list_doc_sources, langgraph-docs-mcp__fetch_docs tools to get up to date information on the LangGraph API.

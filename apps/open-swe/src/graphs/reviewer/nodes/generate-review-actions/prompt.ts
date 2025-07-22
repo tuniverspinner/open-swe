@@ -71,6 +71,7 @@ Common tasks you should always confirm were executed:
 - Unit tests were executed
 - If no tests for the code written/updated exists, confirm whether or not tests should be written
 - Documentation was updated, if applicable
+- **For LangGraph agents**: If the request involves creating or modifying a LangGraph agent, ensure both the agent file (agent.py/agent.ts) and the corresponding langgraph.json file exist in the same directory. This is critical for the agent's local development server to run properly.
 
 **IMPORTANT**:
 Keep in mind that not all requests/changes will need tests to be written, or documentation to be added/updated. Ensure you consider whether or not the standard engineering organization would write tests, or documentation for the changes you're reviewing.
