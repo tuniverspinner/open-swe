@@ -13,7 +13,6 @@ import {
 } from "../../../utils/load-model.js";
 import { formatPlanPrompt } from "../../../utils/plan-prompt.js";
 import { Command } from "@langchain/langgraph";
-import { getMessageString } from "../../../utils/message/content.js";
 import { formatUserRequestPrompt } from "../../../utils/user-request.js";
 import {
   completePlanItem,
@@ -24,7 +23,7 @@ import {
   getCurrentPlanItem,
   getRemainingPlanItems,
 } from "../../../utils/current-task.js";
-import { ToolMessage } from "@langchain/core/messages";
+import { HumanMessage, ToolMessage } from "@langchain/core/messages";
 import { addTaskPlanToIssue } from "../../../utils/github/issue-task.js";
 import {
   createMarkTaskNotCompletedToolFields,
@@ -36,33 +35,94 @@ import {
   MAX_INTERNAL_TOKENS,
 } from "../../../utils/tokens.js";
 import { z } from "zod";
-import { trackCachePerformance } from "../../../utils/caching.js";
+import {
+  CacheablePromptSegment,
+  convertMessagesToCacheControlledMessages,
+  trackCachePerformance,
+} from "../../../utils/caching.js";
 
 const logger = createLogger(LogLevel.INFO, "ProgressPlanStep");
 
-const systemPrompt = `You are operating as a terminal-based agentic coding assistant built by LangChain. It wraps LLM models to enable natural language interaction with a local codebase. You are expected to be precise, safe, and helpful.
+const systemPrompt = `<identity>
+You are operating as a terminal-based agentic coding assistant built by LangChain. It wraps LLM models to enable natural language interaction with a local codebase. You are expected to be precise, safe, and helpful.
+</identity>
 
+<workflow>
 In your workflow, you generate a plan, then act on said plan. It may take many actions to complete a single step, or a single action to complete the step.
-
-Here is the plan, along with the summaries of each completed task:
-{PLAN_PROMPT}
 
 Analyze the tasks you've completed, the tasks which are remaining, and the current task you just took an action on.
 In addition to this, you're also provided the full conversation history between you and the user. All of the messages in this conversation are from the previous steps/actions you've taken, and any user input.
 If the task you're working on is to fix a failing command (e.g. a test, build, lint, etc.), and you've made changes to fix the issue, you must re-run the command to ensure the fix was successful before you can mark the task as complete.
   For example: If you have a failing test, and you've applied an update to the file to fix the test, you MUST re-run the test before you can mark the task as complete.
+</workflow>
 
+<task>
 Take all of this information, and determine if the current task is complete, or if you still have work left to do.
 Once you've determined the status of the current task, call either:
 - \`mark_task_completed\` if the task is complete.
 - \`mark_task_not_completed\` if the task is not complete.
-`;
+</task>`;
 
-const formatPrompt = (taskPlan: PlanItem[]): string => {
-  return systemPrompt.replace(
-    "{PLAN_PROMPT}",
-    formatPlanPrompt(taskPlan, { includeSummaries: true }),
-  );
+const systemPlanPrompt = `Here is the plan, along with the summaries of each completed task:
+{PLAN_PROMPT}`;
+
+const formatCacheableSystemPrompt = (
+  activePlanItems: PlanItem[],
+): CacheablePromptSegment[] => {
+  const segments: CacheablePromptSegment[] = [
+    // Cache Breakpoint 2: Static Instructions
+    {
+      type: "text",
+      text: systemPrompt,
+      cache_control: { type: "ephemeral" },
+    },
+    // Cache Breakpoint 3: Dynamic Context
+    {
+      type: "text",
+      text: systemPlanPrompt.replace(
+        "{PLAN_PROMPT}",
+        formatPlanPrompt(activePlanItems, { includeSummaries: true }),
+      ),
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
+  return segments.filter((segment) => segment.text.trim() !== "");
+};
+
+const formatCacheableUserPromptPrefix = (
+  state: GraphState,
+): CacheablePromptSegment[] => {
+  const segments: CacheablePromptSegment[] = [
+    {
+      type: "text",
+      text: "The following messages contain the full conversation history including the user's request(s):",
+      cache_control: { type: "ephemeral" },
+    },
+    {
+      type: "text",
+      text: `Here is the user's request(s):\n${formatUserRequestPrompt(state.internalMessages)}`,
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
+  return segments.filter((segment) => segment.text.trim() !== "");
+};
+
+const formatCacheableUserPromptSuffix = (): CacheablePromptSegment[] => {
+  const segments: CacheablePromptSegment[] = [
+    {
+      type: "text",
+      text: `Take all of the messages above, and determine whether or not you have completed this task in the plan.
+
+You are NOT allowed to take any action other than calling the \`mark_task_completed\` or \`mark_task_not_completed\` tool.
+
+Once you've determined the status of the current task, call either the \`mark_task_completed\` or \`mark_task_not_completed\` tool.`,
+      cache_control: { type: "ephemeral" },
+    },
+  ];
+
+  return segments.filter((segment) => segment.text.trim() !== "");
 };
 
 export async function progressPlanStep(
@@ -76,38 +136,40 @@ export async function progressPlanStep(
     config,
     Task.SUMMARIZER,
   );
-  const modelWithTools = model.bindTools(
-    [markNotCompletedTool, markCompletedTool],
-    {
-      tool_choice: "any",
-      ...(modelSupportsParallelToolCallsParam
-        ? {
-            parallel_tool_calls: false,
-          }
-        : {}),
-    },
-  );
+  const tools = [markNotCompletedTool, markCompletedTool];
+  tools[tools.length - 1] = {
+    ...tools[tools.length - 1],
+    cache_control: { type: "ephemeral" },
+  } as any;
 
-  const conversationHistoryStr = `Here is the full conversation history including the user's request(s):
-  
-${state.internalMessages.map(getMessageString).join("\n")}
+  const modelWithTools = model.bindTools(tools, {
+    tool_choice: "any",
+    ...(modelSupportsParallelToolCallsParam
+      ? {
+          parallel_tool_calls: false,
+        }
+      : {}),
+  });
 
-${formatUserRequestPrompt(state.internalMessages)}
-
-Take all of this information, and determine whether or not you have completed this task in the plan.
-Once you've determined the status of the current task, call either the \`mark_task_completed\` or \`mark_task_not_completed\` tool.`;
+  const allUserMessages = [
+    new HumanMessage({
+      content: formatCacheableUserPromptPrefix(state),
+    }),
+    ...state.internalMessages,
+    new HumanMessage({
+      content: formatCacheableUserPromptSuffix(),
+    }),
+  ];
+  const allReviewerMessagesWithCache =
+    convertMessagesToCacheControlledMessages(allUserMessages);
 
   const activePlanItems = getActivePlanItems(state.taskPlan);
-
   const response = await modelWithTools.invoke([
     {
       role: "system",
-      content: formatPrompt(activePlanItems),
+      content: formatCacheableSystemPrompt(activePlanItems),
     },
-    {
-      role: "user",
-      content: conversationHistoryStr,
-    },
+    ...allReviewerMessagesWithCache,
   ]);
   const toolCall = response.tool_calls?.[0];
 
