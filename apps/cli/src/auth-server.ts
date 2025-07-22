@@ -9,8 +9,8 @@ import path from 'path';
 
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
-const CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || `http://localhost:3456/api/auth/github/callback`;
-const PORT = 3456;
+const PORT = process.env.PORT || 3456;
+const CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || `http://localhost:${PORT}/api/auth/github/callback`;
 
 const TOKEN_PATH = path.join(os.homedir(), '.open-swe-cli', 'github_token.json');
 
@@ -42,7 +42,6 @@ app.get('/api/auth/github/login', (_req: Request, res: Response) => {
 
 // 2. Handle OAuth callback
 app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
-  console.log('Received callback from GitHub:', req.url);
   const code = req.query.code as string;
   // Optionally validate state here
   if (!code) {
@@ -67,7 +66,6 @@ app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
   // Store the token in a config file
   try {
     saveToken(tokenData);
-    console.log('GitHub access token stored in ~/.open-swe-cli/github_token.json');
   } catch (err) {
     console.error('Failed to store token in config file:', err);
   }
@@ -75,10 +73,7 @@ app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
 });
 
 export function startAuthServer() {
-  app.listen(PORT, () => {
-    console.log(`Auth server running at http://localhost:${PORT}`);
-    console.log(`Expected callback: ${CALLBACK_URL}`);
-  });
+  app.listen(PORT, () => {});
 }
 
 export function getAccessToken() {

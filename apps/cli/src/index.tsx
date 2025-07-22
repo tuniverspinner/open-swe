@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { render, Box, Text, useInput } from "ink";
 import { startAuthServer, getAccessToken } from "./auth-server.js";
 import open from "open";
+import TerminalInterface from "./TerminalInterface.js";
 
 const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit }) => {
 	const [value, setValue] = useState("");
@@ -81,23 +82,16 @@ const App: React.FC = () => {
 	}, [authPrompt, authStarted]);
 
 	if (isLoggedIn) {
-		return (
-			<Box flexDirection="column" padding={1}>
-				<Box justifyContent="center" marginBottom={1}>
-					<Text bold color="magenta">LangChain</Text>
-				</Box>
-				<Text color="green">You are successfully logged in with GitHub!</Text>
-			</Box>
-		);
+		return <TerminalInterface submitted={submitted} setSubmitted={setSubmitted} CustomInput={CustomInput} />;
 	}
 
 	if (authPrompt === null) {
 		return (
 			<Box flexDirection="column" padding={1}>
 				<Box justifyContent="center" marginBottom={1}>
-					<Text bold color="magenta">LangChain</Text>
+					<Text bold color="magenta">LangChain Open SWE CLI</Text>
 				</Box>
-				<Box>
+				<Box borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginTop={1} marginBottom={1}>
 					<Text>
 						Do you want to start the GitHub authentication flow? (y/n) {authInput}
 					</Text>
@@ -109,7 +103,7 @@ const App: React.FC = () => {
 	return (
 		<Box flexDirection="column" padding={1}>
 			<Box justifyContent="center" marginBottom={1}>
-				<Text bold color="magenta">LangChain</Text>
+				<Text bold color="magenta">LangChain Open SWE CLI</Text>
 			</Box>
 			{!submitted && (
 				<CustomInput onSubmit={setSubmitted} />
