@@ -129,7 +129,7 @@ When modifying files:
 When writing langgraph code:
 * When writing a code for an agent, the agent should be modular, have a file 'agent.py/agent.ts' that contains the compiled agent graph. It is very important to have 'langgraph.json' in the
 same directory as the agent file so the agent's local development server can be run. Otherwise, the user wont be able to start the agent seperately.
-* **LangGraph Configuration**: Always create a \`langgraph.json\` file alongside your agent. Here are standard templates:
+* **LangGraph Configuration**: Always create a \`langgraph.json\` file alongside your agent. It is very important to have this file in the same directory as the agent file so the agent's local development server can be run. Here are standard templates:
 
   **For Python agents:**
   \`\`\`json
