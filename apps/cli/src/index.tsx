@@ -113,6 +113,9 @@ const App: React.FC = () => {
 	const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
 	const [selectingRepo, setSelectingRepo] = useState(false);
 
+	const APP_NAME = process.env.GITHUB_APP_NAME || '';
+	const INSTALLATION_CALLBACK_URL = `http://localhost:3456/api/auth/github/installation-callback`;
+
 	// On mount, check for existing token
 	useEffect(() => {
 		const token = getAccessToken();
@@ -191,7 +194,22 @@ const App: React.FC = () => {
 					<Text>Select a repository to work with (type to search):</Text>
 				</Box>
 				<Box borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginTop={1} marginBottom={1}>
-					<RepoSearchSelect repos={repos} onSelect={repo => { setSelectedRepo(repo); setSelectingRepo(false); }} />
+					<RepoSearchSelect repos={repos} onSelect={async repo => {
+						let appSlug = APP_NAME;
+						if (!appSlug) {
+							console.log('Please enter your GitHub App slug (as in https://github.com/apps/<slug>):');
+							process.stdin.resume();
+							process.stdin.setEncoding('utf8');
+							appSlug = await new Promise(resolve => {
+								process.stdin.once('data', data => resolve(String(data).trim()));
+							});
+						}
+						const installUrl = `https://github.com/apps/${appSlug}/installations/new?redirect_uri=${encodeURIComponent(INSTALLATION_CALLBACK_URL)}`;
+						console.log('Opening GitHub App installation page in your browser...');
+						await open(installUrl);
+						console.log('After installing the app, please re-select the repository.');
+						return;
+					}} />
 				</Box>
 			</Box>
 		);
