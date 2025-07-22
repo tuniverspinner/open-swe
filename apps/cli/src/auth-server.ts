@@ -6,13 +6,17 @@ import type { Request, Response } from 'express';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import jwt from 'jsonwebtoken';
 
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || '';
-const PORT = process.env.PORT || 3456;
+const PORT = process.env.PORT || 3000;
 const CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || `http://localhost:${PORT}/api/auth/github/callback`;
 
 const TOKEN_PATH = path.join(os.homedir(), '.open-swe-cli', 'github_token.json');
+
+const APP_ID = process.env.GITHUB_APP_ID || '';
+const GITHUB_PRIVATE_KEY = process.env.GITHUB_APP_PRIVATE_KEY || '';
 
 let accessToken: string | null = null;
 
@@ -49,7 +53,6 @@ async function fetchUserRepos(token: string) {
 		if (repos.length < perPage) break;
 		page++;
 	}
-  console.log('Fetched repositories:', allRepos);
 	return allRepos;
 }
 
@@ -65,48 +68,53 @@ app.get('/api/auth/github/login', (_req: Request, res: Response) => {
 // 2. Handle OAuth callback
 app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
   const code = req.query.code as string;
-  // Optionally validate state here
-  if (!code) {
-    return res.status(400).send('Missing code parameter');
-  }
-  // Exchange code for access token
-  const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
-    method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      code,
-      redirect_uri: CALLBACK_URL,
-    }),
-  });
-  const tokenData = await tokenRes.json();
-  if (tokenData.error) {
-    return res.status(400).send('Error exchanging code for token: ' + tokenData.error);
-  }
-  accessToken = tokenData.access_token;
-  // Store the token in a config file
-  try {
-    saveToken(tokenData);
-  } catch (err) {
-    console.error('Failed to store token in config file:', err);
-  }
-  // Fetch and log user repos
-  try {
-    if (typeof accessToken === 'string' && accessToken) {
-      console.log('Fetching repositories...');
-      const repos = await fetchUserRepos(accessToken);
-      console.log('GitHub repositories:');
-      for (const repo of repos) {
-        console.log(`- ${repo.full_name}`);
-      }
-    } else {
-      console.error('No valid access token available to fetch repositories.');
+  const installationId = req.query.installation_id as string | undefined;
+  let tokenData: any = loadToken() || {};
+
+  // If OAuth code is present, exchange for access token
+  if (code) {
+    // Exchange code for access token
+    const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        code,
+        redirect_uri: CALLBACK_URL,
+      }),
+    });
+    const fetchedTokenData = await tokenRes.json();
+    if (fetchedTokenData.error) {
+      return res.status(400).send('Error exchanging code for token: ' + fetchedTokenData.error);
     }
-  } catch (err) {
-    console.error('Failed to fetch repos:', err);
+    accessToken = fetchedTokenData.access_token;
+    tokenData.access_token = accessToken;
+    // Store the token in a config file
+    try {
+      saveToken(tokenData);
+    } catch (err) {
+      console.error('Failed to store token in config file:', err);
+    }
   }
-  res.send('Authentication successful! You can close this window.');
+
+  // If installation_id is present, save it
+  if (installationId) {
+    tokenData.installation_id = installationId;
+    try {
+      saveToken(tokenData);
+    } catch (err) {
+      console.error('Failed to store installation_id in config file:', err);
+    }
+    // Immediately fetch the installation access token to test the fetch and print info
+    await getInstallationAccessToken();
+  }
+
+  if (code || installationId) {
+    res.send('Authentication successful! You can close this window.');
+  } else {
+    res.status(400).send('Missing code or installation_id parameter');
+  }
 });
 
 export function startAuthServer() {
@@ -118,4 +126,48 @@ export function getAccessToken() {
   if (accessToken) return accessToken;
   const tokenData = loadToken();
   return tokenData ? tokenData.access_token : null;
+}
+
+export async function getInstallationAccessToken(): Promise<string | null> {
+  // Load installation_id from config file
+  const tokenData = loadToken();
+  const installationId = tokenData?.installation_id;
+  if (!installationId) {
+    console.error('No installation_id found in config file.');
+    return null;
+  }
+  if (!APP_ID || !GITHUB_PRIVATE_KEY) {
+    console.error('GITHUB_APP_ID or GITHUB_APP_PRIVATE_KEY not set.');
+    return null;
+  }
+  // Use the key contents from the env var, replacing escaped newlines
+  const privateKey = GITHUB_PRIVATE_KEY.replace(/\\n/g, '\n');
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iat: now - 60,
+    exp: now + (10 * 60),
+    iss: APP_ID,
+  };
+  const jwtToken = jwt.sign(payload, privateKey, { algorithm: 'RS256' });
+  const res = await fetch(`https://api.github.com/app/installations/${installationId}/access_tokens`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${jwtToken}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'open-swe-cli',
+    },
+  });
+  if (!res.ok) {
+    console.error('Failed to fetch installation access token:', await res.text());
+    return null;
+  }
+  const data = await res.json();
+  // Print out all relevant info
+  const userAccessToken = tokenData?.access_token;
+  console.log('--- Open SWE CLI Auth Info ---');
+  console.log('installation_id:', installationId || '(not found)');
+  console.log('user access token:', userAccessToken ? userAccessToken.slice(0, 6) + '...' : '(not found)');
+  console.log('installation access token:', data.token ? data.token.slice(0, 6) + '...' : '(not found)');
+  console.log('--------------------------------');
+  return data.token;
 } 

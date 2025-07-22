@@ -5,6 +5,9 @@ import { startAuthServer, getAccessToken } from "./auth-server.js";
 import open from "open";
 import TerminalInterface from "./TerminalInterface.js";
 
+// Start the auth server immediately so callback URLs always work
+startAuthServer();
+
 const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit }) => {
 	const [value, setValue] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
@@ -114,7 +117,7 @@ const App: React.FC = () => {
 	const [selectingRepo, setSelectingRepo] = useState(false);
 
 	const APP_NAME = process.env.GITHUB_APP_NAME || '';
-	const INSTALLATION_CALLBACK_URL = `http://localhost:3456/api/auth/github/installation-callback`;
+	const INSTALLATION_CALLBACK_URL = `http://localhost:3000/api/auth/github/callback`;
 
 	// On mount, check for existing token
 	useEffect(() => {
@@ -180,7 +183,7 @@ const App: React.FC = () => {
 		if (authPrompt === true && !authStarted) {
 			setAuthStarted(true);
 			startAuthServer();
-			open("http://localhost:3456/api/auth/github/login");
+			open("http://localhost:3000/api/auth/github/login");
 		}
 	}, [authPrompt, authStarted]);
 
@@ -207,7 +210,9 @@ const App: React.FC = () => {
 						const installUrl = `https://github.com/apps/${appSlug}/installations/new?redirect_uri=${encodeURIComponent(INSTALLATION_CALLBACK_URL)}`;
 						console.log('Opening GitHub App installation page in your browser...');
 						await open(installUrl);
-						console.log('After installing the app, please re-select the repository.');
+						console.log('After installing the app, your repository will be selected.');
+						setSelectedRepo(repo);
+						setSelectingRepo(false);
 						return;
 					}} />
 				</Box>
