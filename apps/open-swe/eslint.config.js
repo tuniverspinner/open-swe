@@ -21,8 +21,8 @@ export default tseslint.config(
     rules: {
       camelcase: 0,
       "@typescript-eslint/explicit-module-boundary-types": 0,
-      "@typescript-eslint/no-empty-function": 0,
-      "@typescript-eslint/no-shadow": 0,
+      "@typescript-eslint/no-empty-function": 2,
+      "@typescript-eslint/no-shadow": 2,
       "@typescript-eslint/no-empty-interface": 0,
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": "error",

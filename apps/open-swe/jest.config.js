@@ -15,4 +15,6 @@ export default {
   setupFiles: ["dotenv/config"],
   passWithNoTests: true,
   testTimeout: 20_000,
+  testPathPattern: "\\.test\\.ts$",
+  testPathIgnorePatterns: ["\\.int\\.test\\.ts$"],
 };
