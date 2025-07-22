@@ -1,3 +1,5 @@
+// Disable on `dotenv` import since it's only needed during dev.
+// eslint-disable-next-line import/no-extraneous-dependencies
 import "dotenv/config";
 import { OpenSWEInput, CodeTestDetails } from "./open-swe-types.js";
 import { Daytona, Sandbox } from "@daytonaio/sdk";

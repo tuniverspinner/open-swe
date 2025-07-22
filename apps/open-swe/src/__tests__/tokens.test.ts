@@ -6,13 +6,13 @@ import {
   MAX_INTERNAL_TOKENS,
 } from "../utils/tokens.js";
 
-describe("calculateConversationHistoryTokenCount", async () => {
-  it("should return 0 for empty messages array", async () => {
+describe("calculateConversationHistoryTokenCount", () => {
+  it("should return 0 for empty messages array", () => {
     const result = calculateConversationHistoryTokenCount([]);
     expect(result).toBe(0);
   });
 
-  it("should calculate token count for human messages", async () => {
+  it("should calculate token count for human messages", () => {
     const messages = [
       new HumanMessage({
         content: "This is a test message with exactly 10 words in it.",
@@ -25,7 +25,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(result).toBe(13);
   });
 
-  it("should calculate token count for AI messages with usage metadata", async () => {
+  it("should calculate token count for AI messages with usage metadata", () => {
     const messages = [
       new AIMessage({
         content: "AI response",
@@ -41,7 +41,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(result).toBe(20);
   });
 
-  it("should calculate token count for AI messages without usage metadata", async () => {
+  it("should calculate token count for AI messages without usage metadata", () => {
     const messages = [
       new AIMessage({
         content: "This is an AI response with no usage metadata.",
@@ -54,7 +54,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(result).toBe(12);
   });
 
-  it("should calculate token count for AI messages with tool calls", async () => {
+  it("should calculate token count for AI messages with tool calls", () => {
     const messages = [
       new AIMessage({
         content: "Using a tool",
@@ -75,7 +75,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(result).toBeGreaterThan(0);
   });
 
-  it("should calculate token count for tool messages", async () => {
+  it("should calculate token count for tool messages", () => {
     const messages = [
       new ToolMessage({
         content: "Result of tool execution with some data.",
@@ -89,7 +89,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(result).toBe(10);
   });
 
-  it("should exclude hidden messages when option is provided", async () => {
+  it("should exclude hidden messages when option is provided", () => {
     const messages = [
       new HumanMessage({
         content: "Visible message",
@@ -110,7 +110,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(resultWithOption).toBe(4); // "Visible message" is ~4 tokens
   });
 
-  it("should exclude messages from the end when option is provided", async () => {
+  it("should exclude messages from the end when option is provided", () => {
     const messages = [
       new HumanMessage({ content: "First message" }),
       new HumanMessage({ content: "Second message" }),
@@ -128,7 +128,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(resultWithOption).toBe(7);
   });
 
-  it("should not separate AI messages with tool calls from their tool messages when excluding from end", async () => {
+  it("should not separate AI messages with tool calls from their tool messages when excluding from end", () => {
     const aiMessageWithToolCalls = new AIMessage({
       content: "I'll help you with that",
       tool_calls: [
@@ -165,7 +165,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
     expect(result).toBe(expectedResult);
   });
 
-  it("should preserve multiple tool messages following an AI message", async () => {
+  it("should preserve multiple tool messages following an AI message", () => {
     const aiMessageWithToolCalls = new AIMessage({
       content: "I'll use multiple tools",
       tool_calls: [
@@ -214,7 +214,7 @@ describe("calculateConversationHistoryTokenCount", async () => {
   });
 });
 
-describe("getMessagesSinceLastSummary", async () => {
+describe("getMessagesSinceLastSummary", () => {
   it("should return all messages when there is no summary message", async () => {
     const messages = [
       new HumanMessage({ content: "Message 1" }),
@@ -632,8 +632,8 @@ describe("getMessagesSinceLastSummary", async () => {
   });
 });
 
-describe("MAX_INTERNAL_TOKENS constant", async () => {
-  it("should be defined as 60,000", async () => {
+describe("MAX_INTERNAL_TOKENS constant", () => {
+  it("should be defined as 60,000", () => {
     expect(MAX_INTERNAL_TOKENS).toBe(60_000);
   });
 });
