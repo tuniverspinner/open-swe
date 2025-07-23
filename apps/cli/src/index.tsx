@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { render, Box, Text, useInput } from "ink";
-import { startAuthServer, getAccessToken, getInstallationId } from "./auth-server.js";
+import {
+  startAuthServer,
+  getAccessToken,
+  getInstallationId,
+} from "./auth-server.js";
 import open from "open";
 import TerminalInterface from "./TerminalInterface.js";
 
@@ -38,11 +42,11 @@ const CustomInput: React.FC<{ onSubmit: () => void }> = ({ onSubmit }) => {
 
 const RepoSearchSelect: React.FC<{
   repos: any[];
-  onSelect: (repo: string) => void;
+  onSelect: (repo: any) => void;
 }> = ({ repos, onSelect }) => {
   const [search, setSearch] = useState("");
   const [highlighted, setHighlighted] = useState(0);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isMessage, setIsMessage] = useState(false);
 
   const filtered = repos.filter((repo) =>
     repo.full_name.toLowerCase().includes(search.toLowerCase()),
@@ -50,10 +54,10 @@ const RepoSearchSelect: React.FC<{
   const shown = filtered.slice(0, 10);
 
   useInput((input, key) => {
-    if (isSubmitted) return;
+    if (isMessage) return;
     if (key.return) {
       if (shown.length > 0) {
-        setIsSubmitted(true);
+        setIsMessage(true);
         onSelect(shown[highlighted]);
       }
     } else if (key.upArrow) {
@@ -69,7 +73,7 @@ const RepoSearchSelect: React.FC<{
     }
   });
 
-  if (isSubmitted) return null;
+  if (isMessage) return null;
 
   return (
     <Box flexDirection="column">
@@ -136,20 +140,12 @@ const App: React.FC = () => {
   const [repos, setRepos] = useState<any[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
   const [selectingRepo, setSelectingRepo] = useState(false);
-  const [activePrompt, setActivePrompt] = useState<string | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
-  const logsRef = useRef<string[]>([]);
-  const [streamedOutput, setStreamedOutput] = useState<string[]>([]);
-
-  // --- Installation flow state moved to top level ---
+  // Removed unused: activePrompt, logs, setLogs, logsRef, streamedOutput, setStreamedOutput, APP_NAME, onDone
   const [waitingForInstall, setWaitingForInstall] = useState(false);
   const [installChecked, setInstallChecked] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
   const [appSlug, setAppSlug] = useState(process.env.GITHUB_APP_NAME || "");
-
-  const APP_NAME = process.env.GITHUB_APP_NAME || '';
-  const INSTALLATION_CALLBACK_URL = `http://localhost:3000/api/auth/github/callback`;
-
+  const INSTALLATION_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || "";
   const [pollingForToken, setPollingForToken] = useState(false);
 
   // On mount, check for existing token
@@ -166,11 +162,11 @@ const App: React.FC = () => {
       const token = getAccessToken();
       if (token) {
         fetchUserRepos(token)
-          .then(repos => {
+          .then((repos) => {
             setRepos(repos);
             setSelectingRepo(true);
           })
-          .catch(err => {
+          .catch((err) => {
             console.error("Failed to fetch repos:", err);
           });
       }
@@ -179,7 +175,7 @@ const App: React.FC = () => {
 
   // Poll for installation_id after opening install page
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (waitingForInstall) {
       interval = setInterval(() => {
         // Check if installation_id is present in config file
@@ -200,7 +196,7 @@ const App: React.FC = () => {
       setInstallChecked(false);
       setSelectingRepo(false);
     }
-    if (selectedRepo && (key.ctrl || key.meta) && input.toLowerCase() === 'c') {
+    if (selectedRepo && (key.ctrl || key.meta) && input.toLowerCase() === "c") {
       setSelectingRepo(true);
       setSelectedRepo(null);
     }
@@ -217,7 +213,7 @@ const App: React.FC = () => {
           setExit(true);
         }
       } else if (key.backspace || key.delete) {
-        setAuthInput(prev => prev.slice(0, -1));
+        setAuthInput((prev) => prev.slice(0, -1));
       } else if (input && authInput.length < 1) {
         // Only allow a single character (y/n)
         setAuthInput(input);
@@ -256,66 +252,95 @@ const App: React.FC = () => {
     }
   }, [pollingForToken, isLoggedIn]);
 
-  const onDone = useCallback(() => setActivePrompt(null), [setActivePrompt]);
-
   if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
-          <Text bold color="magenta">LangChain Open SWE CLI</Text>
+          <Text bold color="magenta">
+            LangChain Open SWE CLI
+          </Text>
         </Box>
         <Box flexDirection="column" marginBottom={1}>
           <Text>Select a repository to work with (type to search):</Text>
         </Box>
-        <Box borderStyle="round" borderColor="gray" paddingX={2} paddingY={1} marginTop={1} marginBottom={1}>
-          <RepoSearchSelect repos={repos} onSelect={async repo => {
-            let slug = appSlug;
-            const installationId = getInstallationId();
-            setSelectedRepo(repo);
-            setSelectingRepo(false);
-            if (installationId) {
-              // Installation already exists, skip install flow
-              setInstallChecked(true);
-              setWaitingForInstall(false);
+        <Box
+          borderStyle="round"
+          borderColor="gray"
+          paddingX={2}
+          paddingY={1}
+          marginTop={1}
+          marginBottom={1}
+        >
+          <RepoSearchSelect
+            repos={repos}
+            onSelect={async (repo) => {
+              let slug = appSlug;
+              const installationId = getInstallationId();
+              setSelectedRepo(repo);
+              setSelectingRepo(false);
+              if (installationId) {
+                // Installation already exists, skip install flow
+                setInstallChecked(true);
+                setWaitingForInstall(false);
+                setInstallError(null);
+                return;
+              }
+              if (!slug) {
+                console.log(
+                  "Please enter your GitHub App slug (as in https://github.com/apps/<slug>):",
+                );
+                process.stdin.resume();
+                process.stdin.setEncoding("utf8");
+                slug = await new Promise((resolve) => {
+                  process.stdin.once("data", (data) =>
+                    resolve(String(data).trim()),
+                  );
+                });
+                setAppSlug(slug);
+              }
+              const installUrl = `https://github.com/apps/${slug}/installations/new?redirect_uri=${encodeURIComponent(INSTALLATION_CALLBACK_URL)}`;
+              console.log(
+                "Opening GitHub App installation page in your browser...",
+              );
+              await open(installUrl);
+              setWaitingForInstall(true);
+              setInstallChecked(false);
               setInstallError(null);
-              return;
-            }
-            if (!slug) {
-              console.log('Please enter your GitHub App slug (as in https://github.com/apps/<slug>):');
-              process.stdin.resume();
-              process.stdin.setEncoding('utf8');
-              slug = await new Promise(resolve => {
-                process.stdin.once('data', data => resolve(String(data).trim()));
-              });
-              setAppSlug(slug);
-            }
-            const installUrl = `https://github.com/apps/${slug}/installations/new?redirect_uri=${encodeURIComponent(INSTALLATION_CALLBACK_URL)}`;
-            console.log('Opening GitHub App installation page in your browser...');
-            await open(installUrl);
-            setWaitingForInstall(true);
-            setInstallChecked(false);
-            setInstallError(null);
-            // Wait for installation_id to be set
-          }} />
+              // Wait for installation_id to be set
+            }}
+          />
         </Box>
         {waitingForInstall && (
           <Box flexDirection="column" marginTop={1}>
-            <Text color="yellow">Waiting for GitHub App installation to complete...</Text>
-            <Text color="gray">After installing the app, return here to continue.</Text>
+            <Text color="yellow">
+              Waiting for GitHub App installation to complete...
+            </Text>
+            <Text color="gray">
+              After installing the app, return here to continue.
+            </Text>
           </Box>
         )}
         {installChecked && !waitingForInstall && (
           <Box flexDirection="column" marginTop={1}>
-            <Text color="green">GitHub App installation detected! You can now proceed.</Text>
+            <Text color="green">
+              GitHub App installation detected! You can now proceed.
+            </Text>
             <Text color="gray">Press Enter to continue.</Text>
           </Box>
         )}
         {installError && (
-          <Box marginTop={1}><Text color="red">{installError}</Text></Box>
+          <Box marginTop={1}>
+            <Text color="red">{installError}</Text>
+          </Box>
         )}
       </Box>
     );
-  } else if (isLoggedIn && selectedRepo && installChecked && !waitingForInstall) {
+  } else if (
+    isLoggedIn &&
+    selectedRepo &&
+    installChecked &&
+    !waitingForInstall
+  ) {
     // After install detected and user pressed Enter, show terminal interface
     return (
       <TerminalInterface
