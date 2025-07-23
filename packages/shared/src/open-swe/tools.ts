@@ -309,6 +309,68 @@ export function formatSearchCommand(
   return args;
 }
 
+export function formatSedCommand(cmd: SedCommand): string[] {
+  const args = ["sed"];
+
+  // Add quiet flag if specified (suppress automatic printing)
+  if (cmd.quiet) {
+    args.push("-n");
+  }
+
+  // Build the sed command based on the input parameters
+  let sedExpression = "";
+
+  // Handle pattern-based ranges
+  if (cmd.pattern_start && cmd.pattern_end) {
+    // Pattern range: /pattern1/,/pattern2/ p
+    sedExpression = `/${escapeRegexForSed(cmd.pattern_start)}/,/${escapeRegexForSed(cmd.pattern_end)}/ p`;
+  } else if (cmd.pattern_start) {
+    // Single pattern: /pattern/ p
+    sedExpression = `/${escapeRegexForSed(cmd.pattern_start)}/ p`;
+  } else if (cmd.start_line && cmd.end_line) {
+    // Line range: start,end p
+    sedExpression = `${cmd.start_line},${cmd.end_line} p`;
+  } else if (cmd.start_line && cmd.num_lines) {
+    // Number of lines from start: N,+M p
+    sedExpression = `${cmd.start_line},+${cmd.num_lines - 1} p`;
+  } else if (cmd.start_line) {
+    // Single line: N p
+    sedExpression = `${cmd.start_line} p`;
+  } else if (cmd.end_line) {
+    // From beginning to end line: 1,end p
+    sedExpression = `1,${cmd.end_line} p`;
+  } else if (cmd.num_lines) {
+    // First N lines: 1,N p
+    sedExpression = `1,${cmd.num_lines} p`;
+  } else {
+    // Default: print all lines
+    sedExpression = "p";
+  }
+
+  // Add the sed expression as a single argument
+  args.push(escapeShellArg(sedExpression));
+
+  // Add the file path
+  args.push(escapeShellArg(cmd.file_path));
+
+  return args;
+}
+
+function escapeRegexForSed(pattern: string): string {
+  // Escape special characters in regex patterns for sed
+  // Forward slashes need to be escaped since we're using /pattern/ syntax
+  return pattern
+    .replace(/\\/g, "\\\\") // Escape backslashes first
+    .replace(/\//g, "\\/")  // Escape forward slashes
+    .replace(/\$/g, "\\$")  // Escape dollar signs
+    .replace(/\^/g, "\\^")  // Escape carets
+    .replace(/\[/g, "\\[")  // Escape square brackets
+    .replace(/\]/g, "\\]")
+    .replace(/\*/g, "\\*")  // Escape asterisks
+    .replace(/\./g, "\\.")  // Escape dots
+    .replace(/\?/g, "\\?"); // Escape question marks
+}
+
 export function createMarkTaskNotCompletedToolFields() {
   const markTaskNotCompletedToolSchema = z.object({
     reasoning: z
@@ -525,5 +587,6 @@ export function createReviewStartedToolFields() {
     schema: reviewStartedSchema,
   };
 }
+
 
 
