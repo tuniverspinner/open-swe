@@ -22,6 +22,7 @@ import {
   checkoutBranchAndCommit,
   getChangedFilesStatus,
 } from "../../../utils/github/git.js";
+import type { CheckoutBranchAndCommitResult } from "../../../utils/github/git.js";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxWithErrorHandling } from "../../../utils/sandbox.js";
 import { Command } from "@langchain/langgraph";
