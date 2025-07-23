@@ -15,6 +15,7 @@ import { GraphState, CacheMetrics } from "@open-swe/shared/open-swe/types";
 import { ActionsRenderer } from "./actions-renderer";
 import { ThemeToggle } from "../theme-toggle";
 import { HumanMessage } from "@langchain/core/messages";
+import { ThreadPrivacyToggle } from "./thread-privacy-toggle";
 import {
   DO_NOT_RENDER_ID_PREFIX,
   PROGRAMMER_GRAPH_ID,
