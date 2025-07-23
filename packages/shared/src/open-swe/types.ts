@@ -230,6 +230,17 @@ export const GraphAnnotation = MessagesZodState.extend({
     },
   }),
   /**
+   * Array of pull request numbers associated with this thread.
+   * Supports tracking multiple PRs per thread for future functionality.
+   */
+  pullRequestNumbers: withLangGraph(z.array(z.number()), {
+    reducer: {
+      schema: z.array(z.number()),
+      fn: (state, update) => [...(state || []), ...update],
+    },
+    default: () => [],
+  }),
+  /**
    * Whether or not the dependencies have been installed already in the sandbox.
    */
   dependenciesInstalled: withLangGraph(z.custom<boolean>(), {
