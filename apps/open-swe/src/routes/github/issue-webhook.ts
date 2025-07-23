@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import { extractImageUrls } from "@open-swe/shared/github-images";
 import { Context } from "hono";
 import { BlankEnv, BlankInput } from "hono/types";
 import { createLogger, LogLevel } from "../../utils/logger.js";
@@ -13,7 +14,7 @@ import {
   MANAGER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { encryptSecret } from "@open-swe/shared/crypto";
-import { HumanMessage } from "@langchain/core/messages";
+import { HumanMessage, MessageContent } from "@langchain/core/messages";
 import {
   getOpenSWEAutoAcceptLabel,
   getOpenSWELabel,
@@ -237,3 +238,4 @@ export async function issueWebhookHandler(
     return c.json({ error: "Webhook processing failed" }, { status: 400 });
   }
 }
+
