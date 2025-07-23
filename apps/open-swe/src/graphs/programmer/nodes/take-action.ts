@@ -14,6 +14,7 @@ import {
 import {
   checkoutBranchAndCommit,
   getChangedFilesStatus,
+  CheckoutBranchAndCommitResult,
 } from "../../../utils/github/git.js";
 import {
   safeSchemaToString,
@@ -169,7 +170,7 @@ export async function takeAction(
       changedFiles,
     });
     const { githubInstallationToken } = getGitHubTokensFromConfig(config);
-    branchName = await checkoutBranchAndCommit(
+    const commitResult: CheckoutBranchAndCommitResult = await checkoutBranchAndCommit(
       config,
       state.targetRepository,
       sandbox,
@@ -178,6 +179,7 @@ export async function takeAction(
         githubInstallationToken,
       },
     );
+    branchName = commitResult.branchName;
   }
 
   const shouldRouteDiagnoseNode = shouldDiagnoseError([
@@ -215,3 +217,4 @@ export async function takeAction(
     update: commandUpdate,
   });
 }
+
