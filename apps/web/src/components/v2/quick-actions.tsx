@@ -1,5 +1,6 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { CloneTemplateDialog } from "./clone-template-dialog";
 
 const GENERATE_RULES_PROMPT = `You're given a task to write a collection of rules, context and guidelines on the repository you're provided. Please gather context on the following categories, then write an \`AGENTS.md\` file in the root of the repository.
 
@@ -52,6 +53,29 @@ function DevReadmePromptQuickAction({
   );
 }
 
+function StartFromTemplateQuickAction() {
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  return (
+    <>
+      <Card
+        onClick={() => setDialogOpen(true)}
+        className="border-border bg-card hover:bg-muted cursor-pointer py-3 transition-shadow hover:shadow-lg dark:bg-gray-950"
+      >
+        <CardHeader className="px-3">
+          <CardTitle className="text-foreground text-sm">
+            Start from Template
+          </CardTitle>
+          <CardDescription className="text-muted-foreground text-xs">
+            Clone the TypeScript template to get started quickly.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+      <CloneTemplateDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+    </>
+  );
+}
+
 interface QuickActionsProps {
   setQuickActionPrompt: Dispatch<SetStateAction<string>>;
 }
@@ -66,6 +90,7 @@ export function QuickActions({ setQuickActionPrompt }: QuickActionsProps) {
         <DevReadmePromptQuickAction
           setQuickActionPrompt={setQuickActionPrompt}
         />
+        <StartFromTemplateQuickAction />
         <Card
           onClick={() => setQuickActionPrompt(GENERATE_RULES_PROMPT)}
           className="border-border bg-card hover:bg-muted cursor-pointer py-3 transition-shadow hover:shadow-lg dark:bg-gray-950"
@@ -83,3 +108,4 @@ export function QuickActions({ setQuickActionPrompt }: QuickActionsProps) {
     </div>
   );
 }
+
