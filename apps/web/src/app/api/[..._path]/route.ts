@@ -6,7 +6,6 @@ import {
   GITHUB_INSTALLATION_NAME,
 } from "@open-swe/shared/constants";
 import {
-  getGitHubInstallationTokenOrThrow,
   getGitHubInstallationToken,
   getInstallationNameFromReq,
   getGitHubAccessToken,

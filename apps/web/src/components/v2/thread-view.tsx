@@ -285,6 +285,7 @@ export function ThreadView({
           <div className="flex items-center gap-1">
             <ThreadPrivacyToggle
               stream={stream}
+              threadId={displayThread.id}
               isPublic={displayThread.isPublic}
             />
             <ThemeToggle />

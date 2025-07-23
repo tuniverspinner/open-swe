@@ -21,10 +21,7 @@ export async function GET(
     });
 
     // Fetch the thread data directly using the LangGraph SDK
-    const thread = await client.threads.get<ManagerGraphState>(thread_id, {
-      // Use the manager graph ID to ensure we're getting the right thread type
-      assistantId: MANAGER_GRAPH_ID,
-    });
+    const thread = await client.threads.get<ManagerGraphState>(thread_id);
 
     // Check if the thread has isPublic set to true in its values
     const isPublic = thread.values?.isPublic === true;

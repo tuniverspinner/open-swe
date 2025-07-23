@@ -21,6 +21,7 @@ import { isAllowedUser } from "../utils/github/allowed-users.js";
 import { createLangGraphClient } from "../utils/langgraph-client.js";
 import { validate } from "uuid";
 import { createLogger, LogLevel } from "../utils/logger.js";
+import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 
 const logger = createLogger(LogLevel.INFO, "Auth");
 
@@ -96,7 +97,7 @@ function isRunReq(reqUrl: string): boolean {
 async function isThreadPublic(threadId: string): Promise<boolean> {
   try {
     const client = createLangGraphClient({ includeApiKey: true });
-    const thread = await client.threads.get(threadId);
+    const thread = await client.threads.get<ManagerGraphState>(threadId);
 
     // Check if the thread has isPublic set to true in its values
     return thread.values?.isPublic === true;
@@ -104,23 +105,6 @@ async function isThreadPublic(threadId: string): Promise<boolean> {
     // If we can't access the thread, assume it's private for security
     logger.error(`Failed to check thread publicity for ${threadId}:`, error);
     return false;
-  }
-}
-
-/**
- * Extract thread ID from request URL
- */
-function extractThreadIdFromUrl(url: string): string | null {
-  try {
-    const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split("/");
-    // Look for /threads/{threadId} pattern
-    const threadsIndex = pathParts.indexOf("threads");
-    return threadsIndex !== -1 && pathParts[threadsIndex + 1]
-      ? pathParts[threadsIndex + 1]
-      : null;
-  } catch {
-    return null;
   }
 }
 
@@ -136,6 +120,22 @@ export const auth = new Auth()
         display_name: "CORS Preflight",
         metadata: {
           installation_name: "n/a",
+        },
+      };
+    }
+
+    const apiKey = request.headers.get("X-API-Key");
+    if (apiKey) {
+      console.log("API Key found", {
+        apiKey,
+      })
+      return {
+        identity: "api-key",
+        permissions: LANGGRAPH_USER_PERMISSIONS,
+        is_authenticated: true,
+        display_name: "API Key",
+        metadata: {
+          installation_name: "api-key",
         },
       };
     }
@@ -262,17 +262,16 @@ export const auth = new Auth()
   )
 
   // THREADS: read, update, delete, search operations
-  .on("threads:read", async ({ user, request }) => {
-    // Extract thread ID from the request URL
-    const threadId = extractThreadIdFromUrl(request.url);
-
+  .on("threads:read", ({ user, value }) => {
     // If we can extract a thread ID, check if it's public
-    if (threadId) {
-      const isPublic = await isThreadPublic(threadId);
-      if (isPublic) {
-        // Allow access to public threads without owner filtering
-        return undefined;
-      }
+    if (value.thread_id) {
+      isThreadPublic(value.thread_id).then((isPublic) => {
+        if (isPublic) {
+          logger.info(`Thread ${value.thread_id} is public, allowing access`);
+          // Allow access to public threads without owner filtering
+          return;
+        }
+      });
     }
 
     // Apply normal owner filtering for private threads

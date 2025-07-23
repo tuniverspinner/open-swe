@@ -17,22 +17,6 @@ export function getGitHubAccessToken(
   return encryptSecret(token, encryptionKey);
 }
 
-// Keep the original function for backward compatibility
-export function getGitHubAccessTokenOrThrow(
-  req: NextRequest,
-  encryptionKey: string,
-): string {
-  const token = req.cookies.get(GITHUB_TOKEN_COOKIE)?.value ?? "";
-
-  if (!token) {
-    throw new Error(
-      "No GitHub access token found. User must authenticate first.",
-    );
-  }
-
-  return encryptSecret(token, encryptionKey);
-}
-
 export async function getGitHubInstallationToken(
   installationIdCookie: string | undefined,
   encryptionKey: string,
@@ -41,13 +25,16 @@ export async function getGitHubInstallationToken(
     return null;
   }
 
-  return await getGitHubInstallationTokenOrThrow(
-    installationIdCookie,
-    encryptionKey,
-  );
+  try {
+    return await getGitHubInstallationTokenOrThrow(
+      installationIdCookie,
+      encryptionKey,
+    );
+  } catch {
+    return null;
+  }
 }
 
-// Keep the original function for backward compatibility
 export async function getGitHubInstallationTokenOrThrow(
   installationIdCookie: string,
   encryptionKey: string,
