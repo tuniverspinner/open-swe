@@ -292,7 +292,6 @@ export async function evaluator(inputs: {
       }
     });
 
-    const solutionBranch = output.branchName;
     logger.info(`Checking out agent's solution branch: ${solutionBranch}`);
 
     const checkoutBranchRes = await sandbox.process.executeCommand(
