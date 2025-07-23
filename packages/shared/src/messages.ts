@@ -15,9 +15,10 @@ export function getMessageContentString(content: MessageContent): string {
         // Try to extract filename or provide generic description
         const urlParts = imageUrl.split("/");
         const filename = urlParts[urlParts.length - 1];
-        const description = filename && filename.includes(".") 
-          ? `[Image: ${filename}]` 
-          : "[Image]";
+        const description =
+          filename && filename.includes(".")
+            ? `[Image: ${filename}]`
+            : "[Image]";
         parts.push(description);
       }
     }
@@ -25,4 +26,3 @@ export function getMessageContentString(content: MessageContent): string {
 
   return parts.join(" ");
 }
-

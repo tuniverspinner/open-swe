@@ -94,7 +94,10 @@ const getHeaders = (
  * @param body - The issue body content
  * @returns MessageContent array with text and image_url blocks
  */
-const createIssueMessageContent = (title: string, body: string): MessageContent => {
+const createIssueMessageContent = (
+  title: string,
+  body: string,
+): MessageContent => {
   const fullText = `**${title}**\n\n${body}`;
   const extractedImages = extractImageUrls(body);
 
@@ -104,18 +107,21 @@ const createIssueMessageContent = (title: string, body: string): MessageContent 
   }
 
   // Create multimodal content array with text and images
-  const contentBlocks: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> = [
+  const contentBlocks: Array<
+    | { type: "text"; text: string }
+    | { type: "image_url"; image_url: { url: string } }
+  > = [
     {
       type: "text",
-      text: fullText
-    }
+      text: fullText,
+    },
   ];
 
   // Add image blocks
   for (const image of extractedImages) {
     contentBlocks.push({
       type: "image_url",
-      image_url: { url: image.url }
+      image_url: { url: image.url },
     });
   }
 
@@ -189,7 +195,10 @@ webhooks.on("issues.labeled", async ({ payload }) => {
       messages: [
         new HumanMessage({
           id: uuidv4(),
-          content: createIssueMessageContent(issueData.issueTitle, issueData.issueBody),
+          content: createIssueMessageContent(
+            issueData.issueTitle,
+            issueData.issueBody,
+          ),
           additional_kwargs: {
             isOriginalIssue: true,
             githubIssueId: issueData.issueNumber,
@@ -272,5 +281,3 @@ export async function issueWebhookHandler(
     return c.json({ error: "Webhook processing failed" }, { status: 400 });
   }
 }
-
-
