@@ -160,6 +160,37 @@ export async function createPullRequest({
   return pullRequest;
 }
 
+export async function updatePullRequestToReady({
+  owner,
+  repo,
+  pullNumber,
+  githubInstallationToken,
+}: {
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  githubInstallationToken: string;
+}): Promise<GitHubPullRequest | null> {
+  const octokit = new Octokit({
+    auth: githubInstallationToken,
+  });
+
+  try {
+    const { data: pullRequest } = await octokit.pulls.update({
+      owner,
+      repo,
+      pull_number: pullNumber,
+      draft: false,
+    });
+
+    logger.info(`🐙 Pull request marked as ready for review: ${pullRequest.html_url}`);
+    return pullRequest;
+  } catch (error) {
+    logger.error(`Failed to update pull request to ready`, { error });
+    return null;
+  }
+}
+
 export async function getIssue({
   owner,
   repo,
@@ -378,3 +409,4 @@ export async function updateIssueComment({
     return null;
   }
 }
+
