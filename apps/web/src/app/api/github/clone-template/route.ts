@@ -32,26 +32,29 @@ export async function POST(request: NextRequest) {
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json(
         { error: "Repository name is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (typeof isPrivate !== "boolean") {
       return NextResponse.json(
         { error: "Private field must be a boolean" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Get installation ID from cookies
     const installationIdCookie = request.cookies.get(
-      GITHUB_INSTALLATION_ID_COOKIE
+      GITHUB_INSTALLATION_ID_COOKIE,
     )?.value;
 
     if (!installationIdCookie) {
       return NextResponse.json(
-        { error: "GitHub installation ID not found. Please install the app first." },
-        { status: 401 }
+        {
+          error:
+            "GitHub installation ID not found. Please install the app first.",
+        },
+        { status: 401 },
       );
     }
 
@@ -62,12 +65,16 @@ export async function POST(request: NextRequest) {
     if (!appId || !privateKey) {
       return NextResponse.json(
         { error: "GitHub App configuration missing" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Get installation token
-    const token = await getInstallationToken(installationIdCookie, appId, privateKey);
+    const token = await getInstallationToken(
+      installationIdCookie,
+      appId,
+      privateKey,
+    );
 
     // Call GitHub API to create repository from template
     const response = await fetch(
@@ -85,17 +92,17 @@ export async function POST(request: NextRequest) {
           description: description?.trim() || undefined,
           private: isPrivate,
         }),
-      }
+      },
     );
 
     if (!response.ok) {
       const errorData = await response.json();
       return NextResponse.json(
-        { 
+        {
           error: "Failed to create repository from template",
-          details: errorData.message || "Unknown error"
+          details: errorData.message || "Unknown error",
         },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -116,11 +123,11 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error cloning template repository:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       { error: "Failed to clone template repository", details: errorMessage },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
