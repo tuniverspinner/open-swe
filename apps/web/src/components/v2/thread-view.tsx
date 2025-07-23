@@ -282,7 +282,13 @@ export function ThreadView({
             currentThread={displayThread}
             allThreads={allDisplayThreads}
           />
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <ThreadPrivacyToggle
+              stream={stream}
+              isPublic={displayThread.isPublic}
+            />
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 
@@ -460,3 +466,4 @@ export function ThreadView({
     </div>
   );
 }
+
