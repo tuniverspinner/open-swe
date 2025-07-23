@@ -8,6 +8,7 @@ import {
   createGetURLContentTool,
   createShellTool,
 } from "../../../tools/index.js";
+import { createSedTool } from "../../../tools/sed.js";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import {
   PlannerGraphState,
@@ -57,6 +58,7 @@ export async function takeActions(
     searchTool,
     plannerNotesTool,
     getURLContentTool,
+    createSedTool(state),
     ...mcpTools,
   ];
   const toolsMap = Object.fromEntries(
@@ -234,3 +236,4 @@ ${tc.content}`,
     update: commandUpdate,
   });
 }
+
