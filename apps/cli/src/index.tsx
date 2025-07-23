@@ -35,7 +35,7 @@ const CustomInput: React.FC<{ onSubmit: () => void }> = ({ onSubmit }) => {
 
 const RepoSearchSelect: React.FC<{
   repos: any[];
-  onSelect: (repo: any) => void;
+  onSelect: (repo: string) => void;
 }> = ({ repos, onSelect }) => {
   const [search, setSearch] = useState("");
   const [highlighted, setHighlighted] = useState(0);
@@ -208,7 +208,6 @@ const App: React.FC = () => {
     }
   }, [authPrompt, authStarted]);
 
-  // Show repo selector if needed
   if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
     return (
       <Box flexDirection="column" padding={1}>
@@ -236,26 +235,9 @@ const App: React.FC = () => {
             }}
           />
         </Box>
-  if (isLoggedIn) {
-    return (
-      <Box flexDirection="column" height={"100%"}>
-        <TerminalInterface
-          message={message}
-          setMessage={() => setMessage(null)}
-          CustomInput={CustomInput}
-        />
-        <Box flexGrow={1} />
-        <Box width="100%" justifyContent="flex-end">
-          <Text color="gray" dimColor>
-            logged in
-          </Text>
-        </Box>
       </Box>
     );
-  }
-
-  // Pass selected repo to TerminalInterface
-  if (isLoggedIn && selectedRepo) {
+  } else if (isLoggedIn && selectedRepo) {
     return (
       <TerminalInterface
         message={message}
@@ -264,9 +246,7 @@ const App: React.FC = () => {
         repoName={selectedRepo.full_name}
       />
     );
-  }
-
-  if (!isLoggedIn && authPrompt === null) {
+  } else if (!isLoggedIn && authPrompt === null) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
@@ -289,23 +269,23 @@ const App: React.FC = () => {
         </Box>
       </Box>
     );
-  }
-
-  return (
-    <Box flexDirection="column" padding={1}>
-      <Box justifyContent="center" marginBottom={1}>
-        <Text bold color="magenta">
-          LangChain Open SWE CLI
-        </Text>
-      </Box>
-      {!message && <CustomInput onSubmit={() => setMessage(null)} />}
-      {message && (
-        <Box marginTop={1}>
-          <Text color="green">You typed: {message}</Text>
+  } else {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Box justifyContent="center" marginBottom={1}>
+          <Text bold color="magenta">
+            LangChain Open SWE CLI
+          </Text>
         </Box>
-      )}
-    </Box>
-  );
+        {!message && <CustomInput onSubmit={() => setMessage(null)} />}
+        {message && (
+          <Box marginTop={1}>
+            <Text color="green">You typed: {message}</Text>
+          </Box>
+        )}
+      </Box>
+    );
+  }
 };
 
 render(<App />);
