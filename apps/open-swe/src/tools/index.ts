@@ -10,4 +10,6 @@ export * from "./search.js";
 export * from "./install-dependencies.js";
 export * from "./planner-notes.js";
 export * from "./sed.js";
+export * from "./sed.js";
+
 
