@@ -236,4 +236,3 @@ ${tc.content}`,
     update: commandUpdate,
   });
 }
-
