@@ -20,6 +20,9 @@ import { getGitHubPatFromRequest } from "../utils/github-pat.js";
 import { isAllowedUser } from "../utils/github/allowed-users.js";
 import { createLangGraphClient } from "../utils/langgraph-client.js";
 import { validate } from "uuid";
+import { createLogger, LogLevel } from "../utils/logger.js";
+
+const logger = createLogger(LogLevel.INFO, "Auth");
 
 // TODO: Export from LangGraph SDK
 export interface BaseAuthReturn {
@@ -99,7 +102,7 @@ async function isThreadPublic(threadId: string): Promise<boolean> {
     return thread.values?.isPublic === true;
   } catch (error) {
     // If we can't access the thread, assume it's private for security
-    console.error(`Failed to check thread publicity for ${threadId}:`, error);
+    logger.error(`Failed to check thread publicity for ${threadId}:`, error);
     return false;
   }
 }
@@ -292,5 +295,6 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
 
 
