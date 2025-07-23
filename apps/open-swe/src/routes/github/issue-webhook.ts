@@ -189,7 +189,7 @@ webhooks.on("issues.labeled", async ({ payload }) => {
       messages: [
         new HumanMessage({
           id: uuidv4(),
-          content: `**${issueData.issueTitle}**\n\n${issueData.issueBody}`,
+          content: createIssueMessageContent(issueData.issueTitle, issueData.issueBody),
           additional_kwargs: {
             isOriginalIssue: true,
             githubIssueId: issueData.issueNumber,
