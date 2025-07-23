@@ -3,6 +3,7 @@ export * from "./take-action.js";
 export * from "./handle-completed-task.js";
 export * from "./generate-conclusion.js";
 export * from "./open-pr.js";
+export * from "./open-first-pull-request.js";
 export * from "./diagnose-error.js";
 export * from "./request-help.js";
 export * from "./update-plan.js";
