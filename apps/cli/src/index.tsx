@@ -4,26 +4,31 @@ import { render, Box, Text, useInput } from "ink";
 import {
   startAuthServer,
   getAccessToken,
+  getInstallationAccessToken,
   getInstallationId,
 } from "./auth-server.js";
 import open from "open";
-import TerminalInterface from "./TerminalInterface.js";
+import { v4 as uuidv4 } from "uuid";
+import { encryptSecret } from "../../../packages/shared/dist/crypto.js";
+import { MANAGER_GRAPH_ID } from "../../../packages/shared/dist/constants.js";
+import { Client } from "@langchain/langgraph-sdk";
+
+const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
+const LOG_AREA_HEIGHT = 20;
+const GITHUB_LOGIN_URL = process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
 // Start the auth server immediately so callback URLs always work
 startAuthServer();
 
-const GITHUB_LOGIN_URL =
-  process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
-
-const CustomInput: React.FC<{ onSubmit: () => void }> = ({ onSubmit }) => {
+const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit }) => {
   const [input, setInput] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  useInput((inputChar, key) => {
+  useInput((inputChar: string, key: { [key: string]: any }) => {
     if (isSubmitted) return;
     if (key.return) {
       setIsSubmitted(true);
-      onSubmit();
+      onSubmit(input);
     } else if (key.backspace || key.delete) {
       setInput((prev) => prev.slice(0, -1));
     } else if (inputChar) {
@@ -40,6 +45,47 @@ const CustomInput: React.FC<{ onSubmit: () => void }> = ({ onSubmit }) => {
   );
 };
 
+const StreamTerminal: React.FC<{ logs: string[] }> = ({ logs }) => (
+  <Box
+    flexDirection="column"
+    height={LOG_AREA_HEIGHT}
+    overflow="visible"
+    borderStyle="round"
+    borderColor="gray"
+    marginBottom={1}
+  >
+    {logs.length === 0 ? (
+      <Text color="gray">No logs yet.</Text>
+    ) : (
+      logs.map((log, idx) => <Text key={idx} color="gray">{log}</Text>)
+    )}
+  </Box>
+);
+
+async function fetchUserRepos(token: string) {
+  const allRepos = [];
+  let page = 1;
+  const perPage = 100;
+  while (true) {
+    const res = await fetch(
+      `https://api.github.com/user/repos?per_page=${perPage}&page=${page}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "open-swe-cli",
+        },
+      },
+    );
+    if (!res.ok) throw new Error("Failed to fetch repos");
+    const repos = await res.json();
+    allRepos.push(...repos);
+    if (repos.length < perPage) break;
+    page++;
+  }
+  return allRepos;
+}
+
 const RepoSearchSelect: React.FC<{
   repos: any[];
   onSelect: (repo: any) => void;
@@ -53,7 +99,7 @@ const RepoSearchSelect: React.FC<{
   );
   const shown = filtered.slice(0, 10);
 
-  useInput((input, key) => {
+  useInput((input: string, key: { [key: string]: any }) => {
     if (isMessage) return;
     if (key.return) {
       if (shown.length > 0) {
@@ -106,47 +152,25 @@ const RepoSearchSelect: React.FC<{
   );
 };
 
-async function fetchUserRepos(token: string) {
-  const allRepos = [];
-  let page = 1;
-  const perPage = 100;
-  while (true) {
-    const res = await fetch(
-      `https://api.github.com/user/repos?per_page=${perPage}&page=${page}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/vnd.github.v3+json",
-          "User-Agent": "open-swe-cli",
-        },
-      },
-    );
-    if (!res.ok) throw new Error("Failed to fetch repos");
-    const repos = await res.json();
-    allRepos.push(...repos);
-    if (repos.length < perPage) break;
-    page++;
-  }
-  return allRepos;
-}
-
 const App: React.FC = () => {
   const [authPrompt, setAuthPrompt] = useState<null | boolean>(null);
   const [authInput, setAuthInput] = useState("");
-  const [submitted, setSubmitted] = useState<string | null>(null);
   const [exit, setExit] = useState(false);
   const [authStarted, setAuthStarted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [repos, setRepos] = useState<any[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
   const [selectingRepo, setSelectingRepo] = useState(false);
-  // Removed unused: activePrompt, logs, setLogs, logsRef, streamedOutput, setStreamedOutput, APP_NAME, onDone
   const [waitingForInstall, setWaitingForInstall] = useState(false);
   const [installChecked, setInstallChecked] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
   const [appSlug, setAppSlug] = useState(process.env.GITHUB_APP_NAME || "");
   const INSTALLATION_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || "";
   const [pollingForToken, setPollingForToken] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [prompt, setPrompt] = useState<string>("");
+  // Remove debugInfo state
 
   // On mount, check for existing token
   useEffect(() => {
@@ -190,9 +214,8 @@ const App: React.FC = () => {
   }, [waitingForInstall]);
 
   // Listen for Cmd+C/Ctrl+C to re-select repo
-  useInput((input, key) => {
+  useInput((input: string, key: { [key: string]: any }) => {
     if (installChecked && !waitingForInstall && key.return) {
-      // User pressed Enter after install detected, go to terminal interface
       setInstallChecked(false);
       setSelectingRepo(false);
     }
@@ -203,7 +226,7 @@ const App: React.FC = () => {
   });
 
   // Handle yes/no input for auth prompt
-  useInput((input, key) => {
+  useInput((input: string, key: { [key: string]: any }) => {
     if (authPrompt === null && !isLoggedIn) {
       if (key.return) {
         if (authInput.toLowerCase() === "y") {
@@ -215,7 +238,6 @@ const App: React.FC = () => {
       } else if (key.backspace || key.delete) {
         setAuthInput((prev) => prev.slice(0, -1));
       } else if (input && authInput.length < 1) {
-        // Only allow a single character (y/n)
         setAuthInput(input);
       }
     }
@@ -252,13 +274,84 @@ const App: React.FC = () => {
     }
   }, [pollingForToken, isLoggedIn]);
 
+  // Streaming logic: when prompt is set, stream logs
+  useEffect(() => {
+    if (prompt && selectedRepo) {
+      setIsStreaming(true);
+      setLogs([]);
+      (async () => {
+        try {
+          const userAccessToken = getAccessToken();
+          const installationAccessToken = await getInstallationAccessToken();
+          const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+          if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+            setLogs(["Missing access tokens or SECRETS_ENCRYPTION_KEY."]);
+            setIsStreaming(false);
+            return;
+          }
+          const encryptedUserToken = encryptSecret(userAccessToken, encryptionKey);
+          const encryptedInstallationToken = encryptSecret(installationAccessToken, encryptionKey);
+          const [owner, repoName] = selectedRepo.full_name.split("/");
+          const runInput = {
+            messages: [
+              {
+                id: uuidv4(),
+                type: "human",
+                content: [{ type: "text", text: prompt }],
+              },
+            ],
+            targetRepository: {
+              owner,
+              repo: repoName,
+              branch: selectedRepo.default_branch || "main",
+            },
+            autoAcceptPlan: false,
+          };
+          const client = new Client({
+            apiUrl: LANGGRAPH_URL,
+            defaultHeaders: {
+              "x-github-access-token": encryptedUserToken,
+              "x-github-installation-token": encryptedInstallationToken,
+              "x-github-installation-name": owner,
+            },
+          });
+          const thread = await client.threads.create();
+          const threadId = thread["thread_id"];
+          const run = await client.runs.create(
+            threadId,
+            MANAGER_GRAPH_ID,
+            {
+              input: runInput,
+              config: { recursion_limit: 400 },
+              ifNotExists: "create",
+              streamResumable: true,
+			  streamSubgraphs: true,
+              streamMode: ["values", "messages"],
+            }
+          );
+          for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
+            setLogs((prev) => [
+              ...prev,
+              JSON.stringify(chunk),
+              "DEBUG: " + JSON.stringify(chunk.data && chunk.data[0])
+            ]);
+          }
+        } catch (err: any) {
+          setLogs([err?.message || String(err)]);
+        } finally {
+          setIsStreaming(false);
+          setPrompt("");
+        }
+      })();
+    }
+  }, [prompt, selectedRepo]);
+
+  // Repo selection UI
   if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
-          <Text bold color="magenta">
-            LangChain Open SWE CLI
-          </Text>
+          <Text bold color="magenta">LangChain Open SWE CLI</Text>
         </Box>
         <Box flexDirection="column" marginBottom={1}>
           <Text>Select a repository to work with (type to search):</Text>
@@ -279,7 +372,6 @@ const App: React.FC = () => {
               setSelectedRepo(repo);
               setSelectingRepo(false);
               if (installationId) {
-                // Installation already exists, skip install flow
                 setInstallChecked(true);
                 setWaitingForInstall(false);
                 setInstallError(null);
@@ -306,7 +398,6 @@ const App: React.FC = () => {
               setWaitingForInstall(true);
               setInstallChecked(false);
               setInstallError(null);
-              // Wait for installation_id to be set
             }}
           />
         </Box>
@@ -335,37 +426,30 @@ const App: React.FC = () => {
         )}
       </Box>
     );
-  } else if (
-    isLoggedIn &&
-    selectedRepo &&
-    installChecked &&
-    !waitingForInstall
-  ) {
-    // After install detected and user pressed Enter, show terminal interface
+  }
+
+  // Main UI: logs area + input prompt
+  if (isLoggedIn && selectedRepo) {
     return (
-      <TerminalInterface
-        message={submitted}
-        setMessage={() => setSubmitted(null)}
-        CustomInput={CustomInput}
-        repoName={selectedRepo.full_name}
-      />
+      <Box flexDirection="column" padding={1}>
+        <StreamTerminal logs={logs} />
+        <Box marginTop={1}>
+          <Text bold color="magenta">
+            Describe your coding task in as much detail as possible:
+          </Text>
+        </Box>
+        {!isStreaming && <CustomInput onSubmit={setPrompt} />}
+        {isStreaming && <Text color="yellow">Streaming... (logs above)</Text>}
+      </Box>
     );
-  } else if (isLoggedIn && selectedRepo) {
-    return (
-      <TerminalInterface
-        message={submitted}
-        setMessage={() => setSubmitted(null)}
-        CustomInput={CustomInput}
-        repoName={selectedRepo.full_name}
-      />
-    );
-  } else if (!isLoggedIn && authPrompt === null) {
+  }
+
+  // Auth prompt UI
+  if (!isLoggedIn && authPrompt === null) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
-          <Text bold color="magenta">
-            LangChain Open SWE CLI
-          </Text>
+          <Text bold color="magenta">LangChain Open SWE CLI</Text>
         </Box>
         <Box
           borderStyle="round"
@@ -376,29 +460,21 @@ const App: React.FC = () => {
           marginBottom={1}
         >
           <Text>
-            Do you want to start the GitHub authentication flow? (y/n){" "}
-            {authInput}
+            Do you want to start the GitHub authentication flow? (y/n) {authInput}
           </Text>
         </Box>
-      </Box>
-    );
-  } else {
-    return (
-      <Box flexDirection="column" padding={1}>
-        <Box justifyContent="center" marginBottom={1}>
-          <Text bold color="magenta">
-            LangChain Open SWE CLI
-          </Text>
-        </Box>
-        {!submitted && <CustomInput onSubmit={() => setSubmitted(null)} />}
-        {submitted && (
-          <Box marginTop={1}>
-            <Text color="green">You typed: {submitted}</Text>
-          </Box>
-        )}
       </Box>
     );
   }
+
+  // Fallback
+  return (
+    <Box flexDirection="column" padding={1}>
+      <Box justifyContent="center" marginBottom={1}>
+        <Text bold color="magenta">LangChain Open SWE CLI</Text>
+      </Box>
+    </Box>
+  );
 };
 
 render(<App />);

@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
-import fetch from "node-fetch";
 import type { Request, Response } from "express";
 import fs from "fs";
 import os from "os";
