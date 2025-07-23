@@ -45,22 +45,7 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit
   );
 };
 
-const StreamTerminal: React.FC<{ logs: string[] }> = ({ logs }) => (
-  <Box
-    flexDirection="column"
-    height={LOG_AREA_HEIGHT}
-    overflow="visible"
-    borderStyle="round"
-    borderColor="gray"
-    marginBottom={1}
-  >
-    {logs.length === 0 ? (
-      <Text color="gray">No logs yet.</Text>
-    ) : (
-      logs.map((log, idx) => <Text key={idx} color="gray">{log}</Text>)
-    )}
-  </Box>
-);
+// Remove StreamTerminal. We'll render logs directly in the main UI.
 
 async function fetchUserRepos(token: string) {
   const allRepos = [];
@@ -151,6 +136,23 @@ const RepoSearchSelect: React.FC<{
     </Box>
   );
 };
+
+// Copy isAgentInboxInterruptSchema from web/src/lib/agent-inbox-interrupt.ts
+function isAgentInboxInterruptSchema(value: unknown): boolean {
+  const valueAsObject = Array.isArray(value) ? value[0] : value;
+  return (
+    valueAsObject &&
+    typeof valueAsObject === "object" &&
+    "action_request" in valueAsObject &&
+    typeof valueAsObject.action_request === "object" &&
+    "config" in valueAsObject &&
+    typeof valueAsObject.config === "object" &&
+    "allow_respond" in valueAsObject.config &&
+    "allow_accept" in valueAsObject.config &&
+    "allow_edit" in valueAsObject.config &&
+    "allow_ignore" in valueAsObject.config
+  );
+}
 
 const App: React.FC = () => {
   const [authPrompt, setAuthPrompt] = useState<null | boolean>(null);
@@ -325,16 +327,110 @@ const App: React.FC = () => {
               config: { recursion_limit: 400 },
               ifNotExists: "create",
               streamResumable: true,
-			  streamSubgraphs: true,
+              streamSubgraphs: true,
               streamMode: ["values", "messages"],
             }
           );
+          let plannerStreamed = false;
+          let programmerStreamed = false;
           for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
-            setLogs((prev) => [
-              ...prev,
-              JSON.stringify(chunk),
-              "DEBUG: " + JSON.stringify(chunk.data && chunk.data[0])
-            ]);
+            setLogs((prev) => [...prev, JSON.stringify(chunk)]);
+            // Check for plannerSession
+            if (
+              !plannerStreamed &&
+              chunk.data &&
+              chunk.data.plannerSession &&
+              typeof chunk.data.plannerSession.threadId === "string" &&
+              typeof chunk.data.plannerSession.runId === "string"
+            ) {
+              plannerStreamed = true;
+              for await (const subChunk of client.runs.joinStream(
+                chunk.data.plannerSession.threadId,
+                chunk.data.plannerSession.runId
+              )) {
+                setLogs((prev) => [...prev, JSON.stringify(subChunk)]);
+                // Detect HumanInterrupt in subgraph stream
+				setLogs((prev) => [...prev, "INTERUPPTTTTTTT POSITION: " + JSON.stringify(Object.keys(subChunk.data))]);
+				setLogs((prev) => [...prev, "INTERUPPTTTTTTT POSITION: " + JSON.stringify(subChunk.data["__interrupt__"])]);
+				setLogs((prev) => [...prev, "INTERUPPTTTTTTT POSITION: " + isAgentInboxInterruptSchema(subChunk.data["__interrupt__"]?.[0].value)]);
+                if (isAgentInboxInterruptSchema(subChunk.data["__interrupt__"]?.[0].value)) {
+                  setLogs((prev) => [
+                    ...prev,
+                    "[HUMAN FEEDBACK REQUIRED] Detected HumanInterrupt. Please provide feedback (accept/edit/respond/ignore):",
+                    (() => {
+                      const interrupt =
+                        subChunk.data &&
+                        Array.isArray(subChunk.data.__interrupt__) &&
+                        subChunk.data.__interrupt__[0] &&
+                        subChunk.data.__interrupt__[0].value
+                          ? subChunk.data.__interrupt__[0].value
+                          : undefined;
+                      return interrupt
+                        ? "INTERRUPT: " + JSON.stringify(interrupt, null, 2)
+                        : "INTERRUPT: (not found)";
+                    })(),
+                  ]);
+                  // Here you could prompt the user for input
+                }
+              }
+            }
+            // Check for programmerSession
+            if (
+              !programmerStreamed &&
+              chunk.data &&
+              chunk.data.programmerSession &&
+              typeof chunk.data.programmerSession.threadId === "string" &&
+              typeof chunk.data.programmerSession.runId === "string"
+            ) {
+              programmerStreamed = true;
+              for await (const subChunk of client.runs.joinStream(
+                chunk.data.programmerSession.threadId,
+                chunk.data.programmerSession.runId
+              )) {
+                setLogs((prev) => [...prev, JSON.stringify(subChunk)]);
+                // Detect HumanInterrupt in subgraph stream
+                if (isAgentInboxInterruptSchema(subChunk.data)) {
+                  setLogs((prev) => [
+                    ...prev,
+                    "[HUMAN FEEDBACK REQUIRED] Detected HumanInterrupt. Please provide feedback (accept/edit/respond/ignore):",
+                    (() => {
+                      const interrupt =
+                        subChunk.data &&
+                        Array.isArray(subChunk.data.__interrupt__) &&
+                        subChunk.data.__interrupt__[0] &&
+                        subChunk.data.__interrupt__[0].value
+                          ? subChunk.data.__interrupt__[0].value
+                          : undefined;
+                      return interrupt
+                        ? "INTERRUPT: " + JSON.stringify(interrupt, null, 2)
+                        : "INTERRUPT: (not found)";
+                    })(),
+                  ]);
+			
+                  // Here you could prompt the user for input
+                }
+              }
+            }
+            // Also check for HumanInterrupt in main stream
+            if (isAgentInboxInterruptSchema(chunk.data)) {
+              setLogs((prev) => [
+                ...prev,
+                "[HUMAN FEEDBACK REQUIRED] Detected HumanInterrupt. Please provide feedback (accept/edit/respond/ignore):",
+                (() => {
+                  const interrupt =
+                    chunk.data &&
+                    Array.isArray(chunk.data.__interrupt__) &&
+                    chunk.data.__interrupt__[0] &&
+                    chunk.data.__interrupt__[0].value
+                      ? chunk.data.__interrupt__[0].value
+                      : undefined;
+                  return interrupt
+                    ? "INTERRUPT: " + JSON.stringify(interrupt, null, 2)
+                    : "INTERRUPT: (not found)";
+                })(),
+              ]);
+              // Here you could prompt the user for input
+            }
           }
         } catch (err: any) {
           setLogs([err?.message || String(err)]);
@@ -432,7 +528,11 @@ const App: React.FC = () => {
   if (isLoggedIn && selectedRepo) {
     return (
       <Box flexDirection="column" padding={1}>
-        <StreamTerminal logs={logs} />
+        {logs.length === 0 ? (
+          <Text color="gray">No logs yet.</Text>
+        ) : (
+          logs.map((log, idx) => <Text key={idx} color="gray">{log}</Text>)
+        )}
         <Box marginTop={1}>
           <Text bold color="magenta">
             Describe your coding task in as much detail as possible:
