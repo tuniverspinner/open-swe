@@ -31,6 +31,7 @@ import { createInstallDependenciesTool } from "../../../tools/install-dependenci
 import { createSearchTool } from "../../../tools/search.js";
 import { getMcpTools } from "../../../utils/mcp-client.js";
 import { shouldDiagnoseError } from "../../../utils/tool-message-error.js";
+import { getGitHubTokensFromConfig } from "../../../utils/github-tokens.js";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
 
@@ -180,12 +181,14 @@ export async function takeAction(
     logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
       changedFiles,
     });
+    const { githubInstallationToken } = getGitHubTokensFromConfig(config);
     branchName = await checkoutBranchAndCommit(
       config,
       state.targetRepository,
       sandbox,
       {
         branchName,
+        githubInstallationToken,
       },
     );
   }
@@ -221,7 +224,7 @@ export async function takeAction(
     }),
   };
   return new Command({
-    goto: shouldRouteDiagnoseNode ? "diagnose-error" : "progress-plan-step",
+    goto: shouldRouteDiagnoseNode ? "diagnose-error" : "generate-action",
     update: commandUpdate,
   });
 }
