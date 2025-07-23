@@ -173,6 +173,52 @@ export function createSearchToolFields(targetRepository: TargetRepository) {
 }
 
 // Only used for type inference
+export function createSedToolFields(targetRepository: TargetRepository) {
+  const repoRoot = getRepoAbsolutePath(targetRepository);
+  const sedSchema = z.object({
+    file_path: z
+      .string()
+      .describe("The file path to read content from."),
+
+    start_line: z
+      .number()
+      .optional()
+      .describe("The starting line number to read from (1-based). If not specified, reads from the beginning of the file."),
+
+    end_line: z
+      .number()
+      .optional()
+      .describe("The ending line number to read to (1-based). If not specified, reads to the end of the file or based on num_lines."),
+
+    num_lines: z
+      .number()
+      .optional()
+      .describe("The number of lines to read starting from start_line. Cannot be used together with end_line."),
+
+    pattern_start: z
+      .string()
+      .optional()
+      .describe("A regex pattern to match the starting line. The output will include lines from the first match of this pattern."),
+
+    pattern_end: z
+      .string()
+      .optional()
+      .describe("A regex pattern to match the ending line. The output will include lines up to the first match of this pattern after pattern_start."),
+
+    quiet: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Whether to suppress automatic printing of pattern space (equivalent to sed -n flag). Defaults to true."),
+  });
+
+  return {
+    name: "sed",
+    schema: sedSchema,
+    description: `Use sed to read and filter file content with line-based filtering. This tool provides a simplified interface to read files by specifying line ranges, number of lines, or pattern-based ranges. The working directory this command will be executed in is \`${repoRoot}\`.`,
+  };
+}
+
 const _tmpSearchToolSchema = createSearchToolFields({
   owner: "x",
   repo: "x",
@@ -472,3 +518,4 @@ export function createReviewStartedToolFields() {
     schema: reviewStartedSchema,
   };
 }
+
