@@ -15,6 +15,7 @@ export interface ThreadMetadata {
   branch: string;
   taskPlan?: TaskPlan;
   status: ThreadUIStatus;
+  isPublic?: boolean;
   githubIssue?: {
     number: number;
     url: string;
