@@ -7,6 +7,7 @@ import {
   createGetURLContentTool,
   createShellTool,
 } from "../../../../tools/index.js";
+import { createSedTool } from "../../../../tools/sed.js";
 import {
   PlannerGraphState,
   PlannerGraphUpdate,
@@ -80,6 +81,7 @@ export async function generateAction(
     createShellTool(state),
     createPlannerNotesTool(),
     createGetURLContentTool(),
+    createSedTool(state),
     ...mcpTools,
   ];
   logger.info(
@@ -144,3 +146,4 @@ export async function generateAction(
     tokenData: trackCachePerformance(response),
   };
 }
+
