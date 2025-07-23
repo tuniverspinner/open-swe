@@ -11,12 +11,12 @@ export interface ExtractedImage {
  * Trusted domains for image URLs that are publicly accessible
  */
 const TRUSTED_DOMAINS = [
-  'github.com',
-  'githubusercontent.com',
-  'user-images.githubusercontent.com',
-  'github-production-user-asset-6210df.s3.amazonaws.com',
-  'private-user-images.githubusercontent.com',
-  'camo.githubusercontent.com'
+  "github.com",
+  "githubusercontent.com",
+  "user-images.githubusercontent.com",
+  "github-production-user-asset-6210df.s3.amazonaws.com",
+  "private-user-images.githubusercontent.com",
+  "camo.githubusercontent.com",
 ];
 
 /**
@@ -27,16 +27,16 @@ const TRUSTED_DOMAINS = [
 export function isValidImageUrl(url: string): boolean {
   try {
     const parsedUrl = new URL(url);
-    
+
     // Must be HTTPS for security and LLM accessibility
-    if (parsedUrl.protocol !== 'https:') {
+    if (parsedUrl.protocol !== "https:") {
       return false;
     }
-    
+
     // Check if the domain is in our trusted list
     const hostname = parsedUrl.hostname.toLowerCase();
-    return TRUSTED_DOMAINS.some(domain =>
-      hostname === domain || hostname.endsWith(`.${domain}`)
+    return TRUSTED_DOMAINS.some(
+      (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
     );
   } catch {
     return false;
@@ -51,36 +51,37 @@ export function isValidImageUrl(url: string): boolean {
  */
 export function extractImageUrls(content: string): ExtractedImage[] {
   const images: ExtractedImage[] = [];
-  
+
   // Regex for markdown image syntax: ![alt text](url)
   const markdownImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-  
+
   // Regex for HTML img tags: <img src="url" alt="alt text"> or <img src='url' alt='alt text'>
-  const htmlImageRegex = /<img[^>]+src=['"]([^'"]+)['"][^>]*(?:alt=['"]([^'"]*)['"])?[^>]*>/gi;
-  
+  const htmlImageRegex =
+    /<img[^>]+src=['"]([^'"]+)['"][^>]*(?:alt=['"]([^'"]*)['"])?[^>]*>/gi;
+
   let match;
-  
+
   // Extract markdown images
   while ((match = markdownImageRegex.exec(content)) !== null) {
     const [, altText, url] = match;
     if (isValidImageUrl(url)) {
       images.push({
         url: url.trim(),
-        altText: altText?.trim() || undefined
+        altText: altText?.trim() || undefined,
       });
     }
   }
-  
+
   // Extract HTML img tag images
   while ((match = htmlImageRegex.exec(content)) !== null) {
     const [, url, altText] = match;
     if (isValidImageUrl(url)) {
       images.push({
         url: url.trim(),
-        altText: altText?.trim() || undefined
+        altText: altText?.trim() || undefined,
       });
     }
   }
-  
+
   return images;
 }
