@@ -49,6 +49,7 @@ export async function createPullRequest({
   body = "",
   githubInstallationToken,
   baseBranch,
+  draft = true,
 }: {
   owner: string;
   repo: string;
@@ -57,6 +58,7 @@ export async function createPullRequest({
   body?: string;
   githubInstallationToken: string;
   baseBranch?: string;
+  draft?: boolean;
 }) {
   const octokit = new Octokit({
     auth: githubInstallationToken,
@@ -111,6 +113,7 @@ export async function createPullRequest({
       body,
       head: headBranch,
       base: repoBaseBranch,
+      draft,
     });
 
     pullRequest = pullRequestData;
