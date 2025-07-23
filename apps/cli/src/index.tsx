@@ -5,6 +5,9 @@ import { startAuthServer, getAccessToken } from "./auth-server.js";
 import open from "open";
 import TerminalInterface from "./TerminalInterface.js";
 
+const GITHUB_LOGIN_URL =
+  process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
+
 const CustomInput: React.FC<{ onSubmit: () => void }> = ({ onSubmit }) => {
   const [input, setInput] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -91,7 +94,7 @@ const App: React.FC = () => {
     if (authPrompt === true && !authStarted) {
       setAuthStarted(true);
       startAuthServer();
-      open("http://localhost:3000/api/auth/github/login");
+      open(GITHUB_LOGIN_URL);
     }
   }, [authPrompt, authStarted]);
 

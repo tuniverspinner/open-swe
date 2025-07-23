@@ -62,7 +62,7 @@ app.get("/api/auth/github/login", (_req: Request, res: Response) => {
   url.searchParams.set("client_id", CLIENT_ID);
   url.searchParams.set("redirect_uri", CALLBACK_URL);
   url.searchParams.set("state", state);
-  res.redirect(url.toString());
+  return res.redirect(url.toString());
 });
 
 // 2. Handle OAuth callback
@@ -72,8 +72,11 @@ app.get("/api/auth/github/callback", async (req: Request, res: Response) => {
   if (!code) {
     return res.status(400).send("Missing code parameter");
   }
+  const GITHUB_ACCESS_TOKEN_LOGIN_LINK =
+    process.env.GITHUB_ACCESS_TOKEN_LOGIN_LINK ||
+    "https://github.com/login/oauth/access_token";
   // Exchange code for access token
-  const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+  const tokenRes = await fetch(GITHUB_ACCESS_TOKEN_LOGIN_LINK, {
     method: "POST",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -96,7 +99,7 @@ app.get("/api/auth/github/callback", async (req: Request, res: Response) => {
   } catch (err) {
     console.error("Failed to store token in config file:", err);
   }
-  res.send("Authentication successful! You can close this window.");
+  return res.send("Authentication successful! You can close this window.");
 });
 
 export function startAuthServer() {
