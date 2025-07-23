@@ -257,7 +257,22 @@ export const auth = new Auth()
   )
 
   // THREADS: read, update, delete, search operations
-  .on("threads:read", ({ user }) => createOwnerFilter(user))
+  .on("threads:read", async ({ user, request }) => {
+    // Extract thread ID from the request URL
+    const threadId = extractThreadIdFromUrl(request.url);
+    
+    // If we can extract a thread ID, check if it's public
+    if (threadId) {
+      const isPublic = await isThreadPublic(threadId);
+      if (isPublic) {
+        // Allow access to public threads without owner filtering
+        return undefined;
+      }
+    }
+    
+    // Apply normal owner filtering for private threads
+    return createOwnerFilter(user);
+  })
   .on("threads:update", ({ user }) => createOwnerFilter(user))
   .on("threads:delete", ({ user }) => createOwnerFilter(user))
   .on("threads:search", ({ user }) => createOwnerFilter(user))
@@ -277,4 +292,5 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
 
