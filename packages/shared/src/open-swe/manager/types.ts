@@ -44,6 +44,15 @@ export const ManagerGraphStateObj = MessagesZodState.extend({
       fn: (_state, update) => update,
     },
   }),
+  /**
+   * Whether or not the thread is public and can be viewed by anonymous users.
+   */
+  isPublic: withLangGraph(z.custom<boolean>().optional(), {
+    reducer: {
+      schema: z.custom<boolean>().optional(),
+      fn: (_state, update) => update,
+    },
+  }),
 });
 
 export type ManagerGraphState = z.infer<typeof ManagerGraphStateObj>;
