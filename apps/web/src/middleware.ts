@@ -6,7 +6,7 @@ import { verifyGithubUser } from "@open-swe/shared/github/verify-user";
  * Extract thread ID from chat URL path
  */
 function extractThreadIdFromPath(pathname: string): string | null {
-  const chatThreadMatch = pathname.match(/^\/chat\/([^\/]+)$/);
+  const chatThreadMatch = pathname.match(/^\/chat\/([^/]+)$/);
   return chatThreadMatch ? chatThreadMatch[1] : null;
 }
 
@@ -61,4 +61,5 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/", "/chat/:path*"],
 };
+
 
