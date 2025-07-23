@@ -74,7 +74,9 @@ export function CloneTemplateDialog({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.details || errorData.error || "Failed to clone template");
+        throw new Error(
+          errorData.details || errorData.error || "Failed to clone template",
+        );
       }
 
       const data: CloneTemplateResponse = await response.json();
@@ -88,7 +90,9 @@ export function CloneTemplateDialog({
       });
 
       // Show success message
-      toast.success(`Successfully created repository: ${data.repository.full_name}`);
+      toast.success(
+        `Successfully created repository: ${data.repository.full_name}`,
+      );
 
       // Close dialog and reset form
       onOpenChange(false);
@@ -102,7 +106,8 @@ export function CloneTemplateDialog({
       router.push("/chat");
     } catch (error) {
       console.error("Error cloning template:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred";
       toast.error(`Failed to clone template: ${errorMessage}`);
     } finally {
       setIsLoading(false);
@@ -119,15 +124,22 @@ export function CloneTemplateDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Clone TypeScript Template</DialogTitle>
           <DialogDescription>
-            Create a new repository from the TypeScript template to get started quickly.
+            Create a new repository from the TypeScript template to get started
+            quickly.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+        >
           <div className="space-y-2">
             <Label htmlFor="name">Repository Name *</Label>
             <Input
@@ -150,7 +162,10 @@ export function CloneTemplateDialog({
               placeholder="A brief description of your project"
               value={formData.description}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, description: e.target.value }))
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
               }
               disabled={isLoading}
             />
@@ -167,10 +182,18 @@ export function CloneTemplateDialog({
             <Label htmlFor="private">Private repository</Label>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleCancel} disabled={isLoading}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isLoading}
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading}
+            >
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -186,4 +209,3 @@ export function CloneTemplateDialog({
     </Dialog>
   );
 }
-

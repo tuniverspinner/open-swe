@@ -71,7 +71,10 @@ function StartFromTemplateQuickAction() {
           </CardDescription>
         </CardHeader>
       </Card>
-      <CloneTemplateDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <CloneTemplateDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      />
     </>
   );
 }
@@ -108,4 +111,3 @@ export function QuickActions({ setQuickActionPrompt }: QuickActionsProps) {
     </div>
   );
 }
-
