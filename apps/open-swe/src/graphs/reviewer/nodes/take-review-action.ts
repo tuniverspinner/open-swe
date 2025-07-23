@@ -143,7 +143,7 @@ export async function takeReviewerActions(
       changedFiles,
     });
     const { githubInstallationToken } = getGitHubTokensFromConfig(config);
-    branchName = await checkoutBranchAndCommit(
+    const commitResult: CheckoutBranchAndCommitResult = await checkoutBranchAndCommit(
       config,
       state.targetRepository,
       sandbox,
@@ -152,6 +152,7 @@ export async function takeReviewerActions(
         githubInstallationToken,
       },
     );
+    branchName = commitResult.branchName;
   }
 
   let wereDependenciesInstalled: boolean | null = null;
@@ -217,3 +218,4 @@ export async function takeReviewerActions(
     update: commandUpdate,
   });
 }
+
