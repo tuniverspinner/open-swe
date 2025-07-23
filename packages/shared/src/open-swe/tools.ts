@@ -225,6 +225,13 @@ const _tmpSearchToolSchema = createSearchToolFields({
 }).schema;
 export type SearchCommand = z.infer<typeof _tmpSearchToolSchema>;
 
+// Only used for type inference
+const _tmpSedToolSchema = createSedToolFields({
+  owner: "x",
+  repo: "x",
+}).schema;
+export type SedCommand = z.infer<typeof _tmpSedToolSchema>;
+
 function escapeShellArg(arg: string): string {
   // If the string contains a single quote, close the string, escape the single quote, and reopen it
   // Example: foo'bar → 'foo'\''bar'
@@ -518,4 +525,5 @@ export function createReviewStartedToolFields() {
     schema: reviewStartedSchema,
   };
 }
+
 
