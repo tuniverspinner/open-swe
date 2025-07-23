@@ -31,6 +31,7 @@ export function threadsToMetadata(
       branch: values?.targetRepository?.branch || "main",
       taskPlan: values?.taskPlan,
       status: "idle" as const, // Default status - consumers can override with real status
+      isPublic: values?.isPublic ?? false, // Default to false for existing threads
       githubIssue: values?.githubIssueId
         ? {
             number: values?.githubIssueId,
