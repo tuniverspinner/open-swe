@@ -76,6 +76,11 @@ export async function stashAndClearChanges(
   }
 }
 
+export type CheckoutBranchAndCommitResult = {
+  branchName: string;
+  isFirstCommit: boolean;
+};
+
 export async function checkoutBranchAndCommit(
   config: GraphConfig,
   targetRepository: TargetRepository,
@@ -84,9 +89,25 @@ export async function checkoutBranchAndCommit(
     branchName?: string;
     githubInstallationToken: string;
   },
-): Promise<string> {
+): Promise<CheckoutBranchAndCommitResult> {
   const absoluteRepoDir = getRepoAbsolutePath(targetRepository);
   const branchName = options.branchName || getBranchName(config);
+
+  // Check if this is the first commit by checking if the branch has any commits
+  let isFirstCommit = false;
+  try {
+    const logOutput = await sandbox.process.executeCommand(
+      "git log --oneline -1",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+    // If git log fails or returns no output, this is likely the first commit
+    isFirstCommit = logOutput.exitCode !== 0 || !logOutput.result.trim();
+  } catch (e) {
+    // If git log command fails, assume this is the first commit
+    isFirstCommit = true;
+  }
 
   logger.info(`Committing changes to branch ${branchName}`);
   // Commit the changes. We can use the sandbox executeCommand API for this since it doesn't require a token.
@@ -110,9 +131,13 @@ export async function checkoutBranchAndCommit(
 
   logger.info("Successfully checked out & committed changes.", {
     commitAuthor: userName,
+    isFirstCommit,
   });
 
-  return branchName;
+  return {
+    branchName,
+    isFirstCommit,
+  };
 }
 
 export async function pullLatestChanges(
@@ -243,3 +268,4 @@ async function performClone(
   });
   return branchName;
 }
+
