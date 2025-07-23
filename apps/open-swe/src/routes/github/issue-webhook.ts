@@ -95,7 +95,7 @@ const getHeaders = (
  * @returns MessageContent array with text and image_url blocks
  */
 const createIssueMessageContent = (title: string, body: string): MessageContent => {
-  const fullText = `**${title}**
+  const fullText = `**${title}**\n\n${body}`;
   const extractedImages = extractImageUrls(body);
 
   // If no images found, return as plain text
