@@ -70,7 +70,7 @@ Create your plan following these guidelines:
         - If the current page is: https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/setup/ And you encounter a relative link: ../../langgraph-platform/local-server, 
             - Go up two levels: https://langchain-ai.github.io/langgraph/tutorials/get-started/
             - Append the relative path to form the full URL: https://langchain-ai.github.io/langgraph/tutorials/get-started/langgraph-platform/local-server
-        - If you get a reponse like Encountered an HTTP error: Client error '404' for url, it probably means that the url you created with relative path is incorrect so you should try constructing it again. 
+        - If you get a response like Encountered an HTTP error: Client error '404' for url, it probably means that the url you created with relative path is incorrect so you should try constructing it again. 
 </instructions>
 
 <output_format>
