@@ -165,6 +165,7 @@ export async function takeAction(
   );
 
   let branchName: string | undefined = state.branchName;
+  let isFirstCommit = false;
   if (changedFiles.length > 0) {
     logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
       changedFiles,
@@ -180,6 +181,7 @@ export async function takeAction(
       },
     );
     branchName = commitResult.branchName;
+    isFirstCommit = commitResult.isFirstCommit;
   }
 
   const shouldRouteDiagnoseNode = shouldDiagnoseError([
@@ -212,9 +214,19 @@ export async function takeAction(
       dependenciesInstalled: dependenciesInstalledUpdate,
     }),
   };
+
+  // Route to openFirstPullRequest if this was the first commit and no errors to diagnose
+  const shouldRouteToFirstPR = isFirstCommit && !shouldRouteDiagnoseNode;
+  const nextNode = shouldRouteDiagnoseNode 
+    ? "diagnose-error" 
+    : shouldRouteToFirstPR 
+      ? "openFirstPullRequest" 
+      : "generate-action";
+
   return new Command({
-    goto: shouldRouteDiagnoseNode ? "diagnose-error" : "generate-action",
+    goto: nextNode,
     update: commandUpdate,
   });
 }
+
 
