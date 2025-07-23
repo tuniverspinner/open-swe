@@ -121,3 +121,5 @@ export async function POST(request: NextRequest) {
       { error: "Failed to clone template repository", details: errorMessage },
       { status: 500 }
     );
+  }
+}
