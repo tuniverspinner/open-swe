@@ -18,6 +18,7 @@ import { createWithOwnerMetadata, createOwnerFilter } from "./utils.js";
 import { LANGGRAPH_USER_PERMISSIONS } from "../constants.js";
 import { getGitHubPatFromRequest } from "../utils/github-pat.js";
 import { isAllowedUser } from "../utils/github/allowed-users.js";
+import { createLangGraphClient } from "../utils/langgraph-client.js";
 import { validate } from "uuid";
 
 // TODO: Export from LangGraph SDK
@@ -83,6 +84,38 @@ function isRunReq(reqUrl: string): boolean {
   } catch {
     // no-op
     return false;
+  }
+}
+
+/**
+ * Check if a thread is public by examining its metadata
+ */
+async function isThreadPublic(threadId: string): Promise<boolean> {
+  try {
+    const client = createLangGraphClient({ includeApiKey: true });
+    const thread = await client.threads.get(threadId);
+    
+    // Check if the thread has isPublic set to true in its values
+    return thread.values?.isPublic === true;
+  } catch (error) {
+    // If we can't access the thread, assume it's private for security
+    console.error(`Failed to check thread publicity for ${threadId}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Extract thread ID from request URL
+ */
+function extractThreadIdFromUrl(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+    // Look for /threads/{threadId} pattern
+    const threadsIndex = pathParts.indexOf('threads');
+    return threadsIndex !== -1 && pathParts[threadsIndex + 1] ? pathParts[threadsIndex + 1] : null;
+  } catch {
+    return null;
   }
 }
 
@@ -244,3 +277,4 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
+
