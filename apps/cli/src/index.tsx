@@ -33,6 +33,96 @@ const CustomInput: React.FC<{ onSubmit: () => void }> = ({ onSubmit }) => {
   );
 };
 
+const RepoSearchSelect: React.FC<{
+  repos: any[];
+  onSelect: (repo: any) => void;
+}> = ({ repos, onSelect }) => {
+  const [search, setSearch] = useState("");
+  const [highlighted, setHighlighted] = useState(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const filtered = repos.filter((repo) =>
+    repo.full_name.toLowerCase().includes(search.toLowerCase()),
+  );
+  const shown = filtered.slice(0, 10);
+
+  useInput((input, key) => {
+    if (isSubmitted) return;
+    if (key.return) {
+      if (shown.length > 0) {
+        setIsSubmitted(true);
+        onSelect(shown[highlighted]);
+      }
+    } else if (key.upArrow) {
+      setHighlighted((h) => (h - 1 + shown.length) % shown.length);
+    } else if (key.downArrow) {
+      setHighlighted((h) => (h + 1) % shown.length);
+    } else if (key.backspace || key.delete) {
+      setSearch((prev) => prev.slice(0, -1));
+      setHighlighted(0);
+    } else if (input && !key.ctrl && !key.meta) {
+      setSearch((prev) => prev + input);
+      setHighlighted(0);
+    }
+  });
+
+  if (isSubmitted) return null;
+
+  return (
+    <Box flexDirection="column">
+      <Box>
+        <Text color="cyan">Search repositories: {search}</Text>
+      </Box>
+      {shown.length === 0 ? (
+        <Box>
+          <Text color="gray">No matches found.</Text>
+        </Box>
+      ) : (
+        <Box flexDirection="column" marginTop={1}>
+          {shown.map((_, idx) => (
+            <Text
+              key={shown[idx].id}
+              color={idx === highlighted ? "magenta" : "white"}
+            >
+              {idx === highlighted ? "> " : "  "}
+              {shown[idx].full_name}
+            </Text>
+          ))}
+        </Box>
+      )}
+      <Box marginTop={1}>
+        <Text dimColor color="gray">
+          Use ↑/↓ to navigate, Enter to select
+        </Text>
+      </Box>
+    </Box>
+  );
+};
+
+async function fetchUserRepos(token: string) {
+  const allRepos = [];
+  let page = 1;
+  const perPage = 100;
+  while (true) {
+    const res = await fetch(
+      `https://api.github.com/user/repos?per_page=${perPage}&page=${page}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github.v3+json",
+          "User-Agent": "open-swe-cli",
+        },
+      },
+    );
+    if (!res.ok) throw new Error("Failed to fetch repos");
+    const repos = await res.json();
+    allRepos.push(...repos);
+    if (repos.length < perPage) break;
+    page++;
+  }
+  return allRepos;
+}
+
 const App: React.FC = () => {
   const [authPrompt, setAuthPrompt] = useState<null | boolean>(null);
   const [authInput, setAuthInput] = useState("");
@@ -40,6 +130,9 @@ const App: React.FC = () => {
   const [exit, setExit] = useState(false);
   const [authStarted, setAuthStarted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [repos, setRepos] = useState<any[]>([]);
+  const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
+  const [selectingRepo, setSelectingRepo] = useState(false);
 
   // On mount, check for existing token
   useEffect(() => {
@@ -48,6 +141,23 @@ const App: React.FC = () => {
       setIsLoggedIn(true);
     }
   }, []);
+
+  // After login, fetch and store user repos
+  useEffect(() => {
+    if (isLoggedIn && repos.length === 0) {
+      const token = getAccessToken();
+      if (token) {
+        fetchUserRepos(token)
+          .then((repos) => {
+            setRepos(repos);
+            setSelectingRepo(true);
+          })
+          .catch((err) => {
+            console.error("Failed to fetch repos:", err);
+          });
+      }
+    }
+  }, [isLoggedIn, repos.length]);
 
   // Poll for token after auth flow starts
   useEffect(() => {
@@ -98,25 +208,51 @@ const App: React.FC = () => {
     }
   }, [authPrompt, authStarted]);
 
-  if (isLoggedIn) {
+  // Show repo selector if needed
+  if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
     return (
-      <Box flexDirection="column" height={"100%"}>
-        <TerminalInterface
-          message={message}
-          setMessage={() => setMessage(null)}
-          CustomInput={CustomInput}
-        />
-        <Box flexGrow={1} />
-        <Box width="100%" justifyContent="flex-end">
-          <Text color="gray" dimColor>
-            logged in
+      <Box flexDirection="column" padding={1}>
+        <Box justifyContent="center" marginBottom={1}>
+          <Text bold color="magenta">
+            LangChain Open SWE CLI
           </Text>
+        </Box>
+        <Box flexDirection="column" marginBottom={1}>
+          <Text>Select a repository to work with (type to search):</Text>
+        </Box>
+        <Box
+          borderStyle="round"
+          borderColor="gray"
+          paddingX={2}
+          paddingY={1}
+          marginTop={1}
+          marginBottom={1}
+        >
+          <RepoSearchSelect
+            repos={repos}
+            onSelect={(repo) => {
+              setSelectedRepo(repo);
+              setSelectingRepo(false);
+            }}
+          />
         </Box>
       </Box>
     );
   }
 
-  if (authPrompt === null) {
+  // Pass selected repo to TerminalInterface
+  if (isLoggedIn && selectedRepo) {
+    return (
+      <TerminalInterface
+        message={message}
+        setMessage={() => setMessage(null)}
+        CustomInput={CustomInput}
+        repoName={selectedRepo.full_name}
+      />
+    );
+  }
+
+  if (!isLoggedIn && authPrompt === null) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
