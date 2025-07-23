@@ -4,8 +4,8 @@ import { Box, Text } from "ink";
 
 interface TerminalInterfaceProps {
 	message: string | null;
-	setMessage: (value: string) => void;
-	CustomInput: React.FC<{ onSubmit: (value: string) => void }>;
+	setMessage: () => void;
+	CustomInput: React.FC<{ onSubmit: () => void }>;
 }
 
 const TerminalInterface: React.FC<TerminalInterfaceProps> = ({ message, setMessage, CustomInput }) => {

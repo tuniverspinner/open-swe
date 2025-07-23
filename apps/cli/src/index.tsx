@@ -5,7 +5,7 @@ import { startAuthServer, getAccessToken } from "./auth-server.js";
 import open from "open";
 import TerminalInterface from "./TerminalInterface.js";
 
-const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit }) => {
+const CustomInput: React.FC<{ onSubmit: () => void }> = ({ onSubmit }) => {
 	const [value, setValue] = useState("");
 	const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -13,7 +13,7 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit
 		if (isSubmitted) return;
 		if (key.return) {
 			setIsSubmitted(true);
-			onSubmit(value);
+			onSubmit();
 		} else if (key.backspace || key.delete) {
 			setValue(prev => prev.slice(0, -1));
 		} else if (input) {
