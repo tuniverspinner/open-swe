@@ -130,7 +130,8 @@ const App: React.FC = () => {
           marginBottom={1}
         >
           <Text>
-            Do you want to start the GitHub authentication flow? (y/n) {authInput}
+            Do you want to start the GitHub authentication flow? (y/n){" "}
+            {authInput}
           </Text>
         </Box>
       </Box>
