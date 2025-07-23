@@ -236,6 +236,20 @@ const App: React.FC = () => {
             }}
           />
         </Box>
+  if (isLoggedIn) {
+    return (
+      <Box flexDirection="column" height={"100%"}>
+        <TerminalInterface
+          message={message}
+          setMessage={() => setMessage(null)}
+          CustomInput={CustomInput}
+        />
+        <Box flexGrow={1} />
+        <Box width="100%" justifyContent="flex-end">
+          <Text color="gray" dimColor>
+            logged in
+          </Text>
+        </Box>
       </Box>
     );
   }
