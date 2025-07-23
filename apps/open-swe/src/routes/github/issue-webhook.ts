@@ -88,6 +88,40 @@ const getHeaders = (
   return { id: webhookId, name: webhookEvent, installationId, targetType };
 };
 
+/**
+ * Converts issue content to multimodal content array when images are detected
+ * @param title - The issue title
+ * @param body - The issue body content
+ * @returns MessageContent array with text and image_url blocks
+ */
+const createIssueMessageContent = (title: string, body: string): MessageContent => {
+  const fullText = `**${title}**
+  const extractedImages = extractImageUrls(body);
+
+  // If no images found, return as plain text
+  if (extractedImages.length === 0) {
+    return fullText;
+  }
+
+  // Create multimodal content array with text and images
+  const contentBlocks: Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }> = [
+    {
+      type: "text",
+      text: fullText
+    }
+  ];
+
+  // Add image blocks
+  for (const image of extractedImages) {
+    contentBlocks.push({
+      type: "image_url",
+      image_url: { url: image.url }
+    });
+  }
+
+  return contentBlocks;
+};
+
 webhooks.on("issues.labeled", async ({ payload }) => {
   if (!process.env.SECRETS_ENCRYPTION_KEY) {
     throw new Error("SECRETS_ENCRYPTION_KEY environment variable is required");
@@ -238,4 +272,5 @@ export async function issueWebhookHandler(
     return c.json({ error: "Webhook processing failed" }, { status: 400 });
   }
 }
+
 
