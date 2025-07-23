@@ -35,8 +35,8 @@ export function isValidImageUrl(url: string): boolean {
     
     // Check if the domain is in our trusted list
     const hostname = parsedUrl.hostname.toLowerCase();
-    return TRUSTED_DOMAINS.some(domain => 
-      hostname === domain || hostname.endsWith()
+    return TRUSTED_DOMAINS.some(domain =>
+      hostname === domain || hostname.endsWith(`.${domain}`)
     );
   } catch {
     return false;
