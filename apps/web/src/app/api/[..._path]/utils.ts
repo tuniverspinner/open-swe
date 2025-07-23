@@ -4,6 +4,20 @@ import { GITHUB_TOKEN_COOKIE } from "@open-swe/shared/constants";
 import { encryptSecret } from "@open-swe/shared/crypto";
 import { NextRequest } from "next/server";
 
+export function getGitHubAccessToken(
+  req: NextRequest,
+  encryptionKey: string,
+): string | null {
+  const token = req.cookies.get(GITHUB_TOKEN_COOKIE)?.value ?? "";
+
+  if (!token) {
+    return null;
+  }
+
+  return encryptSecret(token, encryptionKey);
+}
+
+// Keep the original function for backward compatibility
 export function getGitHubAccessTokenOrThrow(
   req: NextRequest,
   encryptionKey: string,
@@ -19,6 +33,18 @@ export function getGitHubAccessTokenOrThrow(
   return encryptSecret(token, encryptionKey);
 }
 
+export async function getGitHubInstallationToken(
+  installationIdCookie: string | undefined,
+  encryptionKey: string,
+): Promise<string | null> {
+  if (!installationIdCookie) {
+    return null;
+  }
+
+  return await getGitHubInstallationTokenOrThrow(installationIdCookie, encryptionKey);
+}
+
+// Keep the original function for backward compatibility
 export async function getGitHubInstallationTokenOrThrow(
   installationIdCookie: string,
   encryptionKey: string,
@@ -83,3 +109,4 @@ export async function getInstallationNameFromReq(
     return "";
   }
 }
+
