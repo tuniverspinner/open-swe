@@ -17,30 +17,28 @@ import { Switch } from "@/components/ui/switch";
 import { useGitHubAppProvider } from "@/providers/GitHubApp";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import {
+  CloneTemplateResponse,
+  CloneTemplateRequest,
+} from "@/app/api/github/clone-template/types";
+import { useQueryState } from "nuqs";
 
 interface CloneTemplateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-interface CloneTemplateResponse {
-  success: boolean;
-  repository: {
-    id: number;
-    name: string;
-    full_name: string;
-    description: string | null;
-    private: boolean;
-    html_url: string;
-    default_branch: string;
+  template: {
+    owner: string;
+    repo: string;
   };
 }
 
 export function CloneTemplateDialog({
   open,
   onOpenChange,
+  template,
 }: CloneTemplateDialogProps) {
-  const router = useRouter();
+  const [repo] = useQueryState("repo");
+  const ownerName = repo?.split("/")[0];
   const { setSelectedRepository } = useGitHubAppProvider();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -51,25 +49,40 @@ export function CloneTemplateDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!ownerName) {
+      toast.error("Owner name is required", {
+        richColors: true,
+        duration: 5000,
+      });
+      return;
+    }
 
     if (!formData.name.trim()) {
-      toast.error("Repository name is required");
+      toast.error("Repository name is required", {
+        richColors: true,
+        duration: 5000,
+      });
       return;
     }
 
     setIsLoading(true);
 
     try {
+      const cloneTemplateInput: CloneTemplateRequest = {
+        template,
+        newRepo: {
+          owner: ownerName,
+          name: formData.name.trim(),
+          description: formData.description.trim() || undefined,
+          private: formData.private,
+        },
+      };
       const response = await fetch("/api/github/clone-template", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          description: formData.description.trim() || undefined,
-          private: formData.private,
-        }),
+        body: JSON.stringify(cloneTemplateInput),
       });
 
       if (!response.ok) {
@@ -92,6 +105,10 @@ export function CloneTemplateDialog({
       // Show success message
       toast.success(
         `Successfully created repository: ${data.repository.full_name}`,
+        {
+          richColors: true,
+          duration: 5000,
+        },
       );
 
       // Close dialog and reset form
@@ -101,14 +118,14 @@ export function CloneTemplateDialog({
         description: "",
         private: false,
       });
-
-      // Navigate to chat interface
-      router.push("/chat");
     } catch (error) {
       console.error("Error cloning template:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error occurred";
-      toast.error(`Failed to clone template: ${errorMessage}`);
+      toast.error(`Failed to clone template: ${errorMessage}`, {
+        richColors: true,
+        duration: 5000,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -141,9 +158,19 @@ export function CloneTemplateDialog({
           className="space-y-4"
         >
           <div className="space-y-2">
-            <Label htmlFor="name">Repository Name *</Label>
+            <Label htmlFor="repo-owner">Repository Owner *</Label>
             <Input
-              id="name"
+              id="repo-owner"
+              type="text"
+              placeholder="my-awesome-project"
+              value={ownerName}
+              disabled={true}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="repo-name">Repository Name *</Label>
+            <Input
+              id="repo-name"
               type="text"
               placeholder="my-awesome-project"
               value={formData.name}
@@ -155,9 +182,9 @@ export function CloneTemplateDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="repo-description">Description (optional)</Label>
             <Input
-              id="description"
+              id="repo-description"
               type="text"
               placeholder="A brief description of your project"
               value={formData.description}
@@ -195,10 +222,10 @@ export function CloneTemplateDialog({
               disabled={isLoading}
             >
               {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="size-4 animate-spin" />
                   Creating...
-                </>
+                </div>
               ) : (
                 "Create Repository"
               )}

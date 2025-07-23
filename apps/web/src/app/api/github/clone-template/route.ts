@@ -1,22 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getInstallationToken } from "@/utils/github";
-import { GITHUB_INSTALLATION_ID_COOKIE } from "@open-swe/shared/constants";
-
-interface CloneTemplateRequest {
-  name: string;
-  description?: string;
-  private: boolean;
-}
-
-interface GitHubTemplateResponse {
-  id: number;
-  name: string;
-  full_name: string;
-  description: string | null;
-  private: boolean;
-  html_url: string;
-  default_branch: string;
-}
+import { GITHUB_TOKEN_COOKIE } from "@open-swe/shared/constants";
+import {
+  CloneTemplateRequest,
+  CloneTemplateResponse,
+  GitHubTemplateResponse,
+} from "./types";
 
 /**
  * API route to clone a repository from the bracesproul/typescript-template template
@@ -24,61 +12,37 @@ interface GitHubTemplateResponse {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Parse request body
     const body: CloneTemplateRequest = await request.json();
-    const { name, description, private: isPrivate } = body;
+    const { template, newRepo } = body;
 
-    // Validate required fields
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (
+      !newRepo.name ||
+      typeof newRepo.name !== "string" ||
+      newRepo.name.trim().length === 0
+    ) {
       return NextResponse.json(
         { error: "Repository name is required" },
         { status: 400 },
       );
     }
 
-    if (typeof isPrivate !== "boolean") {
+    if (typeof newRepo.private !== "boolean") {
       return NextResponse.json(
         { error: "Private field must be a boolean" },
         { status: 400 },
       );
     }
 
-    // Get installation ID from cookies
-    const installationIdCookie = request.cookies.get(
-      GITHUB_INSTALLATION_ID_COOKIE,
-    )?.value;
+    const token = request.cookies.get(GITHUB_TOKEN_COOKIE)?.value ?? "";
 
-    if (!installationIdCookie) {
-      return NextResponse.json(
-        {
-          error:
-            "GitHub installation ID not found. Please install the app first.",
-        },
-        { status: 401 },
+    if (!token) {
+      throw new Error(
+        "No GitHub access token found. User must authenticate first.",
       );
     }
 
-    // Get GitHub App credentials
-    const appId = process.env.GITHUB_APP_ID;
-    const privateKey = process.env.GITHUB_APP_PRIVATE_KEY;
-
-    if (!appId || !privateKey) {
-      return NextResponse.json(
-        { error: "GitHub App configuration missing" },
-        { status: 500 },
-      );
-    }
-
-    // Get installation token
-    const token = await getInstallationToken(
-      installationIdCookie,
-      appId,
-      privateKey,
-    );
-
-    // Call GitHub API to create repository from template
     const response = await fetch(
-      "https://api.github.com/repos/bracesproul/typescript-template/generate",
+      `https://api.github.com/repos/${template.owner}/${template.repo}/generate`,
       {
         method: "POST",
         headers: {
@@ -88,9 +52,10 @@ export async function POST(request: NextRequest) {
           "User-Agent": "OpenSWE-Agent",
         },
         body: JSON.stringify({
-          name: name.trim(),
-          description: description?.trim() || undefined,
-          private: isPrivate,
+          owner: newRepo.owner,
+          name: newRepo.name.trim(),
+          description: newRepo.description?.trim() || undefined,
+          private: newRepo.private,
         }),
       },
     );
@@ -108,8 +73,7 @@ export async function POST(request: NextRequest) {
 
     const repositoryData: GitHubTemplateResponse = await response.json();
 
-    // Return the created repository data
-    return NextResponse.json({
+    const cloneTemplateResponse: CloneTemplateResponse = {
       success: true,
       repository: {
         id: repositoryData.id,
@@ -120,7 +84,9 @@ export async function POST(request: NextRequest) {
         html_url: repositoryData.html_url,
         default_branch: repositoryData.default_branch,
       },
-    });
+    };
+
+    return NextResponse.json(cloneTemplateResponse);
   } catch (error) {
     console.error("Error cloning template repository:", error);
     const errorMessage =

@@ -55,6 +55,10 @@ function DevReadmePromptQuickAction({
 
 function StartFromTemplateQuickAction() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const template = {
+    owner: "bracesproul",
+    repo: "typescript-template",
+  };
 
   return (
     <>
@@ -67,13 +71,14 @@ function StartFromTemplateQuickAction() {
             Start from Template
           </CardTitle>
           <CardDescription className="text-muted-foreground text-xs">
-            Clone the TypeScript template to get started quickly.
+            Clone an empty TypeScript template to get started quickly.
           </CardDescription>
         </CardHeader>
       </Card>
       <CloneTemplateDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        template={template}
       />
     </>
   );
