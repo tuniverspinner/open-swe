@@ -7,6 +7,7 @@ import {
 } from "@open-swe/shared/open-swe/types";
 import {
   checkoutBranchAndCommit,
+  CheckoutBranchAndCommitResult,
   getChangedFilesStatus,
 } from "../../../utils/github/git.js";
 import { createPullRequest } from "../../../utils/github/api.js";
@@ -85,7 +86,7 @@ export async function openPullRequest(
     logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
       changedFiles,
     });
-    branchName = await checkoutBranchAndCommit(
+    const commitResult: CheckoutBranchAndCommitResult = await checkoutBranchAndCommit(
       config,
       state.targetRepository,
       sandbox,
@@ -94,6 +95,7 @@ export async function openPullRequest(
         githubInstallationToken,
       },
     );
+    branchName = commitResult.branchName;
   }
 
   const openPrTool = createOpenPrToolFields();
@@ -184,3 +186,4 @@ export async function openPullRequest(
     tokenData: trackCachePerformance(response),
   };
 }
+
