@@ -41,7 +41,10 @@ export async function getGitHubInstallationToken(
     return null;
   }
 
-  return await getGitHubInstallationTokenOrThrow(installationIdCookie, encryptionKey);
+  return await getGitHubInstallationTokenOrThrow(
+    installationIdCookie,
+    encryptionKey,
+  );
 }
 
 // Keep the original function for backward compatibility
@@ -109,4 +112,3 @@ export async function getInstallationNameFromReq(
     return "";
   }
 }
-

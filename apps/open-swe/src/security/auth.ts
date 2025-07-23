@@ -97,7 +97,7 @@ async function isThreadPublic(threadId: string): Promise<boolean> {
   try {
     const client = createLangGraphClient({ includeApiKey: true });
     const thread = await client.threads.get(threadId);
-    
+
     // Check if the thread has isPublic set to true in its values
     return thread.values?.isPublic === true;
   } catch (error) {
@@ -113,10 +113,12 @@ async function isThreadPublic(threadId: string): Promise<boolean> {
 function extractThreadIdFromUrl(url: string): string | null {
   try {
     const urlObj = new URL(url);
-    const pathParts = urlObj.pathname.split('/');
+    const pathParts = urlObj.pathname.split("/");
     // Look for /threads/{threadId} pattern
-    const threadsIndex = pathParts.indexOf('threads');
-    return threadsIndex !== -1 && pathParts[threadsIndex + 1] ? pathParts[threadsIndex + 1] : null;
+    const threadsIndex = pathParts.indexOf("threads");
+    return threadsIndex !== -1 && pathParts[threadsIndex + 1]
+      ? pathParts[threadsIndex + 1]
+      : null;
   } catch {
     return null;
   }
@@ -263,7 +265,7 @@ export const auth = new Auth()
   .on("threads:read", async ({ user, request }) => {
     // Extract thread ID from the request URL
     const threadId = extractThreadIdFromUrl(request.url);
-    
+
     // If we can extract a thread ID, check if it's public
     if (threadId) {
       const isPublic = await isThreadPublic(threadId);
@@ -272,7 +274,7 @@ export const auth = new Auth()
         return undefined;
       }
     }
-    
+
     // Apply normal owner filtering for private threads
     return createOwnerFilter(user);
   })
@@ -295,6 +297,3 @@ export const auth = new Auth()
   .on("store", ({ user }) => {
     return { owner: user.identity };
   });
-
-
-

@@ -55,31 +55,36 @@ export const { GET, POST, PUT, PATCH, DELETE, OPTIONS, runtime } =
           "SECRETS_ENCRYPTION_KEY environment variable is required",
         );
       }
-      
+
       const installationIdCookie = req.cookies.get(
         GITHUB_INSTALLATION_ID_COOKIE,
       )?.value;
 
       // Try to get authentication tokens - don't throw if they're missing
       const accessToken = getGitHubAccessToken(req, encryptionKey);
-      const installationToken = await getGitHubInstallationToken(installationIdCookie, encryptionKey);
-      
+      const installationToken = await getGitHubInstallationToken(
+        installationIdCookie,
+        encryptionKey,
+      );
+
       // Only add authentication headers if we have valid tokens
       const headers: Record<string, string> = {};
-      
+
       if (accessToken) {
         headers[GITHUB_TOKEN_COOKIE] = accessToken;
       }
-      
+
       if (installationToken && installationIdCookie) {
         headers[GITHUB_INSTALLATION_TOKEN_COOKIE] = installationToken;
-        
+
         // Only get installation name if we have installation token
-        const installationName = await getInstallationNameFromReq(req.clone(), installationIdCookie);
+        const installationName = await getInstallationNameFromReq(
+          req.clone(),
+          installationIdCookie,
+        );
         headers[GITHUB_INSTALLATION_NAME] = installationName;
       }
-      
+
       return headers;
     },
   });
-

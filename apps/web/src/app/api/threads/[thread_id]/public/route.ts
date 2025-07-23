@@ -9,7 +9,7 @@ import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ thread_id: string }> }
+  { params }: { params: Promise<{ thread_id: string }> },
 ) {
   try {
     const { thread_id } = await params;
@@ -32,12 +32,11 @@ export async function GET(
     return NextResponse.json({ isPublic });
   } catch (error) {
     console.error(`Failed to check thread publicity for ${params}:`, error);
-    
+
     // Return false for security - if we can't access the thread, assume it's private
     return NextResponse.json(
       { isPublic: false, error: "Failed to check thread publicity" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

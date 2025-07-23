@@ -31,11 +31,7 @@ export function ThreadPrivacyToggle({
       onClick={handleTogglePrivacy}
       aria-label={isPublic ? "Make thread private" : "Make thread public"}
     >
-      {isPublic ? (
-        <Unlock className="size-4" />
-      ) : (
-        <Lock className="size-4" />
-      )}
+      {isPublic ? <Unlock className="size-4" /> : <Lock className="size-4" />}
     </TooltipIconButton>
   );
 }

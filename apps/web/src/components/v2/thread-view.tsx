@@ -466,4 +466,3 @@ export function ThreadView({
     </div>
   );
 }
-

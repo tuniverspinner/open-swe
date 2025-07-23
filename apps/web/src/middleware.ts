@@ -13,9 +13,14 @@ function extractThreadIdFromPath(pathname: string): string | null {
 /**
  * Check if a thread is public using the API endpoint
  */
-async function isThreadPublic(threadId: string, request: NextRequest): Promise<boolean> {
+async function isThreadPublic(
+  threadId: string,
+  request: NextRequest,
+): Promise<boolean> {
   try {
-    const response = await fetch(`${request.nextUrl.origin}/api/threads/${threadId}/public`);
+    const response = await fetch(
+      `${request.nextUrl.origin}/api/threads/${threadId}/public`,
+    );
     return response.ok && (await response.json()).isPublic === true;
   } catch {
     return false;
@@ -38,7 +43,7 @@ export async function middleware(request: NextRequest) {
     if (!user) {
       // Check if this is a specific thread URL
       const threadId = extractThreadIdFromPath(request.nextUrl.pathname);
-      
+
       if (threadId) {
         // Check if the thread is public
         const isPublic = await isThreadPublic(threadId, request);
@@ -47,7 +52,7 @@ export async function middleware(request: NextRequest) {
           return NextResponse.next();
         }
       }
-      
+
       // Redirect unauthenticated users away from private threads or general chat routes
       const url = request.nextUrl.clone();
       url.pathname = "/";
@@ -61,5 +66,3 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: ["/", "/chat/:path*"],
 };
-
-
