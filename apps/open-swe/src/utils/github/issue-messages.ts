@@ -42,7 +42,7 @@ export async function getUntrackedComments(
       // Resolve image URLs to their accessible versions
       const resolvedImageUrls = await Promise.all(
         commentContent.imageUrls.map(url => resolveImageUrl(url))
-      );
+      });
 
       // Create content array with text and image blocks
       const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
@@ -65,7 +65,7 @@ export async function getUntrackedComments(
             githubIssueCommentId: c.id,
           },
         });
-    );
+    });
 
   return untrackedCommentMessages;
 }
@@ -152,7 +152,7 @@ export function extractIssueTitleAndContentFromMessage(content: string) {
     messageTitle = content.substring(
       content.indexOf(ISSUE_TITLE_OPEN_TAG) + ISSUE_TITLE_OPEN_TAG.length,
       content.indexOf(ISSUE_TITLE_CLOSE_TAG),
-    );
+    });
   }
   if (
     content.includes(ISSUE_CONTENT_OPEN_TAG) &&
@@ -161,7 +161,7 @@ export function extractIssueTitleAndContentFromMessage(content: string) {
     messageContent = content.substring(
       content.indexOf(ISSUE_CONTENT_OPEN_TAG) + ISSUE_CONTENT_OPEN_TAG.length,
       content.indexOf(ISSUE_CONTENT_CLOSE_TAG),
-    );
+    });
   }
   return { title: messageTitle, content: messageContent };
 }
