@@ -6,6 +6,7 @@ import {
 } from "@langchain/core/messages";
 import {
   createGetURLContentTool,
+  createSedTool,
   createShellTool,
 } from "../../../tools/index.js";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
