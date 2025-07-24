@@ -94,3 +94,4 @@ export function extractImageUrls(content: string): string[] {
   return validUrls;
 }
 
+
