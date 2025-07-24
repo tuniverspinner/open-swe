@@ -35,11 +35,31 @@ export async function getUntrackedComments(
           (m) => m.additional_kwargs?.githubIssueCommentId === c.id,
         ),
     )
-    .map(
-      (c) =>
-        new HumanMessage({
+    .map(async (c) => {
+      // Extract text content and image URLs from the comment
+      const commentContent = getMessageContentFromIssue(c);
+
+      // Resolve image URLs to their accessible versions
+      const resolvedImageUrls = await Promise.all(
+        commentContent.imageUrls.map(url => resolveImageUrl(url))
+      );
+
+      // Create content array with text and image blocks
+      const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+        { type: "text", text: commentContent.text }
+      ];
+
+      // Add image blocks for each resolved image URL
+      resolvedImageUrls.forEach(url => {
+        messageContent.push({
+          type: "image_url",
+          image_url: { url }
+        });
+      });
+
+      return new HumanMessage({
           id: uuidv4(),
-          content: getMessageContentFromIssue(c),
+          content: messageContent,
           additional_kwargs: {
             githubIssueId,
             githubIssueCommentId: c.id,
