@@ -256,6 +256,44 @@ export function formatSearchCommand(
   return args;
 }
 
+export function createSedToolFields(targetRepository: TargetRepository) {
+  const repoRoot = getRepoAbsolutePath(targetRepository);
+  const sedToolSchema = z.object({
+    file_path: z
+      .string()
+      .describe("The file path to read. Must be relative to the repository root."),
+    
+    start_line: z
+      .number()
+      .optional()
+      .describe("The starting line number to read from (1-based indexing)."),
+    
+    end_line: z
+      .number()
+      .optional()
+      .describe("The ending line number to read to (1-based indexing, inclusive)."),
+    
+    num_lines: z
+      .number()
+      .optional()
+      .describe("The number of lines to read from the start_line. Cannot be used with end_line."),
+    
+    context_lines: z
+      .number()
+      .optional()
+      .default(0)
+      .describe("Number of lines of context to include before/after the specified range."),
+  });
+
+  return {
+    name: "sed",
+    description:
+      "Use sed to read specific lines from a file. Provides a simple interface to read files with line ranges, number of lines, and context. " +
+      `The working directory this command will be executed in is \`${repoRoot}\`. Ensure the file paths you provide are relative to this directory.`,
+    schema: sedToolSchema,
+  };
+}
+
 export function createMarkTaskNotCompletedToolFields() {
   const markTaskNotCompletedToolSchema = z.object({
     reasoning: z
