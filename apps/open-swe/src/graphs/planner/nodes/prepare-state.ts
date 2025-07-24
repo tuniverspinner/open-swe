@@ -82,7 +82,7 @@ export async function prepareGraphState(
     });
   }
 
-  const untrackedComments = getUntrackedComments(
+  const untrackedComments = await getUntrackedComments(
     state.messages,
     state.githubIssueId,
     comments ?? [],
