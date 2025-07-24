@@ -154,6 +154,31 @@ webhooks.on("issues.labeled", async ({ payload }) => {
     });
 
     const threadId = uuidv4();
+
+    // Extract text content and image URLs from the issue
+    const issueContent = getMessageContentFromIssue({
+      title: issueData.issueTitle,
+      body: issueData.issueBody,
+    } as any);
+
+    // Resolve image URLs to their accessible versions
+    const resolvedImageUrls = await Promise.all(
+      issueContent.imageUrls.map(url => resolveImageUrl(url))
+    );
+
+    // Create content array with text and image blocks
+    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+      { type: "text", text: issueContent.text }
+    ];
+
+    // Add image blocks for each resolved image URL
+    resolvedImageUrls.forEach(url => {
+      messageContent.push({
+        type: "image_url",
+        image_url: { url }
+      });
+    });
+
     const runInput: ManagerGraphUpdate = {
       messages: [
         new HumanMessage({
@@ -241,3 +266,4 @@ export async function issueWebhookHandler(
     return c.json({ error: "Webhook processing failed" }, { status: 400 });
   }
 }
+
