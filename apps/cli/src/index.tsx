@@ -181,6 +181,7 @@ const App: React.FC = () => {
   const [threadId, setThreadId] = useState<string | null>(null);
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
   const [programmerThreadId, setProgrammerThreadId] = useState<string | null>(null);
+  const [hasStartedChat, setHasStartedChat] = useState(false);
 
   // On mount, check for existing token
   useEffect(() => {
@@ -609,34 +610,46 @@ const App: React.FC = () => {
 
   // Main UI: logs area + input prompt
   if (isLoggedIn && selectedRepo) {
-    const MAX_LOGS = 100;
-    const visibleLogs = logs.slice(-MAX_LOGS);
+    // Calculate available space for logs based on whether welcome message is shown
+    const headerHeight = hasStartedChat ? 0 : 9; // Welcome message takes ~9 lines
+    const inputHeight = 3; // Fixed input area height
+    const availableLogHeight = Math.max(5, process.stdout.rows - headerHeight - inputHeight);
+    
+    // Always show the most recent logs (auto-scroll to bottom)
+    const visibleLogs = logs.length > availableLogHeight 
+      ? logs.slice(-availableLogHeight) 
+      : logs;
+    
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
-        {/* Welcome message at top */}
-        <Box flexDirection="column" paddingX={1} paddingY={1}>
-          <Box justifyContent="center">
-            <Text>
-              {`
+        {/* Welcome message at top - only show before first chat */}
+        {!hasStartedChat && (
+          <Box flexDirection="column" paddingX={1} paddingY={1}>
+            <Box justifyContent="center">
+              <Text>
+                {`
  __      __   _                    _         
  \\ \\    / /__| |__ ___ _ __  ___| |_ ___ ___
   \\ \\/\\/ / -_) / _/ _ \\ '  \\/ -_)  _/ _ (_-<
    \\_/\\_/\\___|_\\__\\___/_|_|_\\___|\\__\\___/__/
-            `}
-            </Text>
+              `}
+              </Text>
+            </Box>
+            <Box justifyContent="center">
+              <Text bold>LangChain Open SWE CLI</Text>
+            </Box>
+            <Box justifyContent="center" marginY={1}>
+              <Text dimColor>Describe your coding problem. It'll run in the sandbox and a PR will be created.</Text>
+            </Box>
           </Box>
-          <Box justifyContent="center">
-            <Text bold>LangChain Open SWE CLI</Text>
-          </Box>
-          <Box justifyContent="center" marginY={1}>
-            <Text dimColor>Describe your coding problem. It'll run in the sandbox and a PR will be created.</Text>
-          </Box>
-        </Box>
+        )}
 
-        {/* Scrollable logs area */}
-        <Box flexGrow={1} flexDirection="column" paddingX={1}>
-          <Box height={process.stdout.rows - 8} overflow="hidden">
-            <Text dimColor>{visibleLogs.join('\n')}</Text>
+        {/* Auto-scrolling logs area */}
+        <Box flexGrow={1} flexDirection="column" paddingX={1} paddingBottom={1} justifyContent="flex-end">
+          <Box flexDirection="column">
+            {visibleLogs.map((log, index) => (
+              <Text key={`${logs.length}-${index}`} dimColor>{log}</Text>
+            ))}
           </Box>
         </Box>
 
@@ -646,6 +659,9 @@ const App: React.FC = () => {
           paddingX={1}
           borderStyle="single"
           borderTop
+          height={3}
+          flexShrink={0}
+          justifyContent="center"
         >
           {streamingPhase === "awaitingFeedback" ? (
             <PlannerFeedbackInput />
@@ -653,7 +669,10 @@ const App: React.FC = () => {
             <Box>
               <Text dimColor>❯ </Text>
               {!isStreaming && streamingPhase === "streaming" ? (
-                <CustomInput onSubmit={setPrompt} />
+                <CustomInput onSubmit={(value) => {
+                  setHasStartedChat(true);
+                  setPrompt(value);
+                }} />
               ) : (
                 <Text>Streaming...</Text>
               )}
