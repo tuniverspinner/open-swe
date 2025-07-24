@@ -7,6 +7,7 @@ import {
   createSedTool,
   createGetURLContentTool,
   createShellTool,
+  createSearchDocumentForTool,
 } from "../../../../tools/index.js";
 import {
   PlannerGraphState,
@@ -81,7 +82,8 @@ export async function generateAction(
     createSedTool(state),
     createShellTool(state),
     createPlannerNotesTool(),
-    createGetURLContentTool(),
+    createGetURLContentTool(state),
+    createSearchDocumentForTool(state, config),
     ...mcpTools,
   ];
   logger.info(
