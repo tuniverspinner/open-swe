@@ -294,6 +294,67 @@ export function createSedToolFields(targetRepository: TargetRepository) {
   };
 }
 
+// Only used for type inference
+const _tmpSedToolSchema = createSedToolFields({
+  owner: "x",
+  repo: "x",
+}).schema;
+export type SedCommand = z.infer<typeof _tmpSedToolSchema>;
+
+export function formatSedCommand(cmd: SedCommand): string[] {
+  const args = ["sed"];
+  
+  // If we have line range specifications, use -n (quiet mode) with print commands
+  if (cmd.start_line !== undefined || cmd.end_line !== undefined || cmd.num_lines !== undefined) {
+    args.push("-n");
+    
+    let printCommand: string;
+    
+    if (cmd.start_line !== undefined && cmd.end_line !== undefined) {
+      // Range: start_line to end_line
+      if (cmd.context_lines && cmd.context_lines > 0) {
+        const contextStart = Math.max(1, cmd.start_line - cmd.context_lines);
+        const contextEnd = cmd.end_line + cmd.context_lines;
+        printCommand = `${contextStart},${contextEnd}p`;
+      } else {
+        printCommand = `${cmd.start_line},${cmd.end_line}p`;
+      }
+    } else if (cmd.start_line !== undefined && cmd.num_lines !== undefined) {
+      // Range: start_line for num_lines
+      const endLine = cmd.start_line + cmd.num_lines - 1;
+      if (cmd.context_lines && cmd.context_lines > 0) {
+        const contextStart = Math.max(1, cmd.start_line - cmd.context_lines);
+        const contextEnd = endLine + cmd.context_lines;
+        printCommand = `${contextStart},${contextEnd}p`;
+      } else {
+        printCommand = `${cmd.start_line},${endLine}p`;
+      }
+    } else if (cmd.start_line !== undefined) {
+      // Single line or from start_line to end of file
+      if (cmd.context_lines && cmd.context_lines > 0) {
+        const contextStart = Math.max(1, cmd.start_line - cmd.context_lines);
+        printCommand = `${contextStart},${cmd.start_line + cmd.context_lines}p`;
+      } else {
+        printCommand = `${cmd.start_line}p`;
+      }
+    } else if (cmd.num_lines !== undefined) {
+      // First num_lines lines
+      const endLine = cmd.num_lines + (cmd.context_lines || 0);
+      printCommand = `1,${endLine}p`;
+    } else {
+      // Default to printing all lines if no specific range
+      printCommand = "p";
+    }
+    
+    args.push(printCommand);
+  }
+  
+  // Add the file path (must be escaped for shell safety)
+  args.push(escapeShellArg(cmd.file_path));
+  
+  return args;
+}
+
 export function createMarkTaskNotCompletedToolFields() {
   const markTaskNotCompletedToolSchema = z.object({
     reasoning: z
@@ -510,3 +571,4 @@ export function createReviewStartedToolFields() {
     schema: reviewStartedSchema,
   };
 }
+
