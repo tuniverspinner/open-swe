@@ -49,6 +49,7 @@ export async function takeActions(
 
   const shellTool = createShellTool(state);
   const searchTool = createSearchTool(state);
+  const sedTool = createSedTool(state);
   const plannerNotesTool = createPlannerNotesTool();
   const getURLContentTool = createGetURLContentTool();
   const mcpTools = await getMcpTools(config);
