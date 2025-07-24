@@ -21,7 +21,7 @@ export async function getUntrackedComments(
   existingMessages: BaseMessage[],
   githubIssueId: number,
   comments: GitHubIssueComment[],
-): BaseMessage[] {
+): Promise<BaseMessage[]> {
   // Get all human messages which contain github comment content. Exclude the original issue message.
   const humanMessages = existingMessages.filter(
     (m) => isHumanMessage(m) && !m.additional_kwargs?.isOriginalIssue,
