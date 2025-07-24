@@ -64,7 +64,7 @@ export async function getUntrackedComments(
             githubIssueId,
             githubIssueCommentId: c.id,
           },
-        }),
+        });
     );
 
   return untrackedCommentMessages;
