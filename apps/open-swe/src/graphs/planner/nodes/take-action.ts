@@ -56,6 +56,7 @@ export async function takeActions(
 
   const allTools = [
     shellTool,
+    sedTool,
     searchTool,
     plannerNotesTool,
     getURLContentTool,
