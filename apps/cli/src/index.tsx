@@ -370,8 +370,8 @@ const App: React.FC = () => {
           let programmerStreamed = false;
           for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
             const formatted = formatDisplayLog(chunk);
-            if (formatted) {
-              setLogs(prev => [...prev, formatted]);
+            if (formatted.length > 0) {
+              setLogs(prev => [...prev, ...formatted]);
             }
             // Check for plannerSession
             if (
@@ -388,8 +388,8 @@ const App: React.FC = () => {
                 chunk.data.plannerSession.runId
               )) {
 				const formatted = formatDisplayLog(subChunk);
-                if (formatted) {
-                  setLogs(prev => [...prev, formatted]);
+                if (formatted.length > 0) {
+                  setLogs(prev => [...prev, ...formatted]);
                 }
 
                 // Check for programmer session
@@ -405,6 +405,10 @@ const App: React.FC = () => {
                     subChunk.data.programmerSession.threadId,
                     subChunk.data.programmerSession.runId
                   )) {
+                    const formatted = formatDisplayLog(programmerChunk);
+                    if (formatted.length > 0) {
+                      setLogs(prev => [...prev, ...formatted]);
+                    }
                   }
                 }
 
@@ -460,8 +464,8 @@ const App: React.FC = () => {
           });
 
           const formatted = formatDisplayLog(`Human feedback: ${plannerFeedback}`);
-          if (formatted) {
-            setLogs(prev => [...prev, formatted]);
+          if (formatted.length > 0) {
+            setLogs(prev => [...prev, ...formatted]);
           }
           
           // Create a new stream with the feedback
@@ -479,8 +483,8 @@ const App: React.FC = () => {
           // Process the stream response
           for await (const chunk of stream) {
 			const formatted = formatDisplayLog(chunk);
-            if (formatted) {
-              setLogs(prev => [...prev, formatted]);
+            if (formatted.length > 0) {
+              setLogs(prev => [...prev, ...formatted]);
             }
             
             // Check for programmer session in the resumed planner stream
@@ -499,8 +503,8 @@ const App: React.FC = () => {
                 chunkData.programmerSession.runId
               )) {
 				const formatted = formatDisplayLog(programmerChunk);
-                if (formatted) {
-                  setLogs(prev => [...prev, formatted]);
+                if (formatted.length > 0) {
+                  setLogs(prev => [...prev, ...formatted]);
                 }
               }
             }

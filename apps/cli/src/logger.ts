@@ -1,4 +1,18 @@
-import { isAgentInboxInterruptSchema } from "./utils.js";
+function isAgentInboxInterruptSchema(value: unknown): boolean {
+  const valueAsObject = Array.isArray(value) ? value[0] : value;
+  return (
+    valueAsObject &&
+    typeof valueAsObject === "object" &&
+    "action_request" in valueAsObject &&
+    typeof valueAsObject.action_request === "object" &&
+    "config" in valueAsObject &&
+    typeof valueAsObject.config === "object" &&
+    "allow_respond" in valueAsObject.config &&
+    "allow_accept" in valueAsObject.config &&
+    "allow_edit" in valueAsObject.config &&
+    "allow_ignore" in valueAsObject.config
+  );
+}
 
 interface LogChunk {
   event: string;
@@ -16,6 +30,10 @@ interface MessageData {
   status?: 'success' | 'error';
   graph_id?: string;
   langgraph_node?: string;
+  additional_kwargs?: {
+    reasoning?: string;
+    notes?: string[];
+  };
 }
 
 interface ToolCall {
@@ -27,14 +45,12 @@ interface ToolCall {
 }
 
 /**
- * Formats a tool call into a human-readable string.
- * @param toolCall The tool call to format
- * @returns A formatted string describing the tool call
+ * Format a tool call based on its type and arguments
  */
-function formatToolCall(toolCall: ToolCall): string {
+function formatToolCall(tool: ToolCall): string {
   try {
-    const args = toolCall.args ? JSON.parse(toolCall.args) : {};
-    const name = toolCall.name || 'unknown';
+    const args = tool.args ? JSON.parse(tool.args) : {};
+    const name = tool.name || 'unknown';
 
     switch (name.toLowerCase()) {
       case 'shell':
@@ -53,6 +69,10 @@ function formatToolCall(toolCall: ToolCall): string {
         return `Find file: ${args.query}`;
       case 'delete_file':
         return `Delete: ${args.target_file}`;
+      case 'install_dependencies':
+        return `Install: ${args.command || ''}`;
+      case 'apply_patch':
+        return `Apply patch to: ${args.file_path || ''}`;
       default:
         const argsStr = Object.entries(args)
           .map(([k, v]) => `${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`)
@@ -60,14 +80,12 @@ function formatToolCall(toolCall: ToolCall): string {
         return `${name}(${argsStr})`;
     }
   } catch (e) {
-    return toolCall.args || '';
+    return tool.args || '';
   }
 }
 
 /**
- * Formats a tool result into a human-readable string.
- * @param message The tool message to format
- * @returns A formatted string with the tool result
+ * Format a tool result based on its type and content
  */
 function formatToolResult(message: MessageData): string {
   const content = typeof message.content === 'string' 
@@ -78,31 +96,33 @@ function formatToolResult(message: MessageData): string {
 
   // For successful tool executions, format nicely
   if (message.status === 'success') {
-    if (message.name?.toLowerCase() === 'shell') {
-      return content;
+    switch (message.name?.toLowerCase()) {
+      case 'shell':
+      case 'grep_search':
+      case 'search':
+        return content;
+      case 'apply_patch':
+        return content.includes('Error') ? `Error: ${content}` : 'Patch applied successfully';
+      case 'install_dependencies':
+        return content.includes('Error') ? `Error: ${content}` : 'Dependencies installed successfully';
+      default:
+        if (content.length > 200) {
+          return content.slice(0, 200) + '...';
+        }
+        return content;
     }
-    // Truncate long results for readability
-    if (content.length > 200) {
-      return content.slice(0, 200) + '...';
-    }
-    return content;
   }
 
-  // For errors, show the full message
+  // For errors, show full message
   return `Error: ${content}`;
 }
 
-/**
- * Formats a log chunk into a human-readable string, or returns null if the chunk
- * should not be displayed.
- */
-export function formatDisplayLog(chunk: LogChunk | string): string | null {
+export function formatDisplayLog(chunk: LogChunk | string): string[] {
   if (typeof chunk === 'string') {
-    // Handle feedback messages
     if (chunk.startsWith('Human feedback:')) {
-      return `[HUMAN FEEDBACK RECEIVED] ${chunk.replace('Human feedback:', '').trim()}`;
+      return [`[HUMAN FEEDBACK RECEIVED] ${chunk.replace('Human feedback:', '').trim()}`];
     }
-    // Filter out [object Object] and raw file content dumps
+    // Filter out raw file content and object references
     if (chunk === '[object Object]' || 
         chunk.includes('total 4') ||
         chunk.includes('drwxr-xr-x') ||
@@ -111,18 +131,20 @@ export function formatDisplayLog(chunk: LogChunk | string): string | null {
         chunk.startsWith('-') ||
         chunk.startsWith('./')
     ) {
-      return null;
+      return [];
     }
-    return `[STRING] ${chunk}`;
+    return [`[SYSTEM] ${chunk}`];
   }
 
   const data = chunk.data;
+  const logs: string[] = [];
 
+  // Handle session events
   if (data.plannerSession) {
-    return `[PLANNER SESSION STARTED]`;
+    logs.push('[PLANNER SESSION STARTED]');
   }
   if (data.programmerSession) {
-    return `[PROGRAMMER SESSION STARTED]`;
+    logs.push('[PROGRAMMER SESSION STARTED]');
   }
 
   // Handle interrupts and plans
@@ -133,48 +155,88 @@ export function formatDisplayLog(chunk: LogChunk | string): string | null {
       const steps = plan.split(':::')
         .map((s: string) => s.trim())
         .filter(Boolean);
-      return [
+      logs.push(
         '[PROPOSED PLAN]',
         ...steps.map((step: string, idx: number) => `  ${idx + 1}. ${step}`)
-      ].join('\n');
+      );
+    } else {
+      logs.push('[INTERRUPT] Waiting for feedback...');
     }
-    return `[INTERRUPT] Waiting for feedback...`;
-    
   }
 
-  if (data.action) {
-    const actionStr = JSON.stringify(data.action);
-    // Only show action if it's not just an object reference
-    if (actionStr !== '{}' && !actionStr.includes('[object Object]')) {
-      return `[ACTION] ${actionStr}`;
-    }
-    return null;
-  }
-
+  // Handle messages
   if ('messages' in data) {
-    // Look for tool_calls with args
     const messages = Array.isArray(data.messages) ? data.messages : [data.messages];
     for (const msg of messages) {
-      if (msg.tool_calls) {
-        for (const tool of msg.tool_calls) {
-          if (tool.args) {
-            return `[TOOL CALL] ${JSON.stringify(tool.args, null, 2)}`;
-          }
+      // Handle tool results
+      if (msg.type === 'tool') {
+        const toolName = msg.name || 'tool';
+        const result = formatToolResult(msg);
+        if (result) {
+          logs.push(`[TOOL RESULT] ${toolName}:\n  ${result}`);
         }
       }
-      else {
-        return `[MESSAGE] ${JSON.stringify(msg, null, 2)}`;
+
+      // Handle AI messages
+      if (msg.type === 'ai') {
+        // Handle reasoning if present
+        if (msg.additional_kwargs?.reasoning) {
+          logs.push(`[REASONING]\n  ${msg.additional_kwargs.reasoning}`);
+        }
+
+        // Handle tool calls
+        if (msg.tool_calls && msg.tool_calls.length > 0) {
+          msg.tool_calls.forEach((tool: ToolCall) => {
+            const action = formatToolCall(tool);
+            const toolName = tool.name || 'unknown';
+            logs.push(`[TOOL CALL] ${toolName}: ${JSON.stringify(tool.args, null, 2)}`);
+          });
+        }
+        
+        // Handle technical notes
+        if (msg.additional_kwargs?.notes) {
+          logs.push(
+            '[TECHNICAL NOTES]',
+            ...msg.additional_kwargs.notes.map((note: string) => `  • ${note}`)
+          );
+        }
+
+        // Handle regular AI messages
+        const text = typeof msg.content === 'string'
+          ? msg.content
+          : msg.content?.[0]?.text || msg.content?.[0]?.input || '';
+        if (text) {
+          logs.push(`[AI] ${text}`);
+        }
+      }
+
+      // Handle human messages
+      if (msg.type === 'human') {
+        const text = typeof msg.content === 'string'
+          ? msg.content
+          : msg.content?.[0]?.text || msg.content?.[0]?.input || '';
+        if (text) {
+          logs.push(`[HUMAN] ${text}`);
+        }
       }
     }
   }
 
-  // Handle feedback messages in command data
-  if (data.command?.resume?.[0]?.type) {
-    const type = data.command.resume[0].type;
-    return `[HUMAN FEEDBACK RECEIVED] ${type}`;
+  // Handle task status updates
+  if (data.action) {
+    const actionStr = JSON.stringify(data.action);
+    if (actionStr !== '{}' && !actionStr.includes('[object Object]')) {
+      logs.push(`[ACTION] ${actionStr}`);
+    }
   }
 
-  return null;
+  // Handle feedback messages
+  if (data.command?.resume?.[0]?.type) {
+    const type = data.command.resume[0].type;
+    logs.push(`[HUMAN FEEDBACK RECEIVED] ${type}`);
+  }
+
+  return logs;
 }
 
 /**
