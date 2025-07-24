@@ -176,3 +176,30 @@ export function extractContentWithoutDetailsFromIssueBody(
   return bodyWithoutDetails;
 }
 
+/**
+ * Extracts both text content and image URLs from a GitHub issue or comment
+ */
+export function getMessageContentFromIssue(
+  issue: GitHubIssue | GitHubIssueComment,
+): IssueMessageContent {
+  let rawContent: string;
+
+  if ("title" in issue) {
+    rawContent = `[original issue]
+  } else {
+    rawContent = `[issue comment]
+  }
+
+  // Extract image URLs from the raw content
+  const imageUrls = extractImageUrls(rawContent);
+
+  // Remove image syntax from content to get clean text
+  const textContent = removeImageSyntaxFromContent(rawContent);
+
+  return {
+    text: textContent,
+    imageUrls,
+  };
+}
+
+
