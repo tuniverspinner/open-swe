@@ -178,6 +178,7 @@ const App: React.FC = () => {
   const [streamingPhase, setStreamingPhase] = useState<"streaming" | "awaitingFeedback" | "done">("streaming");
   const [pendingInterrupt, setPendingInterrupt] = useState<any>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
+  const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
 
   // On mount, check for existing token
   useEffect(() => {
@@ -376,6 +377,7 @@ const App: React.FC = () => {
               typeof chunk.data.plannerSession.runId === "string"
             ) {
               plannerStreamed = true;
+              setPlannerThreadId(chunk.data.plannerSession.threadId);  // Store the planner thread ID
               for await (const subChunk of client.runs.joinStream(
                 chunk.data.plannerSession.threadId,
                 chunk.data.plannerSession.runId
@@ -476,7 +478,7 @@ const App: React.FC = () => {
 
   // Add this where we handle planner feedback
   useEffect(() => {
-    if (streamingPhase === "awaitingFeedback" && plannerFeedback && threadId) {
+    if (streamingPhase === "awaitingFeedback" && plannerFeedback && plannerThreadId) {
       const submitFeedback = async () => {
         const humanResponse = plannerFeedback === 'approve' 
           ? { type: 'accept', args: null }
@@ -505,11 +507,10 @@ const App: React.FC = () => {
             },
           });
 
-          // Stream the response after submitting feedback
           setLogs(prev => [...prev, `[HUMAN FEEDBACK RECEIVED]: ${plannerFeedback}`]);
           
           // Create a new stream with the feedback
-          const stream = await client.runs.stream(threadId, PLANNER_GRAPH_ID, {
+          const stream = await client.runs.stream(plannerThreadId, PLANNER_GRAPH_ID, {
             command: { 
               resume: [{
                 type: plannerFeedback === 'approve' ? 'accept' : 'ignore',
@@ -518,10 +519,10 @@ const App: React.FC = () => {
             },
             streamMode: ["values", "messages"],
           });
-		  
-		  console.log("STREAM: ", stream);
+
           // Process the stream response
           for await (const chunk of stream) {
+			setLogs(prev => [...prev, JSON.stringify(chunk)]);
             const typedChunk = chunk as { ops?: Array<{ value: string }> };
             const ops = typedChunk.ops;
             if (ops && ops[0]?.value) {
@@ -542,7 +543,7 @@ const App: React.FC = () => {
 
       submitFeedback();
     }
-  }, [streamingPhase, plannerFeedback, selectedRepo, threadId]);
+  }, [streamingPhase, plannerFeedback, selectedRepo, plannerThreadId]);
 
   // Repo selection UI
   if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
