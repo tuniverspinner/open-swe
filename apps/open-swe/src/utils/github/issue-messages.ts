@@ -126,7 +126,7 @@ export async function getMissingMessages(
   );
 
   const untrackedCommentMessages = filteredComments?.length
-    ? getUntrackedComments(
+    ? await getUntrackedComments(
         input.messages,
         input.githubIssueId,
         filteredComments,
