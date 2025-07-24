@@ -17,7 +17,7 @@ export interface IssueMessageContent {
   imageUrls: string[];
 }
 
-export function getUntrackedComments(
+export async function getUntrackedComments(
   existingMessages: BaseMessage[],
   githubIssueId: number,
   comments: GitHubIssueComment[],
