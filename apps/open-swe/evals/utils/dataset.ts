@@ -189,7 +189,7 @@ Workflow (three nodes in sequence):
   2. Summarizer Node (\`summarizer\`)
      - Input: \`state["categorized_str"]\`
      - Action: Parse JSON and sum amounts per category
-     - Return: {"summary_str": "{\"Groceries\": 225.0, \"Rent\": 1005.0, ...}"}
+     - Return: {"summary_str": '{"Groceries": 225.0, "Rent": 1005.0, ...}'}
      - Error Handling: If parsing fails, return {"summary_str": "{}"}
 
   3. Advisor Node (\`advisor\`)
@@ -265,7 +265,7 @@ Workflow (three nodes in sequence):
   2. Summarizer Node (\`summarizer\`)
      - Input: \`state["categorized_str"]\`
      - Action: Parse JSON and sum amounts per category
-     - Return: {"summary_str": "{\"Groceries\": 225.0, \"Rent\": 1005.0, ...}"}
+     - Return: {"summary_str": '{"Groceries": 225.0, "Rent": 1005.0, ...}'}
      - Error Handling: If parsing fails, return {"summary_str": "{}"}
 
   3. Advisor Node (\`advisor\`)
@@ -278,7 +278,7 @@ Workflow (three nodes in sequence):
      - LLM Prompt Template:
        You overspent <overage> in <category> (budget: <budget>, spent: <spent>).
        Provide one practical tip in 1-2 sentences to reduce spending.
-     - Final Return: {"summary_str": "{\"category_summary\": {...}, \"advice\": {...}}"}
+     - Final Return: {"summary_str": '{"category_summary": {...}, "advice": {...}}'}
      - Error Handling: If parsing fails, return basic summary without advice
 
 Output Format:
