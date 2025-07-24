@@ -4,6 +4,7 @@ import {
   Task,
 } from "../../../../utils/load-model.js";
 import {
+  createSedTool,
   createGetURLContentTool,
   createShellTool,
 } from "../../../../tools/index.js";
