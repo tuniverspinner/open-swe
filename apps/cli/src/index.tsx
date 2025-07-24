@@ -41,7 +41,7 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit
 
   return (
     <Box>
-      <Text color="cyan">&gt; {input}</Text>
+      <Text>&gt; {input}</Text>
     </Box>
   );
 };
@@ -110,18 +110,18 @@ const RepoSearchSelect: React.FC<{
   return (
     <Box flexDirection="column">
       <Box>
-        <Text color="cyan">Search repositories: {search}</Text>
+        <Text>Search repositories: {search}</Text>
       </Box>
       {shown.length === 0 ? (
         <Box>
-          <Text color="gray">No matches found.</Text>
+          <Text dimColor>No matches found.</Text>
         </Box>
       ) : (
         <Box flexDirection="column" marginTop={1}>
           {shown.map((_, idx) => (
             <Text
               key={shown[idx].id}
-              color={idx === highlighted ? "magenta" : "white"}
+              dimColor={idx !== highlighted}
             >
               {idx === highlighted ? "> " : "  "}
               {shown[idx].full_name}
@@ -130,7 +130,7 @@ const RepoSearchSelect: React.FC<{
         </Box>
       )}
       <Box marginTop={1}>
-        <Text dimColor color="gray">
+        <Text dimColor>
           Use ↑/↓ to navigate, Enter to select
         </Text>
       </Box>
@@ -302,7 +302,7 @@ const App: React.FC = () => {
     if (streamingPhase !== "awaitingFeedback") return null;
     return (
       <Box>
-        <Text color="cyan">Plan feedback (approve/deny): {input}</Text>
+        <Text>Plan feedback (approve/deny): {input}</Text>
       </Box>
     );
   };
@@ -530,14 +530,14 @@ const App: React.FC = () => {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
-          <Text bold color="magenta">LangChain Open SWE CLI</Text>
+          <Text bold>LangChain Open SWE CLI</Text>
         </Box>
         <Box flexDirection="column" marginBottom={1}>
           <Text>Select a repository to work with (type to search):</Text>
         </Box>
         <Box
           borderStyle="round"
-          borderColor="gray"
+          borderColor="white"
           paddingX={2}
           paddingY={1}
           marginTop={1}
@@ -582,25 +582,25 @@ const App: React.FC = () => {
         </Box>
         {waitingForInstall && (
           <Box flexDirection="column" marginTop={1}>
-            <Text color="yellow">
+            <Text>
               Waiting for GitHub App installation to complete...
             </Text>
-            <Text color="gray">
+            <Text dimColor>
               After installing the app, return here to continue.
             </Text>
           </Box>
         )}
         {installChecked && !waitingForInstall && (
           <Box flexDirection="column" marginTop={1}>
-            <Text color="green">
+            <Text>
               GitHub App installation detected! You can now proceed.
             </Text>
-            <Text color="gray">Press Enter to continue.</Text>
+            <Text dimColor>Press Enter to continue.</Text>
           </Box>
         )}
         {installError && (
           <Box marginTop={1}>
-            <Text color="red">{installError}</Text>
+            <Text>{installError}</Text>
           </Box>
         )}
       </Box>
@@ -612,16 +612,54 @@ const App: React.FC = () => {
     const MAX_LOGS = 100;
     const visibleLogs = logs.slice(-MAX_LOGS);
     return (
-      <Box flexDirection="column" padding={1}>
-        <Text color="gray">{visibleLogs.join('\n')}</Text>
-        <Box marginTop={1}>
-          <Text bold color="magenta">
-            Describe your coding task in as much detail as possible:
-          </Text>
+      <Box flexDirection="column" height={process.stdout.rows}>
+        {/* Welcome message at top */}
+        <Box flexDirection="column" paddingX={1} paddingY={1}>
+          <Box justifyContent="center">
+            <Text>
+              {`
+ __      __   _                    _         
+ \\ \\    / /__| |__ ___ _ __  ___| |_ ___ ___
+  \\ \\/\\/ / -_) / _/ _ \\ '  \\/ -_)  _/ _ (_-<
+   \\_/\\_/\\___|_\\__\\___/_|_|_\\___|\\__\\___/__/
+            `}
+            </Text>
+          </Box>
+          <Box justifyContent="center">
+            <Text bold>LangChain Open SWE CLI</Text>
+          </Box>
+          <Box justifyContent="center" marginY={1}>
+            <Text dimColor>Describe your coding problem. It'll run in the sandbox and a PR will be created.</Text>
+          </Box>
         </Box>
-        {!isStreaming && streamingPhase === "streaming" && <CustomInput onSubmit={setPrompt} />}
-        {isStreaming && <Text color="yellow">Streaming... (logs above)</Text>}
-        {streamingPhase === "awaitingFeedback" && <PlannerFeedbackInput />}
+
+        {/* Scrollable logs area */}
+        <Box flexGrow={1} flexDirection="column" paddingX={1}>
+          <Box height={process.stdout.rows - 8} overflow="hidden">
+            <Text dimColor>{visibleLogs.join('\n')}</Text>
+          </Box>
+        </Box>
+
+        {/* Fixed input area at bottom */}
+        <Box 
+          flexDirection="column" 
+          paddingX={1}
+          borderStyle="single"
+          borderTop
+        >
+          {streamingPhase === "awaitingFeedback" ? (
+            <PlannerFeedbackInput />
+          ) : (
+            <Box>
+              <Text dimColor>❯ </Text>
+              {!isStreaming && streamingPhase === "streaming" ? (
+                <CustomInput onSubmit={setPrompt} />
+              ) : (
+                <Text>Streaming...</Text>
+              )}
+            </Box>
+          )}
+        </Box>
       </Box>
     );
   }
@@ -631,11 +669,11 @@ const App: React.FC = () => {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
-          <Text bold color="magenta">LangChain Open SWE CLI</Text>
+          <Text bold>LangChain Open SWE CLI</Text>
         </Box>
         <Box
           borderStyle="round"
-          borderColor="gray"
+          borderColor="white"
           paddingX={2}
           paddingY={1}
           marginTop={1}
@@ -653,7 +691,7 @@ const App: React.FC = () => {
   return (
     <Box flexDirection="column" padding={1}>
       <Box justifyContent="center" marginBottom={1}>
-        <Text bold color="magenta">LangChain Open SWE CLI</Text>
+        <Text bold>LangChain Open SWE CLI</Text>
       </Box>
     </Box>
   );
