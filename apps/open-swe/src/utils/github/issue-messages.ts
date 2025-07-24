@@ -41,7 +41,7 @@ export async function getUntrackedComments(
 
       // Resolve image URLs to their accessible versions
       const resolvedImageUrls = await Promise.all(
-        commentContent.imageUrls.map(url => resolveImageUrl(url))
+        commentContent.imageUrls.map((url) => resolveImageUrl(url))
       });
 
       // Create content array with text and image blocks
