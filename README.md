@@ -18,7 +18,7 @@ Think of Open SWE as your own personal engineer who can handle complex tasks end
 >
 > **Note: you're required to set your own LLM API keys to use the demo.**
 
-![UI Screenshot](./static/ui-screenshot.png)
+![UI Screenshot](/labs/swe/static/ui-screenshot.png)
 
 # Features
 
