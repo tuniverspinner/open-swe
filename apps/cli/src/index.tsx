@@ -12,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { encryptSecret } from "../../../packages/shared/dist/crypto.js";
 import { MANAGER_GRAPH_ID, PLANNER_GRAPH_ID } from "../../../packages/shared/dist/constants.js";
 import { Client } from "@langchain/langgraph-sdk";
+import { formatDisplayLog } from "./logger.js";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 const LOG_AREA_HEIGHT = 20;
@@ -368,7 +369,10 @@ const App: React.FC = () => {
           let plannerStreamed = false;
           let programmerStreamed = false;
           for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
-            setLogs((prev) => [...prev, `[BASE STREAM CHUNK]: ${JSON.stringify(chunk)}`]);
+            const formatted = formatDisplayLog(chunk);
+            if (formatted) {
+              setLogs(prev => [...prev, formatted]);
+            }
             // Check for plannerSession
             if (
               !plannerStreamed &&
@@ -378,37 +382,30 @@ const App: React.FC = () => {
               typeof chunk.data.plannerSession.runId === "string"
             ) {
               plannerStreamed = true;
-              setLogs(prev => [...prev, `[DETECTED PLANNER SESSION]: ${JSON.stringify(chunk.data.plannerSession)}`]);
               setPlannerThreadId(chunk.data.plannerSession.threadId);
               for await (const subChunk of client.runs.joinStream(
                 chunk.data.plannerSession.threadId,
                 chunk.data.plannerSession.runId
               )) {
-                setLogs(prev => [...prev, `[PLANNER STREAM CHUNK]: ${JSON.stringify(subChunk)}`]);
-                if (subChunk.data) {
-                  setLogs(prev => [...prev, `[PLANNER CHUNK DATA KEYS]: ${Object.keys(subChunk.data).join(", ")}`]);
-                  setLogs(prev => [...prev, `[PLANNER CHUNK DATA]: ${JSON.stringify(subChunk.data)}`]);
+				const formatted = formatDisplayLog(subChunk);
+                if (formatted) {
+                  setLogs(prev => [...prev, formatted]);
                 }
 
-                // Check for programmer session in planner's values
+                // Check for programmer session
                 if (
                   !programmerStreamed &&
-                  subChunk.data?.programmerSession?.threadId
+                  subChunk.data?.programmerSession?.threadId &&
+                  typeof subChunk.data.programmerSession.threadId === "string" &&
+                  typeof subChunk.data.programmerSession.runId === "string"
                 ) {
                   programmerStreamed = true;
-                  setLogs(prev => [...prev, `[DETECTED PROGRAMMER IN VALUES]: ${JSON.stringify(subChunk.data.programmerSession)}`]);
                   setProgrammerThreadId(subChunk.data.programmerSession.threadId);
                   for await (const programmerChunk of client.runs.joinStream(
                     subChunk.data.programmerSession.threadId,
                     subChunk.data.programmerSession.runId
                   )) {
-                    setLogs(prev => [...prev, `[PROGRAMMER STREAM]: ${JSON.stringify(programmerChunk)}`]);
                   }
-                }
-
-                // If this chunk contains programmer data, log it
-                if (subChunk.data && subChunk.data.programmerSession) {
-                  setLogs((prev) => [...prev, `[PROGRAMMER DATA]: ${JSON.stringify(subChunk.data.programmerSession)}`]);
                 }
 
                 // Detect HumanInterrupt in planner stream
@@ -419,47 +416,15 @@ const App: React.FC = () => {
                   ? interruptArr[0].value
                   : undefined;
                 if (isAgentInboxInterruptSchema(firstInterruptValue)) {
-                  const planString = firstInterruptValue.action_request?.args?.plan;
-                  const planSteps = planString ? planString.split(':::').map((s: string) => s.trim()).filter((s: string) => Boolean(s)) : [];
-                  console.log("INTERRUPT VALUE:", JSON.stringify(firstInterruptValue, null, 2));
-                  setLogs((prev) => [
-                    ...prev,
-                    "INTERRUPT: " + JSON.stringify(firstInterruptValue, null, 2),
-                    ...(planSteps.length > 0
-                      ? ["[Proposed Plan]", ...planSteps.map((step: string, idx: number) => `  ${idx + 1}. ${step}`)]
-                      : [])
-                  ]);
                   setPendingInterrupt(firstInterruptValue);
                   setStreamingPhase("awaitingFeedback");
                   return; // Pause streaming, let React render feedback prompt
                 }
               }
             }
-
-            // Also check for HumanInterrupt in main stream
-            if (isAgentInboxInterruptSchema(chunk.data)) {
-              setLogs((prev) => [
-                ...prev,
-                "[HUMAN FEEDBACK REQUIRED] Detected HumanInterrupt. Please provide feedback (accept/edit/respond/ignore):",
-                (() => {
-                  const interrupt =
-                    chunk.data &&
-                    Array.isArray(chunk.data.__interrupt__) &&
-                    chunk.data.__interrupt__[0] &&
-                    chunk.data.__interrupt__[0].value
-                      ? chunk.data.__interrupt__[0].value
-                      : undefined;
-                  return interrupt
-                    ? "INTERRUPT: " + JSON.stringify(interrupt, null, 2)
-                    : "INTERRUPT: (not found)";
-                })(),
-              ]);
-              // Here you could prompt the user for input
-            }
           }
           setStreamingPhase("done");
         } catch (err: any) {
-          setLogs([err?.message || String(err)]);
         } finally {
           setIsStreaming(false);
           setPrompt("");
@@ -472,17 +437,12 @@ const App: React.FC = () => {
   useEffect(() => {
     if (streamingPhase === "awaitingFeedback" && plannerFeedback && plannerThreadId) {
       const submitFeedback = async () => {
-        const humanResponse = plannerFeedback === 'approve' 
-          ? { type: 'accept', args: null }
-          : { type: 'ignore', args: null };
-
         try {
           const userAccessToken = getAccessToken();
           const installationAccessToken = await getInstallationAccessToken();
           const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
           
           if (!userAccessToken || !installationAccessToken || !encryptionKey) {
-            setLogs(prev => [...prev, "Missing access tokens or SECRETS_ENCRYPTION_KEY."]);
             return;
           }
 
@@ -499,7 +459,10 @@ const App: React.FC = () => {
             },
           });
 
-          setLogs(prev => [...prev, `[HUMAN FEEDBACK RECEIVED]: ${plannerFeedback}`]);
+          const formatted = formatDisplayLog(`Human feedback: ${plannerFeedback}`);
+          if (formatted) {
+            setLogs(prev => [...prev, formatted]);
+          }
           
           // Create a new stream with the feedback
           const stream = await client.runs.stream(plannerThreadId, PLANNER_GRAPH_ID, {
@@ -515,10 +478,13 @@ const App: React.FC = () => {
           let programmerStreamed = false;
           // Process the stream response
           for await (const chunk of stream) {
-            setLogs(prev => [...prev, `[PLANNER RESUME STREAM]: ${JSON.stringify(chunk)}`]);
+			const formatted = formatDisplayLog(chunk);
+            if (formatted) {
+              setLogs(prev => [...prev, formatted]);
+            }
             
             // Check for programmer session in the resumed planner stream
-            const chunkData = chunk.data as any; // Need to cast since we know the shape but TypeScript doesn't
+            const chunkData = chunk.data as any;
             if (
               !programmerStreamed &&
               chunkData?.programmerSession?.threadId &&
@@ -526,21 +492,17 @@ const App: React.FC = () => {
               typeof chunkData.programmerSession.runId === 'string'
             ) {
               programmerStreamed = true;
-              setLogs(prev => [...prev, `[DETECTED PROGRAMMER IN RESUMED PLANNER]: ${JSON.stringify(chunkData.programmerSession)}`]);
               setProgrammerThreadId(chunkData.programmerSession.threadId);
               // Join programmer stream
               for await (const programmerChunk of client.runs.joinStream(
                 chunkData.programmerSession.threadId,
                 chunkData.programmerSession.runId
               )) {
-                setLogs(prev => [...prev, `[PROGRAMMER STREAM FROM RESUME]: ${JSON.stringify(programmerChunk)}`]);
+				const formatted = formatDisplayLog(programmerChunk);
+                if (formatted) {
+                  setLogs(prev => [...prev, formatted]);
+                }
               }
-            }
-
-            const typedChunk = chunk as { ops?: Array<{ value: string }> };
-            const ops = typedChunk.ops;
-            if (ops && ops[0]?.value) {
-              setLogs(prev => [...prev, ops[0].value]);
             }
           }
 
