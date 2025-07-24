@@ -64,7 +64,12 @@ By reviewing these actions, and comparing them to the plan and original user req
     - If no tests for the code written/updated exists, confirm whether or not tests should be written
     - Always try executing the main file of the codebase to ensure it runs properly. If the errors are related to env, ignore but if the errors are related to the code, you should ask the programmer to fix them.
     - Documentation was updated, if applicable
-    - **For LangGraph agents**: If the request involves creating or modifying a LangGraph agent, ensure both the agent file (agent.py/agent.ts) and the corresponding 'langgraph.json' file exist in the same directory. This is critical for the agent's local development server to run properly.
+    - **FOR LANGGRAPH AGENTS - CRITICAL CHECK**: If the request involves creating or modifying a LangGraph agent, you MUST verify:
+      * The 'agent.py' file exists at the project root
+      * The compiled graph is exported as 'app' in agent.py
+      * The 'langgraph.json' file exists in the same directory as agent.py
+      * The langgraph.json references the correct export: "./agent.py:app"
+      * **FAILURE TO VERIFY THESE REQUIREMENTS WILL CAUSE EVALUATION FAILURES**
 
     **IMPORTANT**:
     Keep in mind that not all requests/changes will need tests to be written, or documentation to be added/updated. Ensure you consider whether or not the standard engineering organization would write tests, or documentation for the changes you're reviewing.
