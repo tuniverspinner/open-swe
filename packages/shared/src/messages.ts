@@ -9,10 +9,8 @@ export function getMessageContentString(content: MessageContent): string {
     if (block.type === "text") {
       parts.push(block.text);
     } else if (block.type === "image_url") {
-      // Extract meaningful description from image URL or provide generic description
       const imageUrl = block.image_url?.url || "";
       if (imageUrl) {
-        // Try to extract filename or provide generic description
         const urlParts = imageUrl.split("/");
         const filename = urlParts[urlParts.length - 1];
         const description =

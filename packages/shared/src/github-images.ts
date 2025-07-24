@@ -7,9 +7,6 @@ export interface ExtractedImage {
   altText?: string;
 }
 
-/**
- * Trusted domains for image URLs that are publicly accessible
- */
 const TRUSTED_DOMAINS = [
   "github.com",
   "githubusercontent.com",
@@ -28,12 +25,10 @@ export function isValidImageUrl(url: string): boolean {
   try {
     const parsedUrl = new URL(url);
 
-    // Must be HTTPS for security and LLM accessibility
     if (parsedUrl.protocol !== "https:") {
       return false;
     }
 
-    // Check if the domain is in our trusted list
     const hostname = parsedUrl.hostname.toLowerCase();
     return TRUSTED_DOMAINS.some(
       (domain) => hostname === domain || hostname.endsWith(`.${domain}`),
@@ -61,7 +56,6 @@ export function extractImageUrls(content: string): ExtractedImage[] {
 
   let match;
 
-  // Extract markdown images
   while ((match = markdownImageRegex.exec(content)) !== null) {
     const [, altText, url] = match;
     if (isValidImageUrl(url)) {
@@ -72,7 +66,6 @@ export function extractImageUrls(content: string): ExtractedImage[] {
     }
   }
 
-  // Extract HTML img tag images
   while ((match = htmlImageRegex.exec(content)) !== null) {
     const [, url, altText] = match;
     if (isValidImageUrl(url)) {
