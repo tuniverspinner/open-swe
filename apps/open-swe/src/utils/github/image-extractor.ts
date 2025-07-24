@@ -87,3 +87,10 @@ export function extractImageUrls(content: string): string[] {
       logger.warn("Invalid image URL found in content", { url });
       return false;
     }
+    return true;
+  });
+
+  logger.debug("Extracted image URLs from content", { count: validUrls.length, urls: validUrls });
+  return validUrls;
+}
+
