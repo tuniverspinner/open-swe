@@ -261,28 +261,36 @@ export function createSedToolFields(targetRepository: TargetRepository) {
   const sedToolSchema = z.object({
     file_path: z
       .string()
-      .describe("The file path to read. Must be relative to the repository root."),
-    
+      .describe(
+        "The file path to read. Must be relative to the repository root.",
+      ),
+
     start_line: z
       .number()
       .optional()
       .describe("The starting line number to read from (1-based indexing)."),
-    
+
     end_line: z
       .number()
       .optional()
-      .describe("The ending line number to read to (1-based indexing, inclusive)."),
-    
+      .describe(
+        "The ending line number to read to (1-based indexing, inclusive).",
+      ),
+
     num_lines: z
       .number()
       .optional()
-      .describe("The number of lines to read from the start_line. Cannot be used with end_line."),
-    
+      .describe(
+        "The number of lines to read from the start_line. Cannot be used with end_line.",
+      ),
+
     context_lines: z
       .number()
       .optional()
       .default(0)
-      .describe("Number of lines of context to include before/after the specified range."),
+      .describe(
+        "Number of lines of context to include before/after the specified range.",
+      ),
   });
 
   return {
@@ -303,13 +311,17 @@ export type SedCommand = z.infer<typeof _tmpSedToolSchema>;
 
 export function formatSedCommand(cmd: SedCommand): string[] {
   const args = ["sed"];
-  
+
   // If we have line range specifications, use -n (quiet mode) with print commands
-  if (cmd.start_line !== undefined || cmd.end_line !== undefined || cmd.num_lines !== undefined) {
+  if (
+    cmd.start_line !== undefined ||
+    cmd.end_line !== undefined ||
+    cmd.num_lines !== undefined
+  ) {
     args.push("-n");
-    
+
     let printCommand: string;
-    
+
     if (cmd.start_line !== undefined && cmd.end_line !== undefined) {
       // Range: start_line to end_line
       if (cmd.context_lines && cmd.context_lines > 0) {
@@ -345,13 +357,13 @@ export function formatSedCommand(cmd: SedCommand): string[] {
       // Default to printing all lines if no specific range
       printCommand = "p";
     }
-    
+
     args.push(printCommand);
   }
-  
+
   // Add the file path (must be escaped for shell safety)
   args.push(escapeShellArg(cmd.file_path));
-  
+
   return args;
 }
 
@@ -571,4 +583,3 @@ export function createReviewStartedToolFields() {
     schema: reviewStartedSchema,
   };
 }
-

@@ -32,7 +32,7 @@ export function createSedTool(
           repoRoot,
           file_path: input.file_path,
         });
-        
+
         const response = await sandbox.process.executeCommand(
           command.join(" "),
           repoRoot,
@@ -42,14 +42,17 @@ export function createSedTool(
 
         if (response.exitCode !== 0) {
           const errorResult = response.result ?? response.artifacts?.stdout;
-          
+
           // Handle common sed errors more gracefully
-          if (response.exitCode === 1 && errorResult?.includes("No such file")) {
+          if (
+            response.exitCode === 1 &&
+            errorResult?.includes("No such file")
+          ) {
             throw new Error(
               `File not found: ${input.file_path}. Please ensure the file path is correct and relative to the repository root.`,
             );
           }
-          
+
           throw new Error(
             `Failed to run sed command. Exit code: ${response.exitCode}\nError: ${errorResult}`,
           );
