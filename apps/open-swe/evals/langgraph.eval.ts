@@ -92,7 +92,7 @@ ls.describe(DATASET_NAME, () => {
             lgClient.runs.wait(threadId, MANAGER_GRAPH_ID, {
               input,
               config: {
-                recursion_limit: 250,
+                recursion_limit: 400,
               },
               ifNotExists: "create",
             }),
