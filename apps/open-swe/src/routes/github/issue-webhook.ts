@@ -22,6 +22,8 @@ import {
 import { ManagerGraphUpdate } from "@open-swe/shared/open-swe/manager/types";
 import { RequestSource } from "../../constants.js";
 import { isAllowedUser } from "@open-swe/shared/github/allowed-users";
+import { getMessageContentFromIssue } from "../../utils/github/issue-messages.js";
+import { resolveImageUrl } from "../../utils/github/image-resolver.js";
 
 const logger = createLogger(LogLevel.INFO, "GitHubIssueWebhook");
 
