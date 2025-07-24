@@ -78,6 +78,7 @@ export async function generateAction(
 
   const tools = [
     createSearchTool(state),
+    createSedTool(state),
     createShellTool(state),
     createPlannerNotesTool(),
     createGetURLContentTool(),
