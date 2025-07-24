@@ -10,6 +10,7 @@ import { GraphConfig, TargetRepository } from "@open-swe/shared/open-swe/types";
 import { getGitHubTokensFromConfig } from "../github-tokens.js";
 import { DETAILS_OPEN_TAG } from "./issue-task.js";
 import { extractImageUrls, removeImageSyntaxFromContent } from "./image-extractor.js";
+import { resolveImageUrl } from "./image-resolver.js";
 
 export interface IssueMessageContent {
   text: string;
@@ -201,5 +202,6 @@ export function getMessageContentFromIssue(
     imageUrls,
   };
 }
+
 
 
