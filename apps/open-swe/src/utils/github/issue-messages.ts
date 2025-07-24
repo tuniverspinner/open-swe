@@ -9,6 +9,12 @@ import { getIssue, getIssueComments } from "./api.js";
 import { GraphConfig, TargetRepository } from "@open-swe/shared/open-swe/types";
 import { getGitHubTokensFromConfig } from "../github-tokens.js";
 import { DETAILS_OPEN_TAG } from "./issue-task.js";
+import { extractImageUrls, removeImageSyntaxFromContent } from "./image-extractor.js";
+
+export interface IssueMessageContent {
+  text: string;
+  imageUrls: string[];
+}
 
 export function getUntrackedComments(
   existingMessages: BaseMessage[],
@@ -178,3 +184,4 @@ export function getMessageContentFromIssue(
   }
   return `[issue comment]\n${issue.body}`;
 }
+
