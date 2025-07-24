@@ -173,7 +173,13 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         const toolName = msg.name || 'tool';
         const result = formatToolResult(msg);
         if (result) {
-          logs.push(`[TOOL RESULT] ${toolName}:\n  ${result}`);
+          // Concatenate long tool results to a single line (truncate if too long)
+          const maxLength = 500;
+          let formattedResult = result.replace(/\s+/g, ' ');
+          if (formattedResult.length > maxLength) {
+            formattedResult = formattedResult.slice(0, maxLength) + '... [truncated]';
+          }
+          logs.push(`[TOOL RESULT] ${toolName}: ${formattedResult}`);
         }
       }
 
