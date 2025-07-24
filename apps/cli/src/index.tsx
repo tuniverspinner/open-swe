@@ -175,6 +175,8 @@ const App: React.FC = () => {
   // Remove debugInfo state
   const [awaitingPlannerFeedback, setAwaitingPlannerFeedback] = useState(false);
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
+  const [streamingPhase, setStreamingPhase] = useState<"streaming" | "awaitingFeedback" | "done">("streaming");
+  const [pendingInterrupt, setPendingInterrupt] = useState<any>(null);
 
   // On mount, check for existing token
   useEffect(() => {
@@ -282,7 +284,7 @@ const App: React.FC = () => {
   const PlannerFeedbackInput: React.FC = () => {
     const [input, setInput] = useState("");
     useInput((inputChar: string, key: { [key: string]: any }) => {
-      if (!awaitingPlannerFeedback) return;
+      if (streamingPhase !== "awaitingFeedback") return;
       if (key.return) {
         if (input.trim().toLowerCase() === "approve" || input.trim().toLowerCase() === "deny") {
           setPlannerFeedback(input.trim().toLowerCase());
@@ -293,7 +295,7 @@ const App: React.FC = () => {
         setInput((prev) => prev + inputChar);
       }
     });
-    if (!awaitingPlannerFeedback) return null;
+    if (streamingPhase !== "awaitingFeedback") return null;
     return (
       <Box>
         <Text color="cyan">Plan feedback (approve/deny): {input}</Text>
@@ -303,11 +305,11 @@ const App: React.FC = () => {
 
   // Streaming logic: when prompt is set, stream logs
   useEffect(() => {
-    if (prompt && selectedRepo) {
+    if (prompt && selectedRepo && streamingPhase === "streaming") {
       setIsStreaming(true);
       setLogs([]);
-      setAwaitingPlannerFeedback(false);
       setPlannerFeedback(null);
+      setPendingInterrupt(null);
       (async () => {
         try {
           const userAccessToken = getAccessToken();
@@ -377,16 +379,12 @@ const App: React.FC = () => {
               )) {
                 setLogs((prev) => [...prev, JSON.stringify(subChunk)]);
                 // Detect HumanInterrupt in subgraph stream
-				setLogs((prev) => [...prev, "INTERUPPTTTTTTT POSITION: " + JSON.stringify(Object.keys(subChunk.data))]);
-				setLogs((prev) => [...prev, "INTERUPPTTTTTTT POSITION: " + JSON.stringify(subChunk.data["__interrupt__"])]);
-				setLogs((prev) => [...prev, "INTERUPPTTTTTTT POSITION: " + isAgentInboxInterruptSchema(subChunk.data["__interrupt__"]?.[0].value)]);
                 const interruptArr = subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
                   ? subChunk.data["__interrupt__"]
                   : undefined;
                 const firstInterruptValue = interruptArr && interruptArr[0] && interruptArr[0].value
                   ? interruptArr[0].value
                   : undefined;
-				  
                 if (isAgentInboxInterruptSchema(firstInterruptValue)) {
                   const planString = firstInterruptValue.action_request?.args?.plan;
                   const planSteps = planString ? planString.split(':::').map((s: string) => s.trim()).filter((s: string) => Boolean(s)) : [];
@@ -397,17 +395,9 @@ const App: React.FC = () => {
                       ? ["[Proposed Plan]", ...planSteps.map((step: string, idx: number) => `  ${idx + 1}. ${step}`)]
                       : [])
                   ]);
-                  setAwaitingPlannerFeedback(true);
-                  // Pause streaming until feedback is given
-                  while (!plannerFeedback) {
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                  }
-                  setLogs((prev) => [
-                    ...prev,
-                    `[PLANNER FEEDBACK RECEIVED]: ${plannerFeedback}`
-                  ]);
-                  setAwaitingPlannerFeedback(false);
-                  setPlannerFeedback(null);
+                  setPendingInterrupt(firstInterruptValue);
+                  setStreamingPhase("awaitingFeedback");
+                  return; // Pause streaming, let React render feedback prompt
                 }
               }
             }
@@ -469,6 +459,7 @@ const App: React.FC = () => {
               // Here you could prompt the user for input
             }
           }
+          setStreamingPhase("done");
         } catch (err: any) {
           setLogs([err?.message || String(err)]);
         } finally {
@@ -477,7 +468,20 @@ const App: React.FC = () => {
         }
       })();
     }
-  }, [prompt, selectedRepo, plannerFeedback]);
+  }, [prompt, selectedRepo, streamingPhase]);
+
+  // Resume streaming after feedback
+  useEffect(() => {
+    if (streamingPhase === "awaitingFeedback" && plannerFeedback) {
+      setLogs((prev) => [
+        ...prev,
+        `[PLANNER FEEDBACK RECEIVED]: ${plannerFeedback}`
+      ]);
+      setPlannerFeedback(null);
+      setPendingInterrupt(null);
+      setStreamingPhase("streaming"); // Resume streaming
+    }
+  }, [streamingPhase, plannerFeedback]);
 
   // Repo selection UI
   if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
@@ -563,21 +567,19 @@ const App: React.FC = () => {
 
   // Main UI: logs area + input prompt
   if (isLoggedIn && selectedRepo) {
+    const MAX_LOGS = 100;
+    const visibleLogs = logs.slice(-MAX_LOGS);
     return (
       <Box flexDirection="column" padding={1}>
-        {logs.length === 0 ? (
-          <Text color="gray">No logs yet.</Text>
-        ) : (
-          logs.map((log, idx) => <Text key={idx} color="gray">{log}</Text>)
-        )}
+        <Text color="gray">{visibleLogs.join('\n')}</Text>
         <Box marginTop={1}>
           <Text bold color="magenta">
             Describe your coding task in as much detail as possible:
           </Text>
         </Box>
-        {!isStreaming && <CustomInput onSubmit={setPrompt} />}
+        {!isStreaming && streamingPhase === "streaming" && <CustomInput onSubmit={setPrompt} />}
         {isStreaming && <Text color="yellow">Streaming... (logs above)</Text>}
-        {awaitingPlannerFeedback && <PlannerFeedbackInput />}
+        {streamingPhase === "awaitingFeedback" && <PlannerFeedbackInput />}
       </Box>
     );
   }
