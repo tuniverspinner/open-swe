@@ -185,9 +185,9 @@ export function getMessageContentFromIssue(
   let rawContent: string;
 
   if ("title" in issue) {
-    rawContent = `[original issue]
+    rawContent = `[original issue]\n**${issue.title}**\n${extractContentFromIssueBody(issue.body ?? "")}`;
   } else {
-    rawContent = `[issue comment]
+    rawContent = `[issue comment]\n${issue.body ?? ""}`;
   }
 
   // Extract image URLs from the raw content
