@@ -10,7 +10,7 @@ import {
 import open from "open";
 import { v4 as uuidv4 } from "uuid";
 import { encryptSecret } from "../../../packages/shared/dist/crypto.js";
-import { MANAGER_GRAPH_ID } from "../../../packages/shared/dist/constants.js";
+import { MANAGER_GRAPH_ID, PLANNER_GRAPH_ID } from "../../../packages/shared/dist/constants.js";
 import { Client } from "@langchain/langgraph-sdk";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
@@ -177,6 +177,7 @@ const App: React.FC = () => {
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
   const [streamingPhase, setStreamingPhase] = useState<"streaming" | "awaitingFeedback" | "done">("streaming");
   const [pendingInterrupt, setPendingInterrupt] = useState<any>(null);
+  const [threadId, setThreadId] = useState<string | null>(null);
 
   // On mount, check for existing token
   useEffect(() => {
@@ -348,6 +349,7 @@ const App: React.FC = () => {
           });
           const thread = await client.threads.create();
           const threadId = thread["thread_id"];
+          setThreadId(threadId);
           const run = await client.runs.create(
             threadId,
             MANAGER_GRAPH_ID,
@@ -360,6 +362,7 @@ const App: React.FC = () => {
               streamMode: ["values", "messages"],
             }
           );
+		  
           let plannerStreamed = false;
           let programmerStreamed = false;
           for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
@@ -388,6 +391,7 @@ const App: React.FC = () => {
                 if (isAgentInboxInterruptSchema(firstInterruptValue)) {
                   const planString = firstInterruptValue.action_request?.args?.plan;
                   const planSteps = planString ? planString.split(':::').map((s: string) => s.trim()).filter((s: string) => Boolean(s)) : [];
+                  console.log("INTERRUPT VALUE:", JSON.stringify(firstInterruptValue, null, 2));
                   setLogs((prev) => [
                     ...prev,
                     "INTERRUPT: " + JSON.stringify(firstInterruptValue, null, 2),
@@ -470,18 +474,75 @@ const App: React.FC = () => {
     }
   }, [prompt, selectedRepo, streamingPhase]);
 
-  // Resume streaming after feedback
+  // Add this where we handle planner feedback
   useEffect(() => {
-    if (streamingPhase === "awaitingFeedback" && plannerFeedback) {
-      setLogs((prev) => [
-        ...prev,
-        `[PLANNER FEEDBACK RECEIVED]: ${plannerFeedback}`
-      ]);
-      setPlannerFeedback(null);
-      setPendingInterrupt(null);
-      setStreamingPhase("streaming"); // Resume streaming
+    if (streamingPhase === "awaitingFeedback" && plannerFeedback && threadId) {
+      const submitFeedback = async () => {
+        const humanResponse = plannerFeedback === 'approve' 
+          ? { type: 'accept', args: null }
+          : { type: 'ignore', args: null };
+
+        try {
+          const userAccessToken = getAccessToken();
+          const installationAccessToken = await getInstallationAccessToken();
+          const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+          
+          if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+            setLogs(prev => [...prev, "Missing access tokens or SECRETS_ENCRYPTION_KEY."]);
+            return;
+          }
+
+          const encryptedUserToken = encryptSecret(userAccessToken, encryptionKey);
+          const encryptedInstallationToken = encryptSecret(installationAccessToken, encryptionKey);
+          const [owner, repoName] = selectedRepo?.full_name.split("/") || [];
+
+          const client = new Client({
+            apiUrl: LANGGRAPH_URL,
+            defaultHeaders: {
+              "x-github-access-token": encryptedUserToken,
+              "x-github-installation-token": encryptedInstallationToken,
+              "x-github-installation-name": owner,
+            },
+          });
+
+          // Stream the response after submitting feedback
+          setLogs(prev => [...prev, `[HUMAN FEEDBACK RECEIVED]: ${plannerFeedback}`]);
+          
+          // Create a new stream with the feedback
+          const stream = await client.runs.stream(threadId, PLANNER_GRAPH_ID, {
+            command: { 
+              resume: [{
+                type: plannerFeedback === 'approve' ? 'accept' : 'ignore',
+                args: null
+              }]
+            },
+            streamMode: ["values", "messages"],
+          });
+		  
+		  console.log("STREAM: ", stream);
+          // Process the stream response
+          for await (const chunk of stream) {
+            const typedChunk = chunk as { ops?: Array<{ value: string }> };
+            const ops = typedChunk.ops;
+            if (ops && ops[0]?.value) {
+              setLogs(prev => [...prev, ops[0].value]);
+            }
+          }
+
+          // Reset states after streaming completes
+          setPlannerFeedback(null);
+          setPendingInterrupt(null);
+          setStreamingPhase("streaming");
+
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          setLogs(prev => [...prev, `Error submitting feedback: ${errorMessage}`]);
+        }
+      };
+
+      submitFeedback();
     }
-  }, [streamingPhase, plannerFeedback]);
+  }, [streamingPhase, plannerFeedback, selectedRepo, threadId]);
 
   // Repo selection UI
   if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
