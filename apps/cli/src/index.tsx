@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { render, Box, Text, useInput } from "ink";
 import {
   startAuthServer,
@@ -213,8 +213,6 @@ const App: React.FC = () => {
           branch: selectedRepo.default_branch || "main",
         },
       };
-
-      // Send to manager for reclassification (like web interface)
       const run = await client.runs.create(
         threadId,
         MANAGER_GRAPH_ID,
@@ -228,90 +226,12 @@ const App: React.FC = () => {
         }
       );
 
-      // Stream manager response and detect new sessions created by interrupt
-      let plannerStreamed = false;
-      let programmerStreamed = false;
-      
-      for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
-        const formatted = formatDisplayLog(chunk);
-        if (formatted.length > 0) {
-          setLogs(prev => [...prev, ...formatted]);
-        }
-        
-        // Check for new plannerSession created by interrupt
-        if (
-          !plannerStreamed &&
-          chunk.data &&
-          chunk.data.plannerSession &&
-          typeof chunk.data.plannerSession.threadId === "string" &&
-          typeof chunk.data.plannerSession.runId === "string"
-        ) {
-          plannerStreamed = true;
-          const newPlannerThreadId = chunk.data.plannerSession.threadId;
-          
-          // Log session changes
-          if (plannerThreadId && plannerThreadId !== newPlannerThreadId) {
-            setLogs(prev => [...prev, `🔄 New planner session started: ${newPlannerThreadId}`]);
-          }
-          setPlannerThreadId(newPlannerThreadId);
-          
-          // Stream the new planner session
-          for await (const subChunk of client.runs.joinStream(
-            chunk.data.plannerSession.threadId,
-            chunk.data.plannerSession.runId
-          )) {
-            const formatted = formatDisplayLog(subChunk);
-            if (formatted.length > 0) {
-              setLogs(prev => [...prev, ...formatted]);
-            }
-
-            // Check for new programmer session from the planner
-            if (
-              !programmerStreamed &&
-              subChunk.data?.programmerSession?.threadId &&
-              typeof subChunk.data.programmerSession.threadId === "string" &&
-              typeof subChunk.data.programmerSession.runId === "string"
-            ) {
-              programmerStreamed = true;
-              const newProgrammerThreadId = subChunk.data.programmerSession.threadId;
-              
-              // Log session changes
-              if (programmerThreadId && programmerThreadId !== newProgrammerThreadId) {
-                setLogs(prev => [...prev, `🔄 New programmer session started: ${newProgrammerThreadId}`]);
-              }
-              setProgrammerThreadId(newProgrammerThreadId);
-              
-              // Stream the new programmer session  
-              for await (const programmerChunk of client.runs.joinStream(
-                subChunk.data.programmerSession.threadId,
-                subChunk.data.programmerSession.runId
-              )) {
-                const formatted = formatDisplayLog(programmerChunk);
-                if (formatted.length > 0) {
-                  setLogs(prev => [...prev, ...formatted]);
-                }
-              }
-            }
-
-            // Handle planner interrupts
-            const interruptArr = subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
-              ? subChunk.data["__interrupt__"]
-              : undefined;
-            const firstInterruptValue = interruptArr && interruptArr[0] && interruptArr[0].value
-              ? interruptArr[0].value
-              : undefined;
-            if (isAgentInboxInterruptSchema(firstInterruptValue)) {
-              setPendingInterrupt(firstInterruptValue);
-              setStreamingPhase("awaitingFeedback");
-              return;
-            }
-          }
-        }
-      }
+      // Just submit the interrupt - existing planner session will pick it up automatically
+      setLogs(prev => [...prev, `✅ Interrupt sent to existing session`]);
     } catch (err: any) {
       setLogs(prev => [...prev, `Error sending interrupt: ${err.message}`]);
     }
-  }, [client, threadId, selectedRepo, setLogs, plannerThreadId, programmerThreadId, setPlannerThreadId, setProgrammerThreadId, setPendingInterrupt, setStreamingPhase]);
+  }, [client, threadId, selectedRepo, setLogs]);
 
   // On mount, check for existing token
   useEffect(() => {
@@ -423,6 +343,7 @@ const App: React.FC = () => {
       if (key.return) {
         if (input.trim().toLowerCase() === "approve" || input.trim().toLowerCase() === "deny") {
           setPlannerFeedback(input.trim().toLowerCase());
+          setInput(""); // Clear input after submitting
         }
       } else if (key.backspace || key.delete) {
         setInput((prev) => prev.slice(0, -1));
@@ -493,7 +414,6 @@ const App: React.FC = () => {
               config: { recursion_limit: 400 },
               ifNotExists: "create",
               streamResumable: true,
-              streamSubgraphs: true,
               streamMode: ["values", "messages"],
             }
           );
@@ -520,8 +440,10 @@ const App: React.FC = () => {
                 chunk.data.plannerSession.runId
               )) {
 				const formatted = formatDisplayLog(subChunk);
-                if (formatted.length > 0) {
-                  setLogs(prev => [...prev, ...formatted]);
+                // Filter out human messages from planner stream (already logged in manager)
+                const filteredFormatted = formatted.filter(log => !log.startsWith('[HUMAN]'));
+                if (filteredFormatted.length > 0) {
+                  setLogs(prev => [...prev, ...filteredFormatted]);
                 }
 
                 // Check for programmer session
@@ -642,14 +564,14 @@ const App: React.FC = () => {
             }
           }
 
-          // Reset states after streaming completes
-          setPlannerFeedback(null);
-          setPendingInterrupt(null);
-          setStreamingPhase("streaming");
-
         } catch (error: unknown) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           setLogs(prev => [...prev, `Error submitting feedback: ${errorMessage}`]);
+        } finally {
+          // Always reset states regardless of success or error
+          setPlannerFeedback(null);
+          setPendingInterrupt(null);
+          setStreamingPhase("streaming");
         }
       };
 
@@ -743,8 +665,9 @@ const App: React.FC = () => {
   if (isLoggedIn && selectedRepo) {
     // Calculate available space for logs based on whether welcome message is shown
     const headerHeight = hasStartedChat ? 0 : 9; // Welcome message takes ~9 lines
-    const inputHeight = 3; // Fixed input area height
-    const availableLogHeight = Math.max(5, process.stdout.rows - headerHeight - inputHeight);
+    const inputHeight = 4; // Fixed input area height (increased due to padding)
+    const paddingHeight = 3; // Extra padding to prevent overlap
+    const availableLogHeight = Math.max(5, process.stdout.rows - headerHeight - inputHeight - paddingHeight);
     
     // Always show the most recent logs (auto-scroll to bottom)
     const visibleLogs = logs.length > availableLogHeight 
@@ -775,11 +698,19 @@ const App: React.FC = () => {
           </Box>
         )}
 
-        {/* Auto-scrolling logs area */}
-        <Box flexGrow={1} flexDirection="column" paddingX={1} paddingBottom={1} justifyContent="flex-end">
+        {/* Auto-scrolling logs area - strict boundary container */}
+        <Box 
+          height={availableLogHeight} 
+          flexDirection="column" 
+          paddingX={1} 
+          paddingBottom={1}
+          overflowY="hidden"
+          flexShrink={0}
+          justifyContent="flex-end"
+        >
           <Box flexDirection="column">
             {visibleLogs.map((log, index) => (
-              <Box key={`${logs.length}-${index}`} marginBottom={1}>
+              <Box key={`${logs.length}-${index}`}>
                 <Text dimColor>{log}</Text>
               </Box>
             ))}
@@ -790,9 +721,10 @@ const App: React.FC = () => {
         <Box 
           flexDirection="column" 
           paddingX={1}
+          paddingY={1}
           borderStyle="single"
           borderTop
-          height={3}
+          height={4}
           flexShrink={0}
           justifyContent="center"
         >
