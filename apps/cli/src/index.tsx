@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { render, Box, Text, useInput } from "ink";
 import {
   startAuthServer,
@@ -15,7 +15,6 @@ import { Client } from "@langchain/langgraph-sdk";
 import { formatDisplayLog } from "./logger.js";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
-const LOG_AREA_HEIGHT = 20;
 const GITHUB_LOGIN_URL = process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
 // Start the auth server immediately so callback URLs always work
@@ -50,8 +49,6 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit
     </Box>
   );
 };
-
-// Remove StreamTerminal. We'll render logs directly in the main UI.
 
 async function fetchUserRepos(token: string) {
   const allRepos = [];
@@ -143,7 +140,6 @@ const RepoSearchSelect: React.FC<{
   );
 };
 
-// Copy isAgentInboxInterruptSchema from web/src/lib/agent-inbox-interrupt.ts
 function isAgentInboxInterruptSchema(value: unknown): boolean {
   const valueAsObject = Array.isArray(value) ? value[0] : value;
   return (
@@ -178,8 +174,6 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [prompt, setPrompt] = useState<string>("");
-  // Remove debugInfo state
-  const [awaitingPlannerFeedback, setAwaitingPlannerFeedback] = useState(false);
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
   const [streamingPhase, setStreamingPhase] = useState<"streaming" | "awaitingFeedback" | "done">("streaming");
   const [pendingInterrupt, setPendingInterrupt] = useState<any>(null);
@@ -189,7 +183,6 @@ const App: React.FC = () => {
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [client, setClient] = useState<Client | null>(null);
 
-  // Simple interrupt function - send message to manager for reclassification  
   const sendInterruptMessage = useCallback(async (message: string) => {
     if (!client || !threadId || !selectedRepo) {
       return;
@@ -483,6 +476,7 @@ const App: React.FC = () => {
           }
           setStreamingPhase("done");
         } catch (err: any) {
+          setLogs(prev => [...prev, `Error during streaming: ${err.message}`]);
         } finally {
           setIsStreaming(false);
           setPrompt("");
@@ -494,6 +488,9 @@ const App: React.FC = () => {
   // Add this where we handle planner feedback
   useEffect(() => {
     if (streamingPhase === "awaitingFeedback" && plannerFeedback && plannerThreadId) {
+      // Immediately switch to streaming mode to hide the feedback prompt
+      setStreamingPhase("streaming");
+      
       const submitFeedback = async () => {
         try {
           const userAccessToken = getAccessToken();
@@ -501,6 +498,7 @@ const App: React.FC = () => {
           const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
           
           if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+            setLogs(prev => [...prev, "Missing access tokens for feedback submission"]);
             return;
           }
 
@@ -568,10 +566,9 @@ const App: React.FC = () => {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           setLogs(prev => [...prev, `Error submitting feedback: ${errorMessage}`]);
         } finally {
-          // Always reset states regardless of success or error
+          // Clear feedback state
           setPlannerFeedback(null);
           setPendingInterrupt(null);
-          setStreamingPhase("streaming");
         }
       };
 
