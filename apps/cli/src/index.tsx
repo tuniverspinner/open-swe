@@ -413,7 +413,7 @@ const App: React.FC = () => {
           });
           setClient(newClient);
           const thread = await newClient.threads.create();
-          const threadId = thread["thread_id"];
+          const threadId = thread.thread_id;
           setThreadId(threadId);
           const run = await newClient.runs.create(threadId, MANAGER_GRAPH_ID, {
             input: runInput,
