@@ -223,5 +223,3 @@ These are notes you took while gathering context for the plan:
 </codebase_structure>
 </context>
 `;
-
-
