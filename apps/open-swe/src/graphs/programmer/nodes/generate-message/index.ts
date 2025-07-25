@@ -8,13 +8,14 @@ import {
   loadModel,
   supportsParallelToolCallsParam,
   Task,
-} from "../../../../utils/load-model.js";
+} from "../../../../utils/llms/index.js";
 import {
   createShellTool,
   createApplyPatchTool,
   createRequestHumanHelpToolFields,
   createUpdatePlanToolFields,
   createGetURLContentTool,
+  createSearchDocumentForTool,
 } from "../../../../tools/index.js";
 import { formatPlanPrompt } from "../../../../utils/plan-prompt.js";
 import { stopSandbox } from "../../../../utils/sandbox.js";
@@ -153,9 +154,10 @@ export async function generateAction(
     createApplyPatchTool(state),
     createRequestHumanHelpToolFields(),
     createUpdatePlanToolFields(),
-    createGetURLContentTool(),
+    createGetURLContentTool(state),
     createInstallDependenciesTool(state),
     markTaskCompletedTool,
+    createSearchDocumentForTool(state, config),
     ...mcpTools,
   ];
   logger.info(
