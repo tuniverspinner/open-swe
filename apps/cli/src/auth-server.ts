@@ -7,8 +7,8 @@ import os from "os";
 import path from "path";
 import jwt from "jsonwebtoken";
 
-const CLIENT_ID = process.env.GITHUB_CLIENT_ID || "";
-const CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || "";
+const CLIENT_ID = process.env.GITHUB_APP_CLIENT_ID || "";
+const CLIENT_SECRET = process.env.GITHUB_APP_CLIENT_SECRET || "";
 const PORT = process.env.PORT || 3000;
 const CALLBACK_URL =
   process.env.GITHUB_CALLBACK_URL ||
