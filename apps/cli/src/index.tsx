@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { render, Box, Text, useInput } from "ink";
 import {
   startAuthServer,
@@ -28,16 +28,21 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit
   useInput((inputChar: string, key: { [key: string]: any }) => {
     if (isSubmitted) return;
     if (key.return) {
-      setIsSubmitted(true);
-      onSubmit(input);
+      if (input.trim()) { // Only submit if there's actual content
+        setIsSubmitted(true);
+        onSubmit(input);
+        // Reset for next input
+        setTimeout(() => {
+          setInput("");
+          setIsSubmitted(false);
+        }, 100);
+      }
     } else if (key.backspace || key.delete) {
       setInput((prev) => prev.slice(0, -1));
     } else if (inputChar) {
       setInput((prev) => prev + inputChar);
     }
   });
-
-  if (isSubmitted) return null;
 
   return (
     <Box>
@@ -182,6 +187,131 @@ const App: React.FC = () => {
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
   const [programmerThreadId, setProgrammerThreadId] = useState<string | null>(null);
   const [hasStartedChat, setHasStartedChat] = useState(false);
+  const [client, setClient] = useState<Client | null>(null);
+
+  // Simple interrupt function - send message to manager for reclassification  
+  const sendInterruptMessage = useCallback(async (message: string) => {
+    if (!client || !threadId || !selectedRepo) {
+      return;
+    }
+
+    setLogs(prev => [...prev, `📤 Interrupt: "${message}"`]);
+    
+    try {
+      const [owner, repoName] = selectedRepo.full_name.split("/");
+      const interruptInput = {
+        messages: [
+          {
+            id: uuidv4(),
+            type: "human",
+            content: [{ type: "text", text: message }],
+          },
+        ],
+        targetRepository: {
+          owner,
+          repo: repoName,
+          branch: selectedRepo.default_branch || "main",
+        },
+      };
+
+      // Send to manager for reclassification (like web interface)
+      const run = await client.runs.create(
+        threadId,
+        MANAGER_GRAPH_ID,
+        {
+          input: interruptInput,
+          config: { recursion_limit: 400 },
+          ifNotExists: "create",
+          streamResumable: true,
+          multitaskStrategy: "enqueue",
+          streamMode: ["values", "messages"],
+        }
+      );
+
+      // Stream manager response and detect new sessions created by interrupt
+      let plannerStreamed = false;
+      let programmerStreamed = false;
+      
+      for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
+        const formatted = formatDisplayLog(chunk);
+        if (formatted.length > 0) {
+          setLogs(prev => [...prev, ...formatted]);
+        }
+        
+        // Check for new plannerSession created by interrupt
+        if (
+          !plannerStreamed &&
+          chunk.data &&
+          chunk.data.plannerSession &&
+          typeof chunk.data.plannerSession.threadId === "string" &&
+          typeof chunk.data.plannerSession.runId === "string"
+        ) {
+          plannerStreamed = true;
+          const newPlannerThreadId = chunk.data.plannerSession.threadId;
+          
+          // Log session changes
+          if (plannerThreadId && plannerThreadId !== newPlannerThreadId) {
+            setLogs(prev => [...prev, `🔄 New planner session started: ${newPlannerThreadId}`]);
+          }
+          setPlannerThreadId(newPlannerThreadId);
+          
+          // Stream the new planner session
+          for await (const subChunk of client.runs.joinStream(
+            chunk.data.plannerSession.threadId,
+            chunk.data.plannerSession.runId
+          )) {
+            const formatted = formatDisplayLog(subChunk);
+            if (formatted.length > 0) {
+              setLogs(prev => [...prev, ...formatted]);
+            }
+
+            // Check for new programmer session from the planner
+            if (
+              !programmerStreamed &&
+              subChunk.data?.programmerSession?.threadId &&
+              typeof subChunk.data.programmerSession.threadId === "string" &&
+              typeof subChunk.data.programmerSession.runId === "string"
+            ) {
+              programmerStreamed = true;
+              const newProgrammerThreadId = subChunk.data.programmerSession.threadId;
+              
+              // Log session changes
+              if (programmerThreadId && programmerThreadId !== newProgrammerThreadId) {
+                setLogs(prev => [...prev, `🔄 New programmer session started: ${newProgrammerThreadId}`]);
+              }
+              setProgrammerThreadId(newProgrammerThreadId);
+              
+              // Stream the new programmer session  
+              for await (const programmerChunk of client.runs.joinStream(
+                subChunk.data.programmerSession.threadId,
+                subChunk.data.programmerSession.runId
+              )) {
+                const formatted = formatDisplayLog(programmerChunk);
+                if (formatted.length > 0) {
+                  setLogs(prev => [...prev, ...formatted]);
+                }
+              }
+            }
+
+            // Handle planner interrupts
+            const interruptArr = subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
+              ? subChunk.data["__interrupt__"]
+              : undefined;
+            const firstInterruptValue = interruptArr && interruptArr[0] && interruptArr[0].value
+              ? interruptArr[0].value
+              : undefined;
+            if (isAgentInboxInterruptSchema(firstInterruptValue)) {
+              setPendingInterrupt(firstInterruptValue);
+              setStreamingPhase("awaitingFeedback");
+              return;
+            }
+          }
+        }
+      }
+    } catch (err: any) {
+      setLogs(prev => [...prev, `Error sending interrupt: ${err.message}`]);
+    }
+  }, [client, threadId, selectedRepo, setLogs, plannerThreadId, programmerThreadId, setPlannerThreadId, setProgrammerThreadId, setPendingInterrupt, setStreamingPhase]);
 
   // On mount, check for existing token
   useEffect(() => {
@@ -343,7 +473,7 @@ const App: React.FC = () => {
             },
             autoAcceptPlan: false,
           };
-          const client = new Client({
+          const newClient = new Client({
             apiUrl: LANGGRAPH_URL,
             defaultHeaders: {
               "x-github-access-token": encryptedUserToken,
@@ -351,10 +481,11 @@ const App: React.FC = () => {
               "x-github-installation-name": owner,
             },
           });
-          const thread = await client.threads.create();
+          setClient(newClient);
+          const thread = await newClient.threads.create();
           const threadId = thread["thread_id"];
           setThreadId(threadId);
-          const run = await client.runs.create(
+          const run = await newClient.runs.create(
             threadId,
             MANAGER_GRAPH_ID,
             {
@@ -369,7 +500,7 @@ const App: React.FC = () => {
 		  
           let plannerStreamed = false;
           let programmerStreamed = false;
-          for await (const chunk of client.runs.joinStream(threadId, run.run_id)) {
+          for await (const chunk of newClient.runs.joinStream(threadId, run.run_id)) {
             const formatted = formatDisplayLog(chunk);
             if (formatted.length > 0) {
               setLogs(prev => [...prev, ...formatted]);
@@ -384,7 +515,7 @@ const App: React.FC = () => {
             ) {
               plannerStreamed = true;
               setPlannerThreadId(chunk.data.plannerSession.threadId);
-              for await (const subChunk of client.runs.joinStream(
+              for await (const subChunk of newClient.runs.joinStream(
                 chunk.data.plannerSession.threadId,
                 chunk.data.plannerSession.runId
               )) {
@@ -402,7 +533,7 @@ const App: React.FC = () => {
                 ) {
                   programmerStreamed = true;
                   setProgrammerThreadId(subChunk.data.programmerSession.threadId);
-                  for await (const programmerChunk of client.runs.joinStream(
+                  for await (const programmerChunk of newClient.runs.joinStream(
                     subChunk.data.programmerSession.threadId,
                     subChunk.data.programmerSession.runId
                   )) {
@@ -667,19 +798,21 @@ const App: React.FC = () => {
         >
           {streamingPhase === "awaitingFeedback" ? (
             <PlannerFeedbackInput />
-          ) : (
-            <Box>
-              <Text dimColor>❯ </Text>
-              {!isStreaming && streamingPhase === "streaming" ? (
-                <CustomInput onSubmit={(value) => {
-                  setHasStartedChat(true);
-                  setPrompt(value);
-                }} />
-              ) : (
-                <Text>Streaming...</Text>
-              )}
-            </Box>
-          )}
+                      ) : (
+              <Box>
+                <Text dimColor>❯ </Text>
+                {!hasStartedChat ? (
+                  <CustomInput onSubmit={(value) => {
+                    setHasStartedChat(true);
+                    setPrompt(value);
+                  }} />
+                ) : (
+                  <CustomInput onSubmit={(value) => {
+                    sendInterruptMessage(value);
+                  }} />
+                )}
+              </Box>
+            )}
         </Box>
       </Box>
     );
