@@ -719,12 +719,13 @@ const App: React.FC = () => {
   // Main UI: logs area + input prompt
   if (isLoggedIn && selectedRepo) {
     // Calculate available space for logs based on whether welcome message is shown
-    const headerHeight = hasStartedChat ? 0 : 9; // Welcome message takes ~9 lines
+    const headerHeight = 0; // Welcome message is now above input bar, not at top
     const inputHeight = 4; // Fixed input area height (increased due to padding)
+    const welcomeHeight = hasStartedChat ? 0 : 8; // Welcome message height when shown
     const paddingHeight = 3; // Extra padding to prevent overlap
     const availableLogHeight = Math.max(
       5,
-      process.stdout.rows - headerHeight - inputHeight - paddingHeight,
+      process.stdout.rows - headerHeight - inputHeight - welcomeHeight - paddingHeight,
     );
 
     // Always show the most recent logs (auto-scroll to bottom)
@@ -733,30 +734,7 @@ const App: React.FC = () => {
 
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
-        {/* Welcome message at top - only show before first chat */}
-        {!hasStartedChat && (
-          <Box flexDirection="column" paddingX={1} paddingY={1}>
-            <Box justifyContent="center">
-              <Text>
-                {`
- __      __   _                    _         
- \\ \\    / /__| |__ ___ _ __  ___| |_ ___ ___
-  \\ \\/\\/ / -_) / _/ _ \\ '  \\/ -_)  _/ _ (_-<
-   \\_/\\_/\\___|_\\__\\___/_|_|_\\___|\\__\\___/__/
-              `}
-              </Text>
-            </Box>
-            <Box justifyContent="center">
-              <Text bold>LangChain Open SWE CLI</Text>
-            </Box>
-            <Box justifyContent="center" marginY={1}>
-              <Text dimColor>
-                Describe your coding problem. It'll run in the sandbox and a PR
-                will be created.
-              </Text>
-            </Box>
-          </Box>
-        )}
+
 
         {/* Auto-scrolling logs area - strict boundary container */}
         <Box
@@ -782,14 +760,38 @@ const App: React.FC = () => {
           </Box>
         </Box>
 
+        {/* Welcome message right above input bar */}
+        {!hasStartedChat ? (
+          <Box flexDirection="column" paddingX={1}>
+            <Box>
+              <Text>
+                {`
+
+##          ###    ##    ##  ######    ######  ##     ##    ###    #### ##    ## 
+##         ## ##   ###   ## ##    ##  ##    ## ##     ##   ## ##    ##  ###   ## 
+##        ##   ##  ####  ## ##        ##       ##     ##  ##   ##   ##  ####  ## 
+##       ##     ## ## ## ## ##   #### ##       ######### ##     ##  ##  ## ## ## 
+##       ######### ##  #### ##    ##  ##       ##     ## #########  ##  ##  #### 
+##       ##     ## ##   ### ##    ##  ##    ## ##     ## ##     ##  ##  ##   ### 
+######## ##     ## ##    ##  ######    ######  ##     ## ##     ## #### ##    ## 
+`}
+              </Text>
+            </Box>
+            <Box marginTop={2} marginBottom={1}>
+              <Text dimColor>Describe your coding problem. It'll run in the sandbox and a PR will be created.</Text>
+            </Box>
+          </Box>
+        ) : (
+          <Box height={8} />
+        )}
+
         {/* Fixed input area at bottom */}
         <Box
           flexDirection="column"
-          paddingX={1}
-          paddingY={1}
+          paddingX={2}
           borderStyle="single"
           borderTop
-          height={4}
+          height={3}
           flexShrink={0}
           justifyContent="center"
         >
@@ -797,7 +799,6 @@ const App: React.FC = () => {
             <PlannerFeedbackInput />
           ) : (
             <Box>
-              <Text dimColor>❯ </Text>
               {!hasStartedChat ? (
                 <CustomInput
                   onSubmit={(value) => {
@@ -823,9 +824,6 @@ const App: React.FC = () => {
   if (!isLoggedIn && authPrompt === null) {
     return (
       <Box flexDirection="column" padding={1}>
-        <Box justifyContent="center" marginBottom={1}>
-          <Text bold>LangChain Open SWE CLI</Text>
-        </Box>
         <Box
           borderStyle="round"
           borderColor="white"
@@ -846,9 +844,6 @@ const App: React.FC = () => {
   // Fallback
   return (
     <Box flexDirection="column" padding={1}>
-      <Box justifyContent="center" marginBottom={1}>
-        <Text bold>LangChain Open SWE CLI</Text>
-      </Box>
     </Box>
   );
 };
