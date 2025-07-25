@@ -173,30 +173,12 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
     logs.push("[PROGRAMMER SESSION STARTED]");
   }
 
-  // Handle interrupts and plans
-  if (data.__interrupt__) {
-    const interrupt = data.__interrupt__[0]?.value;
-    if (interrupt?.action_request?.args?.plan) {
-      const plan = interrupt.action_request.args.plan;
-      const steps = plan
-        .split(":::")
-        .map((s: string) => s.trim())
-        .filter(Boolean);
-      logs.push(
-        "[PROPOSED PLAN]",
-        ...steps.map((step: string, idx: number) => `  ${idx + 1}. ${step}`),
-      );
-    } else {
-      logs.push("[INTERRUPT] Waiting for feedback...");
-    }
-  }
-
   // Handle messages
   const nestedDataObj = Object.values(data)[0] as unknown as Record<
     string,
     any
   >;
-  if ("messages" in nestedDataObj) {
+  if (nestedDataObj && typeof nestedDataObj === "object" && "messages" in nestedDataObj) {
     const messages = Array.isArray(nestedDataObj.messages)
       ? nestedDataObj.messages
       : [nestedDataObj.messages];
@@ -211,7 +193,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           let formattedResult = result.replace(/\s+/g, " ");
           if (formattedResult.length > maxLength) {
             formattedResult =
-              formattedResult.slice(0, maxLength) + "... [truncated]";
+              formattedResult.slice(0, maxLength) + "... [trunc]";
           }
           logs.push(`[TOOL RESULT] ${toolName}: ${formattedResult}`);
         }
@@ -237,13 +219,26 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         // Handle tool calls
         if (msg.tool_calls && msg.tool_calls.length > 0) {
           msg.tool_calls.forEach((tool: ToolCall) => {
-            const action = formatToolCall(tool);
+            let argsString = "";
+            if (typeof tool.args === "string") {
+              argsString = tool.args;
+            } else if (tool.args !== undefined) {
+              try {
+                argsString = JSON.stringify(tool.args, null, 2);
+              } catch {
+                argsString = String(tool.args);
+              }
+            }
+            // Truncate the string if too long
+            const maxLength = 150;
+            const truncatedArgs =
+              argsString.length > maxLength
+                ? argsString.slice(0, maxLength) + "... [trunc]"
+                : argsString;
             const toolName = tool.name || "unknown";
-            logs.push(
-              `[TOOL CALL] ${toolName}: ${JSON.stringify(tool.args, null, 2)}`,
-            );
-          });
-        }
+                      logs.push(`[TOOL CALL] ${toolName}: ${truncatedArgs}`);
+            });
+          }
 
         // Handle technical notes
         if (msg.additional_kwargs?.notes) {
@@ -290,15 +285,6 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
       }
     }
   }
-
-  // Handle task status updates
-  if (data.action) {
-    const actionStr = JSON.stringify(data.action);
-    if (actionStr !== "{}" && !actionStr.includes("[object Object]")) {
-      logs.push(`[ACTION] ${actionStr}`);
-    }
-  }
-
   // Handle feedback messages
   if (data.command?.resume?.[0]?.type) {
     const type = data.command.resume[0].type;
