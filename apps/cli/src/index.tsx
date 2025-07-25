@@ -648,7 +648,9 @@ const App: React.FC = () => {
         <Box flexGrow={1} flexDirection="column" paddingX={1} paddingBottom={1} justifyContent="flex-end">
           <Box flexDirection="column">
             {visibleLogs.map((log, index) => (
-              <Text key={`${logs.length}-${index}`} dimColor>{log}</Text>
+              <Box key={`${logs.length}-${index}`} marginBottom={1}>
+                <Text dimColor>{log}</Text>
+              </Box>
             ))}
           </Box>
         </Box>
