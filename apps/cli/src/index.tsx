@@ -10,24 +10,31 @@ import {
 import open from "open";
 import { v4 as uuidv4 } from "uuid";
 import { encryptSecret } from "../../../packages/shared/dist/crypto.js";
-import { MANAGER_GRAPH_ID, PLANNER_GRAPH_ID } from "../../../packages/shared/dist/constants.js";
+import {
+  MANAGER_GRAPH_ID,
+  PLANNER_GRAPH_ID,
+} from "../../../packages/shared/dist/constants.js";
 import { Client } from "@langchain/langgraph-sdk";
 import { formatDisplayLog } from "./logger.js";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
-const GITHUB_LOGIN_URL = process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
+const GITHUB_LOGIN_URL =
+  process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
 // Start the auth server immediately so callback URLs always work
 startAuthServer();
 
-const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({ onSubmit }) => {
+const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
+  onSubmit,
+}) => {
   const [input, setInput] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
     if (isSubmitted) return;
     if (key.return) {
-      if (input.trim()) { // Only submit if there's actual content
+      if (input.trim()) {
+        // Only submit if there's actual content
         setIsSubmitted(true);
         onSubmit(input);
         // Reset for next input
@@ -121,10 +128,7 @@ const RepoSearchSelect: React.FC<{
       ) : (
         <Box flexDirection="column" marginTop={1}>
           {shown.map((_, idx) => (
-            <Text
-              key={shown[idx].id}
-              dimColor={idx !== highlighted}
-            >
+            <Text key={shown[idx].id} dimColor={idx !== highlighted}>
               {idx === highlighted ? "> " : "  "}
               {shown[idx].full_name}
             </Text>
@@ -132,9 +136,7 @@ const RepoSearchSelect: React.FC<{
         </Box>
       )}
       <Box marginTop={1}>
-        <Text dimColor>
-          Use ↑/↓ to navigate, Enter to select
-        </Text>
+        <Text dimColor>Use ↑/↓ to navigate, Enter to select</Text>
       </Box>
     </Box>
   );
@@ -175,60 +177,59 @@ const App: React.FC = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [prompt, setPrompt] = useState<string>("");
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
-  const [streamingPhase, setStreamingPhase] = useState<"streaming" | "awaitingFeedback" | "done">("streaming");
+  const [streamingPhase, setStreamingPhase] = useState<
+    "streaming" | "awaitingFeedback" | "done"
+  >("streaming");
   const [pendingInterrupt, setPendingInterrupt] = useState<any>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
-  const [programmerThreadId, setProgrammerThreadId] = useState<string | null>(null);
+  const [programmerThreadId, setProgrammerThreadId] = useState<string | null>(
+    null,
+  );
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [client, setClient] = useState<Client | null>(null);
 
-  const sendInterruptMessage = useCallback(async (message: string) => {
-    if (!client || !threadId || !selectedRepo) {
-      return;
-    }
+  const sendInterruptMessage = useCallback(
+    async (message: string) => {
+      if (!client || !threadId || !selectedRepo) {
+        return;
+      }
 
-    // Format the interrupt message through formatDisplayLog for consistency
-    // const interruptLogs = formatDisplayLog(`Interrupt: ${message}`);
-    // setLogs(prev => [...prev, ...interruptLogs]);
-    
-    try {
-      const [owner, repoName] = selectedRepo.full_name.split("/");
-      const interruptInput = {
-        messages: [
-          {
-            id: uuidv4(),
-            type: "human",
-            content: [{ type: "text", text: message }],
+      setLogs((prev) => [...prev, `📤 Interrupt: "${message}"`]);
+
+      try {
+        const [owner, repoName] = selectedRepo.full_name.split("/");
+        const interruptInput = {
+          messages: [
+            {
+              id: uuidv4(),
+              type: "human",
+              content: [{ type: "text", text: message }],
+            },
+          ],
+          targetRepository: {
+            owner,
+            repo: repoName,
+            branch: selectedRepo.default_branch || "main",
           },
-        ],
-        targetRepository: {
-          owner,
-          repo: repoName,
-          branch: selectedRepo.default_branch || "main",
-        },
-      };
-      await client.runs.create(
-        threadId,
-        MANAGER_GRAPH_ID,
-        {
+        };
+        const run = await client.runs.create(threadId, MANAGER_GRAPH_ID, {
           input: interruptInput,
           config: { recursion_limit: 400 },
           ifNotExists: "create",
           streamResumable: true,
           multitaskStrategy: "enqueue",
           streamMode: ["values", "messages"],
-        }
-      );
+        });
 
-      // Just submit the interrupt - existing planner session will pick it up automatically
-      const successLogs = formatDisplayLog("Interrupt sent to existing session");
-    //   setLogs(prev => [...prev, ...successLogs]);
-          } catch (err: any) {
-        const errorLogs = formatDisplayLog(`Error sending interrupt: ${err.message}`);
-        // setLogs(prev => [...prev, ...errorLogs]);
+        // Just submit the interrupt - existing planner session will pick it up automatically
+        setLogs((prev) => [...prev, `✅ Interrupt sent to existing session`]);
+      } catch (err: any) {
+        setLogs((prev) => [...prev, `Error sending interrupt: ${err.message}`]);
       }
-  }, [client, threadId, selectedRepo, setLogs]);
+    },
+    [client, threadId, selectedRepo, setLogs],
+  );
 
   // On mount, check for existing token
   useEffect(() => {
@@ -338,7 +339,10 @@ const App: React.FC = () => {
     useInput((inputChar: string, key: { [key: string]: any }) => {
       if (streamingPhase !== "awaitingFeedback") return;
       if (key.return) {
-        if (input.trim().toLowerCase() === "approve" || input.trim().toLowerCase() === "deny") {
+        if (
+          input.trim().toLowerCase() === "approve" ||
+          input.trim().toLowerCase() === "deny"
+        ) {
           setPlannerFeedback(input.trim().toLowerCase());
           setInput(""); // Clear input after submitting
         }
@@ -369,13 +373,20 @@ const App: React.FC = () => {
           const installationAccessToken = await getInstallationAccessToken();
           const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
           if (!userAccessToken || !installationAccessToken || !encryptionKey) {
-            const errorLogs = formatDisplayLog("Missing access tokens or SECRETS_ENCRYPTION_KEY.");
-            setLogs(errorLogs);
+            setLogs([
+              `Missing secrets: ${userAccessToken ? "" : "userAccessToken, "}${installationAccessToken ? "" : "installationAccessToken, "}${encryptionKey ? "" : "encryptionKey"}`,
+            ]);
             setIsStreaming(false);
             return;
           }
-          const encryptedUserToken = encryptSecret(userAccessToken, encryptionKey);
-          const encryptedInstallationToken = encryptSecret(installationAccessToken, encryptionKey);
+          const encryptedUserToken = encryptSecret(
+            userAccessToken,
+            encryptionKey,
+          );
+          const encryptedInstallationToken = encryptSecret(
+            installationAccessToken,
+            encryptionKey,
+          );
           const [owner, repoName] = selectedRepo.full_name.split("/");
           const runInput = {
             messages: [
@@ -404,87 +415,106 @@ const App: React.FC = () => {
           const thread = await newClient.threads.create();
           const threadId = thread["thread_id"];
           setThreadId(threadId);
-          const run = await newClient.runs.create(
-            threadId,
-            MANAGER_GRAPH_ID,
-            {
-              input: runInput,
-              config: { recursion_limit: 400 },
-              ifNotExists: "create",
-              streamResumable: true,
-              streamMode: ["values", "messages"],
-            }
-          );
-		  
+          const run = await newClient.runs.create(threadId, MANAGER_GRAPH_ID, {
+            input: runInput,
+            config: { recursion_limit: 400 },
+            ifNotExists: "create",
+            streamResumable: true,
+            streamMode: ["updates", "values"],
+          });
+
           let plannerStreamed = false;
           let programmerStreamed = false;
-          for await (const chunk of newClient.runs.joinStream(threadId, run.run_id)) {
-
-            const formatted = formatDisplayLog(chunk);
-            if (formatted.length > 0) {
-              setLogs(prev => [...prev, ...formatted]);
+          for await (const chunk of newClient.runs.joinStream(
+            threadId,
+            run.run_id,
+          )) {
+            if (chunk.event === "updates") {
+              const formatted = formatDisplayLog(chunk);
+              if (formatted.length > 0) {
+                setLogs((prev) => [...prev, ...formatted]);
+              }
             }
-            
+
             // Check for plannerSession
-            // if (
-            //   !plannerStreamed &&
-            //   chunk.data &&
-            //   chunk.data.plannerSession &&
-            //   typeof chunk.data.plannerSession.threadId === "string" &&
-            //   typeof chunk.data.plannerSession.runId === "string"
-            // ) {
-            //   plannerStreamed = true;
-            //   setPlannerThreadId(chunk.data.plannerSession.threadId);
-            //   for await (const subChunk of newClient.runs.joinStream(
-            //     chunk.data.plannerSession.threadId,
-            //     chunk.data.plannerSession.runId
-            //   )) {
-                
-			// 	const formatted = formatDisplayLog(subChunk);
-            //     const filteredFormatted = formatted.filter(log => !log.startsWith('[HUMAN]'));
+            if (
+              !plannerStreamed &&
+              chunk.data &&
+              chunk.data.plannerSession &&
+              typeof chunk.data.plannerSession.threadId === "string" &&
+              typeof chunk.data.plannerSession.runId === "string"
+            ) {
+              plannerStreamed = true;
+              setPlannerThreadId(chunk.data.plannerSession.threadId);
+              for await (const subChunk of newClient.runs.joinStream(
+                chunk.data.plannerSession.threadId,
+                chunk.data.plannerSession.runId,
+                {
+                  streamMode: ["updates", "values"],
+                },
+              )) {
+                if (subChunk.event === "updates") {
+                  const formatted = formatDisplayLog(subChunk);
+                  // Filter out human messages from planner stream (already logged in manager)
+                  const filteredFormatted = formatted.filter(
+                    (log) => !log.startsWith("[HUMAN]"),
+                  );
+                  if (filteredFormatted.length > 0) {
+                    setLogs((prev) => [...prev, ...filteredFormatted]);
+                  }
+                }
 
-            //     if (filteredFormatted.length > 0) {
-            //       setLogs(prev => [...prev, ...filteredFormatted]);
-            //     }
+                // Check for programmer session
+                if (
+                  !programmerStreamed &&
+                  subChunk.data?.programmerSession?.threadId &&
+                  typeof subChunk.data.programmerSession.threadId ===
+                    "string" &&
+                  typeof subChunk.data.programmerSession.runId === "string"
+                ) {
+                  programmerStreamed = true;
+                  setProgrammerThreadId(
+                    subChunk.data.programmerSession.threadId,
+                  );
+                  for await (const programmerChunk of newClient.runs.joinStream(
+                    subChunk.data.programmerSession.threadId,
+                    subChunk.data.programmerSession.runId,
+                    {
+                      streamMode: ["updates", "values"],
+                    },
+                  )) {
+                    if (programmerChunk.event === "updates") {
+                      const formatted = formatDisplayLog(programmerChunk);
+                      if (formatted.length > 0) {
+                        setLogs((prev) => [...prev, ...formatted]);
+                      }
+                    }
+                  }
+                }
 
-            //     // Check for programmer session
-            //     if (
-            //       !programmerStreamed &&
-            //       subChunk.data?.programmerSession?.threadId &&
-            //       typeof subChunk.data.programmerSession.threadId === "string" &&
-            //       typeof subChunk.data.programmerSession.runId === "string"
-            //     ) {
-            //       programmerStreamed = true;
-            //       setProgrammerThreadId(subChunk.data.programmerSession.threadId);
-            //       for await (const programmerChunk of newClient.runs.joinStream(
-            //         subChunk.data.programmerSession.threadId,
-            //         subChunk.data.programmerSession.runId
-            //       )) {
-            //         const formatted = formatDisplayLog(programmerChunk);
-            //         if (formatted.length > 0) {
-            //           setLogs(prev => [...prev, ...formatted, chunk.event]);
-            //         }
-            //       }
-            //     }
-
-            //     // Detect HumanInterrupt in planner stream
-            //     const interruptArr = subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
-            //       ? subChunk.data["__interrupt__"]
-            //       : undefined;
-            //     const firstInterruptValue = interruptArr && interruptArr[0] && interruptArr[0].value
-            //       ? interruptArr[0].value
-            //       : undefined;
-            //     if (isAgentInboxInterruptSchema(firstInterruptValue)) {
-            //       setPendingInterrupt(firstInterruptValue);
-            //       setStreamingPhase("awaitingFeedback");
-            //       return; // Pause streaming, let React render feedback prompt
-            //     }
-            //   }
-            // }
+                // Detect HumanInterrupt in planner stream
+                const interruptArr =
+                  subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
+                    ? subChunk.data["__interrupt__"]
+                    : undefined;
+                const firstInterruptValue =
+                  interruptArr && interruptArr[0] && interruptArr[0].value
+                    ? interruptArr[0].value
+                    : undefined;
+                if (isAgentInboxInterruptSchema(firstInterruptValue)) {
+                  setPendingInterrupt(firstInterruptValue);
+                  setStreamingPhase("awaitingFeedback");
+                  return; // Pause streaming, let React render feedback prompt
+                }
+              }
+            }
           }
           setStreamingPhase("done");
         } catch (err: any) {
-          setLogs(prev => [...prev, `Error during streaming: ${err.message}`]);
+          setLogs((prev) => [
+            ...prev,
+            `Error during streaming: ${err.message}`,
+          ]);
         } finally {
           setIsStreaming(false);
           setPrompt("");
@@ -495,23 +525,36 @@ const App: React.FC = () => {
 
   // Add this where we handle planner feedback
   useEffect(() => {
-    if (streamingPhase === "awaitingFeedback" && plannerFeedback && plannerThreadId) {
+    if (
+      streamingPhase === "awaitingFeedback" &&
+      plannerFeedback &&
+      plannerThreadId
+    ) {
       // Immediately switch to streaming mode to hide the feedback prompt
       setStreamingPhase("streaming");
-      
+
       const submitFeedback = async () => {
         try {
           const userAccessToken = getAccessToken();
           const installationAccessToken = await getInstallationAccessToken();
           const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
-          
+
           if (!userAccessToken || !installationAccessToken || !encryptionKey) {
-            setLogs(prev => [...prev, "Missing access tokens for feedback submission"]);
+            setLogs((prev) => [
+              ...prev,
+              "Missing access tokens for feedback submission",
+            ]);
             return;
           }
 
-          const encryptedUserToken = encryptSecret(userAccessToken, encryptionKey);
-          const encryptedInstallationToken = encryptSecret(installationAccessToken, encryptionKey);
+          const encryptedUserToken = encryptSecret(
+            userAccessToken,
+            encryptionKey,
+          );
+          const encryptedInstallationToken = encryptSecret(
+            installationAccessToken,
+            encryptionKey,
+          );
           const [owner, repoName] = selectedRepo?.full_name.split("/") || [];
 
           const client = new Client({
@@ -523,66 +566,67 @@ const App: React.FC = () => {
             },
           });
 
-          const formatted = formatDisplayLog(`Human feedback: ${plannerFeedback}`);
-        //   if (formatted.length > 0) {
-        //     setLogs(prev => [...prev, ...formatted]);
-        //   }
-          
+          const formatted = formatDisplayLog(
+            `Human feedback: ${plannerFeedback}`,
+          );
+          if (formatted.length > 0) {
+            setLogs((prev) => [...prev, ...formatted]);
+          }
+
           // Create a new stream with the feedback
-          const stream = await client.runs.stream(plannerThreadId, PLANNER_GRAPH_ID, {
-            command: { 
-              resume: [{
-                type: plannerFeedback === 'approve' ? 'accept' : 'ignore',
-                args: null
-              }]
+          const stream = await client.runs.stream(
+            plannerThreadId,
+            PLANNER_GRAPH_ID,
+            {
+              command: {
+                resume: [
+                  {
+                    type: plannerFeedback === "approve" ? "accept" : "ignore",
+                    args: null,
+                  },
+                ],
+              },
+              streamMode: ["updates", "messages"],
             },
-            streamMode: ["values", "messages"],
-          });
+          );
 
           let programmerStreamed = false;
           // Process the stream response
           for await (const chunk of stream) {
-            // Filter out message metadata to avoid duplicates
-            if (chunk.event === 'messages/metadata') {
-              continue;
+            const formatted = formatDisplayLog(chunk);
+            if (formatted.length > 0) {
+              setLogs((prev) => [...prev, ...formatted]);
             }
-            
-			const formatted = formatDisplayLog(chunk);
-            // if (formatted.length > 0) {
-            //   setLogs(prev => [...prev, ...formatted]);
-            // }
-            
+
             // Check for programmer session in the resumed planner stream
             const chunkData = chunk.data as any;
             if (
               !programmerStreamed &&
               chunkData?.programmerSession?.threadId &&
-              typeof chunkData.programmerSession.threadId === 'string' &&
-              typeof chunkData.programmerSession.runId === 'string'
+              typeof chunkData.programmerSession.threadId === "string" &&
+              typeof chunkData.programmerSession.runId === "string"
             ) {
               programmerStreamed = true;
               setProgrammerThreadId(chunkData.programmerSession.threadId);
               // Join programmer stream
               for await (const programmerChunk of client.runs.joinStream(
                 chunkData.programmerSession.threadId,
-                chunkData.programmerSession.runId
+                chunkData.programmerSession.runId,
               )) {
-                // Filter out message metadata from programmer stream
-                if (programmerChunk.event === 'messages/metadata') {
-                  continue;
+                const formatted = formatDisplayLog(programmerChunk);
+                if (formatted.length > 0) {
+                  setLogs((prev) => [...prev, ...formatted]);
                 }
-                
-				const formatted = formatDisplayLog(programmerChunk);
-                // if (formatted.length > 0) {
-                //   setLogs(prev => [...prev, ...formatted]);
-                // }
               }
             }
           }
-
         } catch (error: unknown) {
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          setLogs(prev => [...prev, `Error submitting feedback: ${errorMessage}`]);
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          setLogs((prev) => [
+            ...prev,
+            `Error submitting feedback: ${errorMessage}`,
+          ]);
         } finally {
           // Clear feedback state
           setPlannerFeedback(null);
@@ -651,9 +695,7 @@ const App: React.FC = () => {
         </Box>
         {waitingForInstall && (
           <Box flexDirection="column" marginTop={1}>
-            <Text>
-              Waiting for GitHub App installation to complete...
-            </Text>
+            <Text>Waiting for GitHub App installation to complete...</Text>
             <Text dimColor>
               After installing the app, return here to continue.
             </Text>
@@ -661,9 +703,7 @@ const App: React.FC = () => {
         )}
         {installChecked && !waitingForInstall && (
           <Box flexDirection="column" marginTop={1}>
-            <Text>
-              GitHub App installation detected! You can now proceed.
-            </Text>
+            <Text>GitHub App installation detected! You can now proceed.</Text>
             <Text dimColor>Press Enter to continue.</Text>
           </Box>
         )}
@@ -682,13 +722,15 @@ const App: React.FC = () => {
     const headerHeight = hasStartedChat ? 0 : 9; // Welcome message takes ~9 lines
     const inputHeight = 4; // Fixed input area height (increased due to padding)
     const paddingHeight = 3; // Extra padding to prevent overlap
-    const availableLogHeight = Math.max(5, process.stdout.rows - headerHeight - inputHeight - paddingHeight);
-    
+    const availableLogHeight = Math.max(
+      5,
+      process.stdout.rows - headerHeight - inputHeight - paddingHeight,
+    );
+
     // Always show the most recent logs (auto-scroll to bottom)
-    const visibleLogs = logs.length > availableLogHeight 
-      ? logs.slice(-availableLogHeight) 
-      : logs;
-    
+    const visibleLogs =
+      logs.length > availableLogHeight ? logs.slice(-availableLogHeight) : logs;
+
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
         {/* Welcome message at top - only show before first chat */}
@@ -708,16 +750,19 @@ const App: React.FC = () => {
               <Text bold>LangChain Open SWE CLI</Text>
             </Box>
             <Box justifyContent="center" marginY={1}>
-              <Text dimColor>Describe your coding problem. It'll run in the sandbox and a PR will be created.</Text>
+              <Text dimColor>
+                Describe your coding problem. It'll run in the sandbox and a PR
+                will be created.
+              </Text>
             </Box>
           </Box>
         )}
 
         {/* Auto-scrolling logs area - strict boundary container */}
-        <Box 
-          height={availableLogHeight} 
-          flexDirection="column" 
-          paddingX={1} 
+        <Box
+          height={availableLogHeight}
+          flexDirection="column"
+          paddingX={1}
           paddingBottom={1}
           overflowY="hidden"
           flexShrink={0}
@@ -726,7 +771,10 @@ const App: React.FC = () => {
           <Box flexDirection="column">
             {visibleLogs.map((log, index) => (
               <Box key={`${logs.length}-${index}`}>
-                <Text dimColor={!log.startsWith('[AI]')} bold={log.startsWith('[AI]')}>
+                <Text
+                  dimColor={!log.startsWith("[AI]")}
+                  bold={log.startsWith("[AI]")}
+                >
                   {log}
                 </Text>
               </Box>
@@ -735,8 +783,8 @@ const App: React.FC = () => {
         </Box>
 
         {/* Fixed input area at bottom */}
-        <Box 
-          flexDirection="column" 
+        <Box
+          flexDirection="column"
           paddingX={1}
           paddingY={1}
           borderStyle="single"
@@ -747,21 +795,25 @@ const App: React.FC = () => {
         >
           {streamingPhase === "awaitingFeedback" ? (
             <PlannerFeedbackInput />
-                      ) : (
-              <Box>
-                <Text dimColor>❯ </Text>
-                {!hasStartedChat ? (
-                  <CustomInput onSubmit={(value) => {
+          ) : (
+            <Box>
+              <Text dimColor>❯ </Text>
+              {!hasStartedChat ? (
+                <CustomInput
+                  onSubmit={(value) => {
                     setHasStartedChat(true);
                     setPrompt(value);
-                  }} />
-                ) : (
-                  <CustomInput onSubmit={(value) => {
+                  }}
+                />
+              ) : (
+                <CustomInput
+                  onSubmit={(value) => {
                     sendInterruptMessage(value);
-                  }} />
-                )}
-              </Box>
-            )}
+                  }}
+                />
+              )}
+            </Box>
+          )}
         </Box>
       </Box>
     );
@@ -783,7 +835,8 @@ const App: React.FC = () => {
           marginBottom={1}
         >
           <Text>
-            Do you want to start the GitHub authentication flow? (y/n) {authInput}
+            Do you want to start the GitHub authentication flow? (y/n){" "}
+            {authInput}
           </Text>
         </Box>
       </Box>

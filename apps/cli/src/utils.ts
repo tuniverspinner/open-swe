@@ -17,4 +17,4 @@ export function isAgentInboxInterruptSchema(value: unknown): boolean {
     "allow_edit" in valueAsObject.config &&
     "allow_ignore" in valueAsObject.config
   );
-} 
+}
