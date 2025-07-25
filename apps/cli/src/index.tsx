@@ -188,7 +188,9 @@ const App: React.FC = () => {
       return;
     }
 
-    setLogs(prev => [...prev, `📤 Interrupt: "${message}"`]);
+    // Format the interrupt message through formatDisplayLog for consistency
+    // const interruptLogs = formatDisplayLog(`Interrupt: ${message}`);
+    // setLogs(prev => [...prev, ...interruptLogs]);
     
     try {
       const [owner, repoName] = selectedRepo.full_name.split("/");
@@ -206,7 +208,7 @@ const App: React.FC = () => {
           branch: selectedRepo.default_branch || "main",
         },
       };
-      const run = await client.runs.create(
+      await client.runs.create(
         threadId,
         MANAGER_GRAPH_ID,
         {
@@ -220,10 +222,12 @@ const App: React.FC = () => {
       );
 
       // Just submit the interrupt - existing planner session will pick it up automatically
-      setLogs(prev => [...prev, `✅ Interrupt sent to existing session`]);
-    } catch (err: any) {
-      setLogs(prev => [...prev, `Error sending interrupt: ${err.message}`]);
-    }
+      const successLogs = formatDisplayLog("Interrupt sent to existing session");
+    //   setLogs(prev => [...prev, ...successLogs]);
+          } catch (err: any) {
+        const errorLogs = formatDisplayLog(`Error sending interrupt: ${err.message}`);
+        // setLogs(prev => [...prev, ...errorLogs]);
+      }
   }, [client, threadId, selectedRepo, setLogs]);
 
   // On mount, check for existing token
@@ -365,7 +369,8 @@ const App: React.FC = () => {
           const installationAccessToken = await getInstallationAccessToken();
           const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
           if (!userAccessToken || !installationAccessToken || !encryptionKey) {
-            setLogs(["Missing access tokens or SECRETS_ENCRYPTION_KEY."]);
+            const errorLogs = formatDisplayLog("Missing access tokens or SECRETS_ENCRYPTION_KEY.");
+            setLogs(errorLogs);
             setIsStreaming(false);
             return;
           }
@@ -414,65 +419,68 @@ const App: React.FC = () => {
           let plannerStreamed = false;
           let programmerStreamed = false;
           for await (const chunk of newClient.runs.joinStream(threadId, run.run_id)) {
+
             const formatted = formatDisplayLog(chunk);
             if (formatted.length > 0) {
               setLogs(prev => [...prev, ...formatted]);
             }
+            
             // Check for plannerSession
-            if (
-              !plannerStreamed &&
-              chunk.data &&
-              chunk.data.plannerSession &&
-              typeof chunk.data.plannerSession.threadId === "string" &&
-              typeof chunk.data.plannerSession.runId === "string"
-            ) {
-              plannerStreamed = true;
-              setPlannerThreadId(chunk.data.plannerSession.threadId);
-              for await (const subChunk of newClient.runs.joinStream(
-                chunk.data.plannerSession.threadId,
-                chunk.data.plannerSession.runId
-              )) {
-				const formatted = formatDisplayLog(subChunk);
-                // Filter out human messages from planner stream (already logged in manager)
-                const filteredFormatted = formatted.filter(log => !log.startsWith('[HUMAN]'));
-                if (filteredFormatted.length > 0) {
-                  setLogs(prev => [...prev, ...filteredFormatted]);
-                }
+            // if (
+            //   !plannerStreamed &&
+            //   chunk.data &&
+            //   chunk.data.plannerSession &&
+            //   typeof chunk.data.plannerSession.threadId === "string" &&
+            //   typeof chunk.data.plannerSession.runId === "string"
+            // ) {
+            //   plannerStreamed = true;
+            //   setPlannerThreadId(chunk.data.plannerSession.threadId);
+            //   for await (const subChunk of newClient.runs.joinStream(
+            //     chunk.data.plannerSession.threadId,
+            //     chunk.data.plannerSession.runId
+            //   )) {
+                
+			// 	const formatted = formatDisplayLog(subChunk);
+            //     const filteredFormatted = formatted.filter(log => !log.startsWith('[HUMAN]'));
 
-                // Check for programmer session
-                if (
-                  !programmerStreamed &&
-                  subChunk.data?.programmerSession?.threadId &&
-                  typeof subChunk.data.programmerSession.threadId === "string" &&
-                  typeof subChunk.data.programmerSession.runId === "string"
-                ) {
-                  programmerStreamed = true;
-                  setProgrammerThreadId(subChunk.data.programmerSession.threadId);
-                  for await (const programmerChunk of newClient.runs.joinStream(
-                    subChunk.data.programmerSession.threadId,
-                    subChunk.data.programmerSession.runId
-                  )) {
-                    const formatted = formatDisplayLog(programmerChunk);
-                    if (formatted.length > 0) {
-                      setLogs(prev => [...prev, ...formatted]);
-                    }
-                  }
-                }
+            //     if (filteredFormatted.length > 0) {
+            //       setLogs(prev => [...prev, ...filteredFormatted]);
+            //     }
 
-                // Detect HumanInterrupt in planner stream
-                const interruptArr = subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
-                  ? subChunk.data["__interrupt__"]
-                  : undefined;
-                const firstInterruptValue = interruptArr && interruptArr[0] && interruptArr[0].value
-                  ? interruptArr[0].value
-                  : undefined;
-                if (isAgentInboxInterruptSchema(firstInterruptValue)) {
-                  setPendingInterrupt(firstInterruptValue);
-                  setStreamingPhase("awaitingFeedback");
-                  return; // Pause streaming, let React render feedback prompt
-                }
-              }
-            }
+            //     // Check for programmer session
+            //     if (
+            //       !programmerStreamed &&
+            //       subChunk.data?.programmerSession?.threadId &&
+            //       typeof subChunk.data.programmerSession.threadId === "string" &&
+            //       typeof subChunk.data.programmerSession.runId === "string"
+            //     ) {
+            //       programmerStreamed = true;
+            //       setProgrammerThreadId(subChunk.data.programmerSession.threadId);
+            //       for await (const programmerChunk of newClient.runs.joinStream(
+            //         subChunk.data.programmerSession.threadId,
+            //         subChunk.data.programmerSession.runId
+            //       )) {
+            //         const formatted = formatDisplayLog(programmerChunk);
+            //         if (formatted.length > 0) {
+            //           setLogs(prev => [...prev, ...formatted, chunk.event]);
+            //         }
+            //       }
+            //     }
+
+            //     // Detect HumanInterrupt in planner stream
+            //     const interruptArr = subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
+            //       ? subChunk.data["__interrupt__"]
+            //       : undefined;
+            //     const firstInterruptValue = interruptArr && interruptArr[0] && interruptArr[0].value
+            //       ? interruptArr[0].value
+            //       : undefined;
+            //     if (isAgentInboxInterruptSchema(firstInterruptValue)) {
+            //       setPendingInterrupt(firstInterruptValue);
+            //       setStreamingPhase("awaitingFeedback");
+            //       return; // Pause streaming, let React render feedback prompt
+            //     }
+            //   }
+            // }
           }
           setStreamingPhase("done");
         } catch (err: any) {
@@ -516,9 +524,9 @@ const App: React.FC = () => {
           });
 
           const formatted = formatDisplayLog(`Human feedback: ${plannerFeedback}`);
-          if (formatted.length > 0) {
-            setLogs(prev => [...prev, ...formatted]);
-          }
+        //   if (formatted.length > 0) {
+        //     setLogs(prev => [...prev, ...formatted]);
+        //   }
           
           // Create a new stream with the feedback
           const stream = await client.runs.stream(plannerThreadId, PLANNER_GRAPH_ID, {
@@ -534,10 +542,15 @@ const App: React.FC = () => {
           let programmerStreamed = false;
           // Process the stream response
           for await (const chunk of stream) {
-			const formatted = formatDisplayLog(chunk);
-            if (formatted.length > 0) {
-              setLogs(prev => [...prev, ...formatted]);
+            // Filter out message metadata to avoid duplicates
+            if (chunk.event === 'messages/metadata') {
+              continue;
             }
+            
+			const formatted = formatDisplayLog(chunk);
+            // if (formatted.length > 0) {
+            //   setLogs(prev => [...prev, ...formatted]);
+            // }
             
             // Check for programmer session in the resumed planner stream
             const chunkData = chunk.data as any;
@@ -554,10 +567,15 @@ const App: React.FC = () => {
                 chunkData.programmerSession.threadId,
                 chunkData.programmerSession.runId
               )) {
-				const formatted = formatDisplayLog(programmerChunk);
-                if (formatted.length > 0) {
-                  setLogs(prev => [...prev, ...formatted]);
+                // Filter out message metadata from programmer stream
+                if (programmerChunk.event === 'messages/metadata') {
+                  continue;
                 }
+                
+				const formatted = formatDisplayLog(programmerChunk);
+                // if (formatted.length > 0) {
+                //   setLogs(prev => [...prev, ...formatted]);
+                // }
               }
             }
           }
@@ -708,7 +726,9 @@ const App: React.FC = () => {
           <Box flexDirection="column">
             {visibleLogs.map((log, index) => (
               <Box key={`${logs.length}-${index}`}>
-                <Text dimColor>{log}</Text>
+                <Text dimColor={!log.startsWith('[AI]')} bold={log.startsWith('[AI]')}>
+                  {log}
+                </Text>
               </Box>
             ))}
           </Box>

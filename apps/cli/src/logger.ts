@@ -122,6 +122,14 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
     if (chunk.startsWith('Human feedback:')) {
       return [`[HUMAN FEEDBACK RECEIVED] ${chunk.replace('Human feedback:', '').trim()}`];
     }
+    if (chunk.startsWith('Interrupt:')) {
+      const message = chunk.replace('Interrupt:', '').trim();
+      return [
+        '═══════════════════════════════════════',
+        `📤 INTERRUPT: "${message}"`,
+        '═══════════════════════════════════════'
+      ];
+    }
     // Filter out raw file content and object references
     if (chunk === '[object Object]' || 
         chunk.includes('total 4') ||
@@ -133,7 +141,13 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
     ) {
       return [];
     }
-    return [`[SYSTEM] ${chunk}`];
+    // Single line system messages
+    const cleanChunk = chunk.replace(/\s+/g, ' ').trim();
+    const maxLength = 150;
+    const truncated = cleanChunk.length > maxLength 
+      ? cleanChunk.slice(0, maxLength) + '... [trunc]'
+      : cleanChunk;
+    return [`[SYSTEM] ${truncated}`];
   }
 
   const data = chunk.data;
@@ -145,23 +159,6 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
   }
   if (data.programmerSession) {
     logs.push('[PROGRAMMER SESSION STARTED]');
-  }
-
-  // Handle interrupts and plans
-  if (data.__interrupt__) {
-    const interrupt = data.__interrupt__[0]?.value;
-    if (interrupt?.action_request?.args?.plan) {
-      const plan = interrupt.action_request.args.plan;
-      const steps = plan.split(':::')
-        .map((s: string) => s.trim())
-        .filter(Boolean);
-      logs.push(
-        '[PROPOSED PLAN]',
-        ...steps.map((step: string, idx: number) => `  ${idx + 1}. ${step}`)
-      );
-    } else {
-      logs.push('[INTERRUPT] Waiting for feedback...');
-    }
   }
 
   // Handle messages
@@ -177,7 +174,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           const maxLength = 500;
           let formattedResult = result.replace(/\s+/g, ' ');
           if (formattedResult.length > maxLength) {
-            formattedResult = formattedResult.slice(0, maxLength) + '... [truncated]';
+            formattedResult = formattedResult.slice(0, maxLength) + '... [trunc]';
           }
           logs.push(`[TOOL RESULT] ${toolName}: ${formattedResult}`);
         }
@@ -187,7 +184,12 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
       if (msg.type === 'ai') {
         // Handle reasoning if present
         if (msg.additional_kwargs?.reasoning) {
-          logs.push(`[REASONING]\n  ${msg.additional_kwargs.reasoning}`);
+          const reasoning = msg.additional_kwargs.reasoning.replace(/\s+/g, ' ').trim();
+          const maxLength = 150;
+          const truncated = reasoning.length > maxLength 
+            ? reasoning.slice(0, maxLength) + '... [trunc]'
+            : reasoning;
+          logs.push(`[REASONING] ${truncated}`);
         }
 
         // Handle tool calls
@@ -195,16 +197,24 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           msg.tool_calls.forEach((tool: ToolCall) => {
             const action = formatToolCall(tool);
             const toolName = tool.name || 'unknown';
-            logs.push(`[TOOL CALL] ${toolName}: ${JSON.stringify(tool.args, null, 2)}`);
+            // Single line tool call with truncated args
+            const argsStr = JSON.stringify(tool.args).replace(/\s+/g, ' ');
+            const maxLength = 100;
+            const truncated = argsStr.length > maxLength 
+              ? argsStr.slice(0, maxLength) + '... [trunc]'
+              : argsStr;
+            logs.push(`[TOOL CALL] ${toolName}: ${truncated}`);
           });
         }
         
         // Handle technical notes
         if (msg.additional_kwargs?.notes) {
-          logs.push(
-            '[TECHNICAL NOTES]',
-            ...msg.additional_kwargs.notes.map((note: string) => `  • ${note}`)
-          );
+          const notesText = msg.additional_kwargs.notes.join(' | ').replace(/\s+/g, ' ').trim();
+          const maxLength = 150;
+          const truncated = notesText.length > maxLength 
+            ? notesText.slice(0, maxLength) + '... [trunc]'
+            : notesText;
+          logs.push(`[TECHNICAL NOTES] ${truncated}`);
         }
 
         // Handle regular AI messages
@@ -212,7 +222,14 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           ? msg.content
           : msg.content?.[0]?.text || msg.content?.[0]?.input || '';
         if (text) {
-          logs.push(`[AI] ${text}`);
+          // Always single line, remove newlines and truncate
+          const cleanText = text.replace(/\s+/g, ' ').trim();
+          const maxLength = 200;
+          const truncated = cleanText.length > maxLength 
+            ? cleanText.slice(0, maxLength) + '... [trunc]'
+            : cleanText;
+          logs.push(`${Object.keys(msg)}`);
+          logs.push(`[AI] ${cleanText}`);
         }
       }
 
@@ -222,7 +239,13 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           ? msg.content
           : msg.content?.[0]?.text || msg.content?.[0]?.input || '';
         if (text) {
-          logs.push(`[HUMAN] ${text}`);
+          // Single line human messages
+          const cleanText = text.replace(/\s+/g, ' ').trim();
+          const maxLength = 150;
+          const truncated = cleanText.length > maxLength 
+            ? cleanText.slice(0, maxLength) + '... [trunc]'
+            : cleanText;
+          logs.push(`[HUMAN] ${truncated}`);
         }
       }
     }
@@ -230,9 +253,13 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
 
   // Handle task status updates
   if (data.action) {
-    const actionStr = JSON.stringify(data.action);
+    const actionStr = JSON.stringify(data.action).replace(/\s+/g, ' ');
     if (actionStr !== '{}' && !actionStr.includes('[object Object]')) {
-      logs.push(`[ACTION] ${actionStr}`);
+      const maxLength = 100;
+      const truncated = actionStr.length > maxLength 
+        ? actionStr.slice(0, maxLength) + '... [trunc]'
+        : actionStr;
+      logs.push(`[ACTION] ${truncated}`);
     }
   }
 
@@ -242,6 +269,32 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
     logs.push(`[HUMAN FEEDBACK RECEIVED] ${type}`);
   }
 
+         // Handle interrupts and plans
+     if (data.__interrupt__) {
+       const interrupt = data.__interrupt__[0]?.value;
+       if (interrupt?.action_request?.args?.plan) {
+         const plan = interrupt.action_request.args.plan;
+         const steps = plan.split(':::')
+           .map((s: string) => s.trim())
+           .filter(Boolean);
+   
+         // Add clear visual separation and format nicely
+         logs.push(
+           ' ', // Blank line for separation
+
+           '🎯 PROPOSED PLAN',
+           ...steps.map((step: string, idx: number) => `  ${idx + 1}. ${step}`),
+
+           ' ' // Blank line after
+         );
+             } else {
+         logs.push(
+           ' ', // Blank line for separation
+           '⏳ INTERRUPT: Waiting for feedback...',
+           ' ' // Blank line after
+         );
+       }
+    }
   return logs;
 }
 
