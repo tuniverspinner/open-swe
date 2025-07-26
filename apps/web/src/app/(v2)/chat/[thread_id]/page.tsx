@@ -12,6 +12,7 @@ import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 import { use, useMemo } from "react";
+import { useQueryState } from "nuqs";
 import { threadsToMetadata } from "@/lib/thread-utils";
 
 interface ThreadPageProps {
@@ -25,6 +26,7 @@ export default function ThreadPage({
 }) {
   const router = useRouter();
   const { thread_id } = use(params);
+  const [, setThreadId] = useQueryState("threadId");
   const { currentInstallation } = useGitHubAppProvider();
   const stream = useStream<ManagerGraphState>({
     apiUrl: process.env.NEXT_PUBLIC_API_URL ?? "",
@@ -59,6 +61,7 @@ export default function ThreadPage({
   );
 
   const handleBackToHome = () => {
+    setThreadId(null);
     router.push("/chat");
   };
 
