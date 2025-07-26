@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ThreadMetadata } from "./types";
+import { useQueryState } from "nuqs";
 import { ThreadCard } from "./thread-card";
 
 interface ThreadSwitcherProps {
@@ -35,6 +36,7 @@ export function ThreadSwitcher({
 }: ThreadSwitcherProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const [, setThreadId] = useQueryState("threadId");
 
   const otherThreads = allThreads.filter((t) => t.id !== currentThread.id);
 
@@ -67,6 +69,7 @@ export function ThreadSwitcher({
           {/* New Chat Button */}
           <Button
             onClick={() => {
+              setThreadId(null);
               router.push("/chat");
               setOpen(false);
             }}
@@ -108,3 +111,4 @@ export function ThreadSwitcher({
     </Sheet>
   );
 }
+
