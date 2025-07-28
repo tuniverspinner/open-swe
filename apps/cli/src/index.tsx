@@ -21,7 +21,6 @@ const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 const GITHUB_LOGIN_URL =
   process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
-// Start the auth server immediately so callback URLs always work
 startAuthServer();
 
 // eslint-disable-next-line no-unused-vars
