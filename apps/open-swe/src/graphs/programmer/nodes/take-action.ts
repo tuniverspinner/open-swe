@@ -53,8 +53,8 @@ export async function takeAction(
   const applyPatchTool = createApplyPatchTool(state, config);
   const shellTool = createShellTool(state, config);
   const searchTool = createSearchTool(state, config);
-  const installDependenciesTool = createInstallDependenciesTool(state);
-  const getURLContentTool = createGetURLContentTool(state);
+  const installDependenciesTool = createInstallDependenciesTool(state, config);
+  const getURLContentTool = createGetURLContentTool(state, config);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
   const mcpTools = await getMcpTools(config);
 

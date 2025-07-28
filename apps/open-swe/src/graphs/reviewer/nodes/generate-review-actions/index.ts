@@ -122,7 +122,7 @@ export async function generateReviewActions(
   const tools = [
     createSearchTool(state, config),
     createShellTool(state, config),
-    createInstallDependenciesTool(state),
+    createInstallDependenciesTool(state, config),
     createScratchpadTool(
       "when generating a final review, after all context gathering and reviewing is complete",
     ),

@@ -47,7 +47,7 @@ export async function takeReviewerActions(
 
   const shellTool = createShellTool(state, config);
   const searchTool = createSearchTool(state, config);
-  const installDependenciesTool = createInstallDependenciesTool(state);
+  const installDependenciesTool = createInstallDependenciesTool(state, config);
   const scratchpadTool = createScratchpadTool("");
   const allTools = [
     shellTool,

@@ -23,6 +23,10 @@ import { AIMessage, BaseMessage } from "@langchain/core/messages";
 import { DEFAULT_SANDBOX_CREATE_PARAMS } from "../../constants.js";
 import { getCustomRules } from "../../utils/custom-rules.js";
 import { withRetry } from "../../utils/retry.js";
+import { isLocalMode } from "../../utils/local-mode.js";
+import { getLocalShellExecutor } from "../../utils/local-shell-executor.js";
+import { promises as fs } from "fs";
+import { join } from "path";
 
 const logger = createLogger(LogLevel.INFO, "InitializeSandbox");
 
