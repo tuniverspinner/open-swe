@@ -23,6 +23,23 @@ const GITHUB_LOGIN_URL =
 
 startAuthServer();
 
+const LoadingSpinner: React.FC<{ text: string }> = ({ text }) => {
+  const [dots, setDots] = useState("");
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <Box justifyContent="center" paddingY={2}>
+      <Text>{text}{dots}</Text>
+    </Box>
+  );
+};
+
 // eslint-disable-next-line no-unused-vars
 const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
   onSubmit,
@@ -184,6 +201,8 @@ const App: React.FC = () => {
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [client, setClient] = useState<Client | null>(null);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   const sendInterruptMessage = useCallback(
     async (message: string) => {
@@ -237,20 +256,23 @@ const App: React.FC = () => {
 
   // After login, fetch and store user repos
   useEffect(() => {
-    if (isLoggedIn && repos.length === 0) {
+    if (isLoggedIn && repos.length === 0 && !loadingRepos) {
       const token = getAccessToken();
       if (token) {
+        setLoadingRepos(true);
         fetchUserRepos(token)
           .then((repos) => {
             setRepos(repos);
             setSelectingRepo(true);
+            setLoadingRepos(false);
           })
           .catch((err) => {
             console.error("Failed to fetch repos:", err);
+            setLoadingRepos(false);
           });
       }
     }
-  }, [isLoggedIn, repos.length]);
+  }, [isLoggedIn, repos.length, loadingRepos]);
 
   // Poll for installation_id after opening install page
   useEffect(() => {
@@ -361,6 +383,7 @@ const App: React.FC = () => {
     if (prompt && selectedRepo && streamingPhase === "streaming") {
       setLogs([]);
       setPlannerFeedback(null);
+      setLoadingLogs(true);
       (async () => {
         try {
           const userAccessToken = getAccessToken();
@@ -425,7 +448,12 @@ const App: React.FC = () => {
             if (chunk.event === "updates") {
               const formatted = formatDisplayLog(chunk);
               if (formatted.length > 0) {
-                setLogs((prev) => [...prev, ...formatted]);
+                setLogs((prev) => {
+                  if (prev.length === 0) {
+                    setLoadingLogs(false);
+                  }
+                  return [...prev, ...formatted];
+                });
               }
             }
 
@@ -504,8 +532,10 @@ const App: React.FC = () => {
             ...prev,
             `Error during streaming: ${err.message}`,
           ]);
+          setLoadingLogs(false);
         } finally {
           setPrompt("");
+          setLoadingLogs(false);
         }
       })();
     }
@@ -624,6 +654,15 @@ const App: React.FC = () => {
     }
   }, [streamingPhase, plannerFeedback, selectedRepo, plannerThreadId]);
 
+  // Loading repos after login
+  if (isLoggedIn && loadingRepos) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <LoadingSpinner text="Loading your repositories" />
+      </Box>
+    );
+  }
+
   // Repo selection UI
   if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
     return (
@@ -735,16 +774,20 @@ const App: React.FC = () => {
           justifyContent="flex-end"
         >
           <Box flexDirection="column">
-            {visibleLogs.map((log, index) => (
-              <Box key={`${logs.length}-${index}`}>
-                <Text
-                  dimColor={!log.startsWith("[AI]")}
-                  bold={log.startsWith("[AI]")}
-                >
-                  {log}
-                </Text>
-              </Box>
-            ))}
+            {loadingLogs && logs.length === 0 ? (
+              <LoadingSpinner text="Starting agent" />
+            ) : (
+              visibleLogs.map((log, index) => (
+                <Box key={`${logs.length}-${index}`}>
+                  <Text
+                    dimColor={!log.startsWith("[AI]")}
+                    bold={log.startsWith("[AI]")}
+                  >
+                    {log}
+                  </Text>
+                </Box>
+              ))
+            )}
           </Box>
         </Box>
 
