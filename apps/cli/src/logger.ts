@@ -1,19 +1,3 @@
-function isAgentInboxInterruptSchema(value: unknown): boolean {
-  const valueAsObject = Array.isArray(value) ? value[0] : value;
-  return (
-    valueAsObject &&
-    typeof valueAsObject === "object" &&
-    "action_request" in valueAsObject &&
-    typeof valueAsObject.action_request === "object" &&
-    "config" in valueAsObject &&
-    typeof valueAsObject.config === "object" &&
-    "allow_respond" in valueAsObject.config &&
-    "allow_accept" in valueAsObject.config &&
-    "allow_edit" in valueAsObject.config &&
-    "allow_ignore" in valueAsObject.config
-  );
-}
-
 interface LogChunk {
   event: string;
   data: any;
@@ -43,50 +27,6 @@ interface ToolCall {
   index?: number;
   id?: string;
 }
-
-/**
- * Format a tool call based on its type and arguments
- */
-function formatToolCall(tool: ToolCall): string {
-  try {
-    const args = tool.args ? JSON.parse(tool.args) : {};
-    const name = tool.name || "unknown";
-
-    switch (name.toLowerCase()) {
-      case "shell":
-        return `$ ${args.command?.join(" ") || ""}`;
-      case "search":
-        return `Search: "${args.query}"${args.include_pattern ? ` in ${args.include_pattern}` : ""}`;
-      case "edit_file":
-        return `Edit: ${args.target_file}`;
-      case "read_file":
-        return `Read: ${args.target_file}`;
-      case "grep_search":
-        return `Grep: "${args.query}"`;
-      case "list_dir":
-        return `List: ${args.relative_workspace_path}`;
-      case "file_search":
-        return `Find file: ${args.query}`;
-      case "delete_file":
-        return `Delete: ${args.target_file}`;
-      case "install_dependencies":
-        return `Install: ${args.command || ""}`;
-      case "apply_patch":
-        return `Apply patch to: ${args.file_path || ""}`;
-      default:
-        const argsStr = Object.entries(args)
-          .map(
-            ([k, v]) =>
-              `${k}: ${typeof v === "string" ? v : JSON.stringify(v)}`,
-          )
-          .join(", ");
-        return `${name}(${argsStr})`;
-    }
-  } catch (e) {
-    return tool.args || "";
-  }
-}
-
 /**
  * Format a tool result based on its type and content
  */
@@ -178,7 +118,11 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
     string,
     any
   >;
-  if (nestedDataObj && typeof nestedDataObj === "object" && "messages" in nestedDataObj) {
+  if (
+    nestedDataObj &&
+    typeof nestedDataObj === "object" &&
+    "messages" in nestedDataObj
+  ) {
     const messages = Array.isArray(nestedDataObj.messages)
       ? nestedDataObj.messages
       : [nestedDataObj.messages];
@@ -236,9 +180,9 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
                 ? argsString.slice(0, maxLength) + "... [trunc]"
                 : argsString;
             const toolName = tool.name || "unknown";
-                      logs.push(`[TOOL CALL] ${toolName}: ${truncatedArgs}`);
-            });
-          }
+            logs.push(`[TOOL CALL] ${toolName}: ${truncatedArgs}`);
+          });
+        }
 
         // Handle technical notes
         if (msg.additional_kwargs?.notes) {
@@ -261,8 +205,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
             cleanText.length > maxLength
               ? cleanText.slice(0, maxLength) + "... [trunc]"
               : cleanText;
-          logs.push(`${Object.keys(msg)}`);
-          logs.push(`[AI] ${cleanText}`);
+          logs.push(`[AI] ${truncated}`);
         }
       }
 

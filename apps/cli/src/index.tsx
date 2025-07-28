@@ -24,6 +24,7 @@ const GITHUB_LOGIN_URL =
 // Start the auth server immediately so callback URLs always work
 startAuthServer();
 
+// eslint-disable-next-line no-unused-vars
 const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
   onSubmit,
 }) => {
@@ -83,6 +84,7 @@ async function fetchUserRepos(token: string) {
 
 const RepoSearchSelect: React.FC<{
   repos: any[];
+  // eslint-disable-next-line no-unused-vars
   onSelect: (repo: any) => void;
 }> = ({ repos, onSelect }) => {
   const [search, setSearch] = useState("");
@@ -174,18 +176,13 @@ const App: React.FC = () => {
   const INSTALLATION_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || "";
   const [pollingForToken, setPollingForToken] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
-  const [isStreaming, setIsStreaming] = useState(false);
   const [prompt, setPrompt] = useState<string>("");
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
   const [streamingPhase, setStreamingPhase] = useState<
     "streaming" | "awaitingFeedback" | "done"
   >("streaming");
-  const [pendingInterrupt, setPendingInterrupt] = useState<any>(null);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
-  const [programmerThreadId, setProgrammerThreadId] = useState<string | null>(
-    null,
-  );
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [client, setClient] = useState<Client | null>(null);
 
@@ -213,7 +210,7 @@ const App: React.FC = () => {
             branch: selectedRepo.default_branch || "main",
           },
         };
-        const run = await client.runs.create(threadId, MANAGER_GRAPH_ID, {
+        await client.runs.create(threadId, MANAGER_GRAPH_ID, {
           input: interruptInput,
           config: { recursion_limit: 400 },
           ifNotExists: "create",
@@ -363,10 +360,8 @@ const App: React.FC = () => {
   // Streaming logic: when prompt is set, stream logs
   useEffect(() => {
     if (prompt && selectedRepo && streamingPhase === "streaming") {
-      setIsStreaming(true);
       setLogs([]);
       setPlannerFeedback(null);
-      setPendingInterrupt(null);
       (async () => {
         try {
           const userAccessToken = getAccessToken();
@@ -376,7 +371,6 @@ const App: React.FC = () => {
             setLogs([
               `Missing secrets: ${userAccessToken ? "" : "userAccessToken, "}${installationAccessToken ? "" : "installationAccessToken, "}${encryptionKey ? "" : "encryptionKey"}`,
             ]);
-            setIsStreaming(false);
             return;
           }
           const encryptedUserToken = encryptSecret(
@@ -473,9 +467,6 @@ const App: React.FC = () => {
                   typeof subChunk.data.programmerSession.runId === "string"
                 ) {
                   programmerStreamed = true;
-                  setProgrammerThreadId(
-                    subChunk.data.programmerSession.threadId,
-                  );
                   for await (const programmerChunk of newClient.runs.joinStream(
                     subChunk.data.programmerSession.threadId,
                     subChunk.data.programmerSession.runId,
@@ -502,7 +493,6 @@ const App: React.FC = () => {
                     ? interruptArr[0].value
                     : undefined;
                 if (isAgentInboxInterruptSchema(firstInterruptValue)) {
-                  setPendingInterrupt(firstInterruptValue);
                   setStreamingPhase("awaitingFeedback");
                   return; // Pause streaming, let React render feedback prompt
                 }
@@ -516,7 +506,6 @@ const App: React.FC = () => {
             `Error during streaming: ${err.message}`,
           ]);
         } finally {
-          setIsStreaming(false);
           setPrompt("");
         }
       })();
@@ -555,7 +544,7 @@ const App: React.FC = () => {
             installationAccessToken,
             encryptionKey,
           );
-          const [owner, repoName] = selectedRepo?.full_name.split("/") || [];
+          const [owner] = selectedRepo?.full_name.split("/") || [];
 
           const client = new Client({
             apiUrl: LANGGRAPH_URL,
@@ -607,7 +596,6 @@ const App: React.FC = () => {
               typeof chunkData.programmerSession.runId === "string"
             ) {
               programmerStreamed = true;
-              setProgrammerThreadId(chunkData.programmerSession.threadId);
               // Join programmer stream
               for await (const programmerChunk of client.runs.joinStream(
                 chunkData.programmerSession.threadId,
@@ -630,7 +618,6 @@ const App: React.FC = () => {
         } finally {
           // Clear feedback state
           setPlannerFeedback(null);
-          setPendingInterrupt(null);
         }
       };
 
@@ -725,7 +712,11 @@ const App: React.FC = () => {
     const paddingHeight = 3; // Extra padding to prevent overlap
     const availableLogHeight = Math.max(
       5,
-      process.stdout.rows - headerHeight - inputHeight - welcomeHeight - paddingHeight,
+      process.stdout.rows -
+        headerHeight -
+        inputHeight -
+        welcomeHeight -
+        paddingHeight,
     );
 
     // Always show the most recent logs (auto-scroll to bottom)
@@ -734,8 +725,6 @@ const App: React.FC = () => {
 
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
-
-
         {/* Auto-scrolling logs area - strict boundary container */}
         <Box
           height={availableLogHeight}
@@ -778,7 +767,10 @@ const App: React.FC = () => {
               </Text>
             </Box>
             <Box marginTop={2} marginBottom={1}>
-              <Text dimColor>Describe your coding problem. It'll run in the sandbox and a PR will be created.</Text>
+              <Text dimColor>
+                Describe your coding problem. It'll run in the sandbox and a PR
+                will be created.
+              </Text>
             </Box>
           </Box>
         ) : (
@@ -842,10 +834,7 @@ const App: React.FC = () => {
   }
 
   // Fallback
-  return (
-    <Box flexDirection="column" padding={1}>
-    </Box>
-  );
+  return <Box flexDirection="column" padding={1}></Box>;
 };
 
 render(<App />);
