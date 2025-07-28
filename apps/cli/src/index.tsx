@@ -22,10 +22,10 @@ const GITHUB_LOGIN_URL =
   process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
 // Check for --local flag
-const isLocalMode = process.argv.includes('--local');
+const isLocalMode = process.argv.includes("--local");
 
 // Show usage help
-if (process.argv.includes('--help') || process.argv.includes('-h')) {
+if (process.argv.includes("--help") || process.argv.includes("-h")) {
   console.log(`
 Open SWE CLI
 
@@ -47,11 +47,11 @@ Examples:
 if (isLocalMode) {
   // Set environment variable to enable local mode on the server
   process.env.OPEN_SWE_LOCAL_MODE = "true";
-  
-  console.log('🏠 Starting Open SWE CLI in Local Mode');
-  console.log('   Working directory:', process.cwd());
-  console.log('   No GitHub authentication required');
-  console.log('');
+
+  console.log("🏠 Starting Open SWE CLI in Local Mode");
+  console.log("   Working directory:", process.cwd());
+  console.log("   No GitHub authentication required");
+  console.log("");
 } else {
   startAuthServer();
 }
@@ -291,7 +291,7 @@ const App: React.FC = () => {
       setSelectedRepo({
         full_name: "local/project",
         clone_url: "local",
-        default_branch: "main"
+        default_branch: "main",
       });
       setInstallChecked(true);
       return;
@@ -305,7 +305,7 @@ const App: React.FC = () => {
   // After login, fetch and store user repos (skip in local mode)
   useEffect(() => {
     if (isLocalMode) return; // Skip repo fetching in local mode
-    
+
     if (isLoggedIn && repos.length === 0 && !loadingRepos) {
       const token = getAccessToken();
       if (token) {
@@ -327,7 +327,7 @@ const App: React.FC = () => {
   // Poll for installation_id after opening install page (skip in local mode)
   useEffect(() => {
     if (isLocalMode) return; // Skip installation polling in local mode
-    
+
     let interval: ReturnType<typeof setInterval>;
     if (waitingForInstall) {
       interval = setInterval(() => {
@@ -392,7 +392,7 @@ const App: React.FC = () => {
   // Poll for token after auth flow starts (skip in local mode)
   useEffect(() => {
     if (isLocalMode || !pollingForToken || isLoggedIn) return;
-    
+
     const interval = setInterval(() => {
       const token = getAccessToken();
       if (token) {
@@ -440,7 +440,7 @@ const App: React.FC = () => {
         try {
           let newClient;
           let runInput;
-          
+
           if (isLocalMode) {
             // In local mode, create minimal run input and client
             runInput = {
@@ -453,12 +453,12 @@ const App: React.FC = () => {
               ],
               targetRepository: {
                 owner: "local",
-                repo: "project", 
+                repo: "project",
                 branch: "main",
               },
               autoAcceptPlan: false,
             };
-			
+
             newClient = new Client({
               apiUrl: LANGGRAPH_URL,
               defaultHeaders: {
@@ -469,7 +469,11 @@ const App: React.FC = () => {
             const userAccessToken = getAccessToken();
             const installationAccessToken = await getInstallationAccessToken();
             const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
-            if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+            if (
+              !userAccessToken ||
+              !installationAccessToken ||
+              !encryptionKey
+            ) {
               setLogs([
                 `Missing secrets: ${userAccessToken ? "" : "userAccessToken, "}${installationAccessToken ? "" : "installationAccessToken, "}${encryptionKey ? "" : "encryptionKey"}`,
               ]);
@@ -516,13 +520,13 @@ const App: React.FC = () => {
           setThreadId(threadId);
           const run = await newClient.runs.create(threadId, MANAGER_GRAPH_ID, {
             input: runInput,
-            config: { 
+            config: {
               recursion_limit: 400,
               ...(isLocalMode && {
                 configurable: {
-                  "x-local-mode": "true"
-                }
-              })
+                  "x-local-mode": "true",
+                },
+              }),
             },
             ifNotExists: "create",
             streamResumable: true,
@@ -644,7 +648,7 @@ const App: React.FC = () => {
       const submitFeedback = async () => {
         try {
           let client;
-          
+
           if (isLocalMode) {
             // In local mode, create client without GitHub authentication
             client = new Client({
@@ -658,7 +662,11 @@ const App: React.FC = () => {
             const installationAccessToken = await getInstallationAccessToken();
             const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
 
-            if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+            if (
+              !userAccessToken ||
+              !installationAccessToken ||
+              !encryptionKey
+            ) {
               setLogs((prev) => [
                 ...prev,
                 "Missing access tokens for feedback submission",
@@ -712,10 +720,10 @@ const App: React.FC = () => {
               ...(isLocalMode && {
                 config: {
                   configurable: {
-                    "x-local-mode": "true"
-                  }
-                }
-              })
+                    "x-local-mode": "true",
+                  },
+                },
+              }),
             },
           );
 
@@ -775,7 +783,12 @@ const App: React.FC = () => {
   }
 
   // Repo selection UI
-  if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo) && !isLocalMode) {
+  if (
+    isLoggedIn &&
+    repos.length > 0 &&
+    (selectingRepo || !selectedRepo) &&
+    !isLocalMode
+  ) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
@@ -967,7 +980,7 @@ const App: React.FC = () => {
             </Box>
           )}
         </Box>
-        
+
         {/* Local mode indicator below input bar */}
         {modeIndicator}
       </Box>
