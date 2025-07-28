@@ -21,7 +21,40 @@ const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 const GITHUB_LOGIN_URL =
   process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
-startAuthServer();
+// Check for --local flag
+const isLocalMode = process.argv.includes('--local');
+
+// Show usage help
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log(`
+Open SWE CLI
+
+Usage:
+  yarn dev                 # Run with GitHub authentication (default)
+  yarn dev --local         # Run in local mode (no GitHub auth, works on current directory)
+  
+Options:
+  --local                  # Work directly on local codebase without GitHub authentication
+  --help, -h               # Show this help message
+
+Examples:
+  yarn dev --local         # Start CLI to modify files in current directory
+  yarn dev                 # Start CLI with full GitHub integration
+`);
+  process.exit(0);
+}
+
+if (isLocalMode) {
+  // Set environment variable to enable local mode on the server
+  process.env.OPEN_SWE_LOCAL_MODE = "true";
+  
+  console.log('🏠 Starting Open SWE CLI in Local Mode');
+  console.log('   Working directory:', process.cwd());
+  console.log('   No GitHub authentication required');
+  console.log('');
+} else {
+  startAuthServer();
+}
 
 const LoadingSpinner: React.FC<{ text: string }> = ({ text }) => {
   const [dots, setDots] = useState("");
@@ -184,7 +217,7 @@ const App: React.FC = () => {
   const [authInput, setAuthInput] = useState("");
   const [exit, setExit] = useState(false);
   const [authStarted, setAuthStarted] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(isLocalMode); // Skip auth in local mode
   const [repos, setRepos] = useState<any[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<any | null>(null);
   const [selectingRepo, setSelectingRepo] = useState(false);
@@ -249,16 +282,30 @@ const App: React.FC = () => {
     [client, threadId, selectedRepo, setLogs],
   );
 
-  // On mount, check for existing token
+  // On mount, check for existing token (skip in local mode)
   useEffect(() => {
+    if (isLocalMode) {
+      setIsLoggedIn(true);
+      setLoadingRepos(false); // Ensure no loading state in local mode
+      // Set up local mode defaults
+      setSelectedRepo({
+        full_name: "local/project",
+        clone_url: "local",
+        default_branch: "main"
+      });
+      setInstallChecked(true);
+      return;
+    }
     const token = getAccessToken();
     if (token) {
       setIsLoggedIn(true);
     }
   }, []);
 
-  // After login, fetch and store user repos
+  // After login, fetch and store user repos (skip in local mode)
   useEffect(() => {
+    if (isLocalMode) return; // Skip repo fetching in local mode
+    
     if (isLoggedIn && repos.length === 0 && !loadingRepos) {
       const token = getAccessToken();
       if (token) {
@@ -277,8 +324,10 @@ const App: React.FC = () => {
     }
   }, [isLoggedIn, repos.length, loadingRepos]);
 
-  // Poll for installation_id after opening install page
+  // Poll for installation_id after opening install page (skip in local mode)
   useEffect(() => {
+    if (isLocalMode) return; // Skip installation polling in local mode
+    
     let interval: ReturnType<typeof setInterval>;
     if (waitingForInstall) {
       interval = setInterval(() => {
@@ -340,18 +389,18 @@ const App: React.FC = () => {
     }
   }, [authPrompt, authStarted]);
 
-  // Poll for token after auth flow starts
+  // Poll for token after auth flow starts (skip in local mode)
   useEffect(() => {
-    if (pollingForToken && !isLoggedIn) {
-      const interval = setInterval(() => {
-        const token = getAccessToken();
-        if (token) {
-          setIsLoggedIn(true);
-          setPollingForToken(false);
-        }
-      }, 1000);
-      return () => clearInterval(interval);
-    }
+    if (isLocalMode || !pollingForToken || isLoggedIn) return;
+    
+    const interval = setInterval(() => {
+      const token = getAccessToken();
+      if (token) {
+        setIsLoggedIn(true);
+        setPollingForToken(false);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
   }, [pollingForToken, isLoggedIn]);
 
   // Custom input for planner feedback (must be inside App)
@@ -389,56 +438,92 @@ const App: React.FC = () => {
       setLoadingLogs(true);
       (async () => {
         try {
-          const userAccessToken = getAccessToken();
-          const installationAccessToken = await getInstallationAccessToken();
-          const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
-          if (!userAccessToken || !installationAccessToken || !encryptionKey) {
-            setLogs([
-              `Missing secrets: ${userAccessToken ? "" : "userAccessToken, "}${installationAccessToken ? "" : "installationAccessToken, "}${encryptionKey ? "" : "encryptionKey"}`,
-            ]);
-            return;
-          }
-          const encryptedUserToken = encryptSecret(
-            userAccessToken,
-            encryptionKey,
-          );
-          const encryptedInstallationToken = encryptSecret(
-            installationAccessToken,
-            encryptionKey,
-          );
-          const [owner, repoName] = selectedRepo.full_name.split("/");
-          const runInput = {
-            messages: [
-              {
-                id: uuidv4(),
-                type: "human",
-                content: [{ type: "text", text: prompt }],
+          let newClient;
+          let runInput;
+          
+          if (isLocalMode) {
+            // In local mode, create minimal run input and client
+            runInput = {
+              messages: [
+                {
+                  id: uuidv4(),
+                  type: "human",
+                  content: [{ type: "text", text: prompt }],
+                },
+              ],
+              targetRepository: {
+                owner: "local",
+                repo: "project", 
+                branch: "main",
               },
-            ],
-            targetRepository: {
-              owner,
-              repo: repoName,
-              branch: selectedRepo.default_branch || "main",
-            },
-            autoAcceptPlan: false,
-          };
-          const installationId = getInstallationId();
-          const newClient = new Client({
-            apiUrl: LANGGRAPH_URL,
-            defaultHeaders: {
-              GITHUB_TOKEN_COOKIE: encryptedUserToken,
-              GITHUB_INSTALLATION_TOKEN_COOKIE: encryptedInstallationToken,
-              GITHUB_INSTALLATION_NAME: owner,
-              GITHUB_INSTALLATION_ID: installationId,
-            },
-          });
+              autoAcceptPlan: false,
+            };
+			
+            newClient = new Client({
+              apiUrl: LANGGRAPH_URL,
+              defaultHeaders: {
+                "x-local-mode": "true", // Signal to server this is local mode
+              },
+            });
+          } else {
+            const userAccessToken = getAccessToken();
+            const installationAccessToken = await getInstallationAccessToken();
+            const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+            if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+              setLogs([
+                `Missing secrets: ${userAccessToken ? "" : "userAccessToken, "}${installationAccessToken ? "" : "installationAccessToken, "}${encryptionKey ? "" : "encryptionKey"}`,
+              ]);
+              return;
+            }
+            const encryptedUserToken = encryptSecret(
+              userAccessToken,
+              encryptionKey,
+            );
+            const encryptedInstallationToken = encryptSecret(
+              installationAccessToken,
+              encryptionKey,
+            );
+            const [owner, repoName] = selectedRepo.full_name.split("/");
+            runInput = {
+              messages: [
+                {
+                  id: uuidv4(),
+                  type: "human",
+                  content: [{ type: "text", text: prompt }],
+                },
+              ],
+              targetRepository: {
+                owner,
+                repo: repoName,
+                branch: selectedRepo.default_branch || "main",
+              },
+              autoAcceptPlan: false,
+            };
+            const installationId = getInstallationId();
+            newClient = new Client({
+              apiUrl: LANGGRAPH_URL,
+              defaultHeaders: {
+                GITHUB_TOKEN_COOKIE: encryptedUserToken,
+                GITHUB_INSTALLATION_TOKEN_COOKIE: encryptedInstallationToken,
+                GITHUB_INSTALLATION_NAME: owner,
+                GITHUB_INSTALLATION_ID: installationId,
+              },
+            });
+          }
           setClient(newClient);
           const thread = await newClient.threads.create();
           const threadId = thread.thread_id;
           setThreadId(threadId);
           const run = await newClient.runs.create(threadId, MANAGER_GRAPH_ID, {
             input: runInput,
-            config: { recursion_limit: 400 },
+            config: { 
+              recursion_limit: 400,
+              ...(isLocalMode && {
+                configurable: {
+                  "x-local-mode": "true"
+                }
+              })
+            },
             ifNotExists: "create",
             streamResumable: true,
             streamMode: ["updates", "values"],
@@ -558,38 +643,50 @@ const App: React.FC = () => {
 
       const submitFeedback = async () => {
         try {
-          const userAccessToken = getAccessToken();
-          const installationAccessToken = await getInstallationAccessToken();
-          const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+          let client;
+          
+          if (isLocalMode) {
+            // In local mode, create client without GitHub authentication
+            client = new Client({
+              apiUrl: LANGGRAPH_URL,
+              defaultHeaders: {
+                "x-local-mode": "true", // Signal to server this is local mode
+              },
+            });
+          } else {
+            const userAccessToken = getAccessToken();
+            const installationAccessToken = await getInstallationAccessToken();
+            const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
 
-          if (!userAccessToken || !installationAccessToken || !encryptionKey) {
-            setLogs((prev) => [
-              ...prev,
-              "Missing access tokens for feedback submission",
-            ]);
-            return;
+            if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+              setLogs((prev) => [
+                ...prev,
+                "Missing access tokens for feedback submission",
+              ]);
+              return;
+            }
+
+            const encryptedUserToken = encryptSecret(
+              userAccessToken,
+              encryptionKey,
+            );
+            const encryptedInstallationToken = encryptSecret(
+              installationAccessToken,
+              encryptionKey,
+            );
+            const [owner] = selectedRepo?.full_name.split("/") || [];
+
+            const installationId = getInstallationId();
+            client = new Client({
+              apiUrl: LANGGRAPH_URL,
+              defaultHeaders: {
+                "x-github-access-token": encryptedUserToken,
+                "x-github-installation-token": encryptedInstallationToken,
+                "x-github-installation-name": owner,
+                "x-github-installation-id": installationId,
+              },
+            });
           }
-
-          const encryptedUserToken = encryptSecret(
-            userAccessToken,
-            encryptionKey,
-          );
-          const encryptedInstallationToken = encryptSecret(
-            installationAccessToken,
-            encryptionKey,
-          );
-          const [owner] = selectedRepo?.full_name.split("/") || [];
-
-          const installationId = getInstallationId();
-          const client = new Client({
-            apiUrl: LANGGRAPH_URL,
-            defaultHeaders: {
-              "x-github-access-token": encryptedUserToken,
-              "x-github-installation-token": encryptedInstallationToken,
-              "x-github-installation-name": owner,
-              "x-github-installation-id": installationId,
-            },
-          });
 
           const formatted = formatDisplayLog(
             `Human feedback: ${plannerFeedback}`,
@@ -612,6 +709,13 @@ const App: React.FC = () => {
                 ],
               },
               streamMode: ["updates", "messages"],
+              ...(isLocalMode && {
+                config: {
+                  configurable: {
+                    "x-local-mode": "true"
+                  }
+                }
+              })
             },
           );
 
@@ -661,8 +765,8 @@ const App: React.FC = () => {
     }
   }, [streamingPhase, plannerFeedback, selectedRepo, plannerThreadId]);
 
-  // Loading repos after login
-  if (isLoggedIn && loadingRepos) {
+  // Loading repos after login (skip in local mode)
+  if (isLoggedIn && loadingRepos && !isLocalMode) {
     return (
       <Box flexDirection="column" padding={1}>
         <LoadingSpinner text="Loading your repositories" />
@@ -671,7 +775,7 @@ const App: React.FC = () => {
   }
 
   // Repo selection UI
-  if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo)) {
+  if (isLoggedIn && repos.length > 0 && (selectingRepo || !selectedRepo) && !isLocalMode) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box justifyContent="center" marginBottom={1}>
@@ -750,6 +854,12 @@ const App: React.FC = () => {
 
   // Main UI: logs area + input prompt
   if (isLoggedIn && selectedRepo) {
+    // Show local mode indicator
+    const modeIndicator = isLocalMode ? (
+      <Box marginBottom={1}>
+        <Text color="green">🏠 Local Mode - Working on current directory</Text>
+      </Box>
+    ) : null;
     // Calculate available space for logs based on whether welcome message is shown
     const headerHeight = 0; // Welcome message is now above input bar, not at top
     const inputHeight = 4; // Fixed input area height (increased due to padding)
@@ -770,6 +880,7 @@ const App: React.FC = () => {
 
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
+        {modeIndicator}
         {/* Auto-scrolling logs area - strict boundary container */}
         <Box
           height={availableLogHeight}
@@ -861,8 +972,8 @@ const App: React.FC = () => {
     );
   }
 
-  // Auth prompt UI
-  if (!isLoggedIn && authPrompt === null) {
+  // Auth prompt UI (skip in local mode)
+  if (!isLoggedIn && authPrompt === null && !isLocalMode) {
     return (
       <Box flexDirection="column" padding={1}>
         <Box
