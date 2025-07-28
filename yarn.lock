@@ -4142,6 +4142,7 @@ __metadata:
     "@eslint/eslintrc": ^3.1.0
     "@eslint/js": ^9.19.0
     "@langchain/langgraph-sdk": ^0.0.95
+    "@open-swe/shared": "*"
     "@tsconfig/recommended": ^1.0.8
     "@types/express": ^4.17.21
     "@types/node": ^24.1.0
