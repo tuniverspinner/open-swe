@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@langchain/langgraph-sdk": "^0.0.95",
-    "@open-swe/shared": "workspace:*",
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "ink": "^6.0.1",
