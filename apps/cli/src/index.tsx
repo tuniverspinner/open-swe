@@ -35,7 +35,10 @@ const LoadingSpinner: React.FC<{ text: string }> = ({ text }) => {
 
   return (
     <Box justifyContent="center" paddingY={2}>
-      <Text>{text}{dots}</Text>
+      <Text>
+        {text}
+        {dots}
+      </Text>
     </Box>
   );
 };
