@@ -25,6 +25,15 @@ export async function prepareGraphState(
   state: PlannerGraphState,
   config: GraphConfig,
 ): Promise<Command> {
+  // Check if this is local mode - if so, skip GitHub issue logic but continue with planner flow
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    // In local mode, just continue with planner flow - no GitHub issue fetching needed
+    return new Command({
+      goto: "initialize-sandbox",
+    });
+  }
+
   if (!state.githubIssueId) {
     throw new Error("No github issue id provided");
   }

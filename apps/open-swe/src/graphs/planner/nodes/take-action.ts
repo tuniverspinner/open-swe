@@ -48,8 +48,8 @@ export async function takeActions(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
-  const shellTool = createShellTool(state);
-  const searchTool = createSearchTool(state);
+  const shellTool = createShellTool(state, config);
+  const searchTool = createSearchTool(state, config);
   const scratchpadTool = createScratchpadTool("");
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);

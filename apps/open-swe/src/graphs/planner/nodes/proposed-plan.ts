@@ -82,6 +82,13 @@ async function postGitHubIssueComment(input: {
     throw new Error("GITHUB_APP_NAME not set");
   }
 
+  // Check if this is local mode - if so, skip GitHub operations
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    // In local mode, just continue without GitHub comments/updates
+    return;
+  }
+
   try {
     const { githubInstallationToken } = getGitHubTokensFromConfig(config);
     const existingComments = await getIssueComments({

@@ -70,6 +70,13 @@ export async function openPullRequest(
   state: GraphState,
   config: GraphConfig,
 ): Promise<GraphUpdate> {
+  // Check if this is local mode - if so, skip PR creation
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    // In local mode, just return without PR creation
+    return {};
+  }
+
   const { githubInstallationToken } = getGitHubTokensFromConfig(config);
 
   const { sandbox, codebaseTree, dependenciesInstalled } =

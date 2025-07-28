@@ -109,6 +109,20 @@ export const auth = new Auth()
       return await verifyGitHubWebhookOrThrow(request);
     }
 
+    // Check for local mode first (no GitHub authentication needed)
+    const isLocalModeHeader = request.headers.get("x-local-mode") === "true";
+    if (isLocalModeHeader && !isProd) {
+      return {
+        identity: "local-user",
+        is_authenticated: true,
+        display_name: "Local Developer",
+        metadata: {
+          installation_name: "local-mode",
+        },
+        permissions: LANGGRAPH_USER_PERMISSIONS,
+      };
+    }
+
     const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
     if (!encryptionKey) {
       throw new Error("Missing SECRETS_ENCRYPTION_KEY environment variable.");

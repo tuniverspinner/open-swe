@@ -9,5 +9,10 @@ export function getRepoAbsolutePath(
     throw new Error("No repository name provided");
   }
 
+  // In local mode, use the current working directory instead of sandbox path
+  if (targetRepository.owner === "local" && repoName === "project") {
+    return process.env.OPEN_SWE_PROJECT_PATH || process.cwd();
+  }
+
   return `${SANDBOX_ROOT_DIR}/${repoName}`;
 }

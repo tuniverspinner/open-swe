@@ -53,6 +53,13 @@ export async function getMissingMessages(
   input: GetMissingMessagesInput,
   config: GraphConfig,
 ): Promise<BaseMessage[]> {
+  // In local mode, we don't have GitHub issues, so return empty array
+  const isProd = process.env.NODE_ENV === "production";
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode && !isProd) {
+    return [];
+  }
+
   const { githubInstallationToken } = getGitHubTokensFromConfig(config);
   const [issue, comments] = await Promise.all([
     getIssue({

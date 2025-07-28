@@ -95,6 +95,16 @@ export async function getPlansFromIssue(
   taskPlan: TaskPlan | null;
   proposedPlan: string[] | null;
 }> {
+  // In local mode, we don't have GitHub issues with task plans
+  const isProd = process.env.NODE_ENV === "production";
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode && !isProd) {
+    return {
+      taskPlan: null,
+      proposedPlan: null,
+    };
+  }
+
   const issue = await getIssue({
     owner: input.targetRepository.owner,
     repo: input.targetRepository.repo,

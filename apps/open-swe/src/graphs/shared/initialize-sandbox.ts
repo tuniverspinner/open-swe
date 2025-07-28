@@ -40,6 +40,18 @@ export async function initializeSandbox(
   state: InitializeSandboxState,
   config: GraphConfig,
 ): Promise<Partial<InitializeSandboxState>> {
+  // Check if this is local mode - if so, skip sandbox initialization
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    // In local mode, create a local executor instead of sandbox
+    const { createLocalExecutor } = await import("../../utils/local-executor.js");
+    await createLocalExecutor(state.targetRepository, config);
+    
+    return {
+      sandboxSessionId: "local-session", // Provide a dummy session ID
+    };
+  }
+
   const { githubInstallationToken } = getGitHubTokensFromConfig(config);
   const { sandboxSessionId, targetRepository, branchName } = state;
   const absoluteRepoDir = getRepoAbsolutePath(targetRepository);

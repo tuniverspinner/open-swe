@@ -18,6 +18,15 @@ export async function initializeGithubIssue(
   state: ManagerGraphState,
   config: GraphConfig,
 ): Promise<ManagerGraphUpdate> {
+  // Check if this is local mode - if so, skip all GitHub issue logic
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    // In local mode, just pass through the existing state
+    return {
+      taskPlan: state.taskPlan,
+    };
+  }
+
   const { githubInstallationToken } = getGitHubTokensFromConfig(config);
   let taskPlan = state.taskPlan;
 

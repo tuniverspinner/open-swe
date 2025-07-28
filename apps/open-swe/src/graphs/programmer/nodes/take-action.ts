@@ -50,10 +50,10 @@ export async function takeAction(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
-  const applyPatchTool = createApplyPatchTool(state);
-  const shellTool = createShellTool(state);
-  const searchTool = createSearchTool(state);
-  const installDependenciesTool = createInstallDependenciesTool(state);
+  const applyPatchTool = createApplyPatchTool(state, config);
+  const shellTool = createShellTool(state, config);
+  const searchTool = createSearchTool(state, config);
+  const installDependenciesTool = createInstallDependenciesTool(state, config);
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
   const mcpTools = await getMcpTools(config);
@@ -208,7 +208,11 @@ export async function takeAction(
   let branchName: string | undefined = state.branchName;
   let pullRequestNumber: number | undefined;
   let updatedTaskPlan: TaskPlan | undefined;
-  if (changedFiles.length > 0) {
+  
+  // Check if this is local mode - if so, skip Git/GitHub operations
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  
+  if (changedFiles.length > 0 && !isLocalMode) {
     logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
       changedFiles,
     });
@@ -229,6 +233,10 @@ export async function takeAction(
       ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
       : undefined;
     updatedTaskPlan = result.updatedTaskPlan;
+  } else if (changedFiles.length > 0 && isLocalMode) {
+    logger.info(`Has ${changedFiles.length} changed files in local mode. Skipping Git operations.`, {
+      changedFiles,
+    });
   }
 
   const shouldRouteDiagnoseNode = shouldDiagnoseError([

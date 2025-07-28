@@ -10,6 +10,11 @@ export function getCustomConfigurableFields(
 
   const result: Partial<GraphConfig["configurable"]> = {};
 
+  // Always include x-local-mode if present (for local development)
+  if ("x-local-mode" in config.configurable) {
+    (result as any)["x-local-mode"] = config.configurable["x-local-mode" as keyof GraphConfig["configurable"]];
+  }
+
   for (const [key, metadataValue] of Object.entries(
     GraphConfigurationMetadata,
   )) {

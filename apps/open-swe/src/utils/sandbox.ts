@@ -3,6 +3,7 @@ import { createLogger, LogLevel } from "./logger.js";
 import { GraphConfig, TargetRepository } from "@open-swe/shared/open-swe/types";
 import { DEFAULT_SANDBOX_CREATE_PARAMS } from "../constants.js";
 import { getGitHubTokensFromConfig } from "./github-tokens.js";
+import { createLocalExecutor } from "./local-executor.js";
 import { cloneRepo } from "./github/git.js";
 import { FAILED_TO_GENERATE_TREE_MESSAGE, getCodebaseTree } from "./tree.js";
 
@@ -96,6 +97,18 @@ export async function getSandboxWithErrorHandling(
   codebaseTree: string | null;
   dependenciesInstalled: boolean | null;
 }> {
+  // Check if this is local mode - if so, return local executor
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    const localExecutor = await createLocalExecutor(targetRepository, config);
+    // Return a dummy sandbox-like object that matches the interface
+    return {
+      sandbox: localExecutor as any, // Cast to match Sandbox interface
+      codebaseTree: null, // Not needed in local mode
+      dependenciesInstalled: false, // Will be determined by actual dependency installation
+    };
+  }
+  
   try {
     if (!sandboxSessionId) {
       throw new Error("No sandbox ID provided.");

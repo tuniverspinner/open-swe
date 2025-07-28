@@ -35,6 +35,7 @@ import {
   convertMessagesToCacheControlledMessages,
   trackCachePerformance,
 } from "../../../../utils/caching.js";
+import { validateAndFixToolCallChain } from "../../../../utils/message/validate-tool-calls.js";
 
 const logger = createLogger(LogLevel.INFO, "GeneratePlanningMessageNode");
 
@@ -80,8 +81,8 @@ export async function generateAction(
   const mcpTools = await getMcpTools(config);
 
   const tools = [
-    createSearchTool(state),
-    createShellTool(state),
+    createSearchTool(state, config),
+    createShellTool(state, config),
     createScratchpadTool(
       "when generating a final plan, after all context gathering is complete",
     ),
@@ -112,13 +113,41 @@ export async function generateAction(
     getPlansFromIssue(state, config),
   ]);
 
-  const inputMessages = filterMessagesWithoutContent([
+  // Debug: Log input messages before filtering
+  logger.info("Messages before filtering", {
+    stateMessages: state.messages.length,
+    missingMessages: missingMessages.length,
+    stateMessageTypes: state.messages.map(m => ({
+      type: m._getType(),
+      hasToolCalls: 'tool_calls' in m ? (m as any).tool_calls?.length : 0,
+      toolCallId: 'tool_call_id' in m ? (m as any).tool_call_id : null,
+      id: m.id,
+    }))
+  });
+
+  let inputMessages = filterMessagesWithoutContent([
     ...state.messages,
     ...missingMessages,
   ]);
   if (!inputMessages.length) {
     throw new Error("No messages to process.");
   }
+
+  // Fix message chain to ensure tool calls have matching results
+  inputMessages = validateAndFixToolCallChain(inputMessages);
+  
+  if (!inputMessages.length) {
+    throw new Error("No valid messages after tool call validation.");
+  }
+
+  // Debug: Log message types to help identify tool call issues
+  logger.info("Input messages for LLM after validation", {
+    messageTypes: inputMessages.map(m => ({
+      type: m._getType(),
+      hasToolCalls: 'tool_calls' in m ? (m as any).tool_calls?.length : 0,
+      id: m.id,
+    }))
+  });
 
   const inputMessagesWithCache =
     convertMessagesToCacheControlledMessages(inputMessages);

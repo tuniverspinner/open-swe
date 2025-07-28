@@ -31,6 +31,13 @@ export async function createNewSession(
   state: ManagerGraphState,
   config: GraphConfig,
 ): Promise<ManagerGraphUpdate> {
+  // Check if this is local mode - if so, skip GitHub operations
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    // In local mode, just return the existing state
+    return {};
+  }
+
   const titleAndContent = await createIssueFieldsFromMessages(
     state.messages,
     config.configurable,

@@ -153,6 +153,19 @@ export async function classifyMessage(
     });
   }
 
+  // Check if this is local mode - if so, skip GitHub issue creation
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+  if (isLocalMode) {
+    // In local mode, just continue without GitHub issue logic
+    const commandUpdate: ManagerGraphUpdate = {
+      messages: [response],
+    };
+    return new Command({
+      update: commandUpdate,
+      goto: "start-planner",
+    });
+  }
+
   const { githubAccessToken } = getGitHubTokensFromConfig(config);
   let githubIssueId = state.githubIssueId;
 

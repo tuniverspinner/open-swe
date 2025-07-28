@@ -31,6 +31,26 @@ export async function startPlanner(
   const followupMessage = getRecentUserRequest(state.messages, {
     returnFullMessage: true,
   });
+  
+  // For initial planner runs, pass all messages if no followup message exists
+  const isInitialRun = !state.plannerSession?.threadId;
+  const messagesToPass = followupMessage 
+    ? [followupMessage] 
+    : (isInitialRun && state.messages.length > 0 ? state.messages : []);
+  
+  // Debug: Log messages being passed to planner
+  logger.info("Messages being passed to planner", {
+    isInitialRun,
+    hasFollowupMessage: !!followupMessage,
+    messagesToPassCount: messagesToPass.length,
+    messagesToPassTypes: messagesToPass.map(m => ({
+      type: m._getType(),
+      hasToolCalls: 'tool_calls' in m ? (m as any).tool_calls?.length : 0,
+      toolCallId: 'tool_call_id' in m ? (m as any).tool_call_id : null,
+      id: m.id,
+    }))
+  });
+  
   try {
     const runInput: PlannerGraphUpdate = {
       // github issue ID & target repo so the planning agent can fetch the user's request, and clone the repo.
@@ -40,7 +60,7 @@ export async function startPlanner(
       taskPlan: state.taskPlan,
       branchName: state.branchName ?? getBranchName(config),
       autoAcceptPlan: state.autoAcceptPlan,
-      ...(followupMessage && { messages: [followupMessage] }),
+      ...(messagesToPass.length > 0 && { messages: messagesToPass }),
     };
     const run = await langGraphClient.runs.create(
       plannerThreadId,

@@ -16,13 +16,23 @@ export function getGitHubTokensFromConfig(config: GraphConfig): {
     throw new Error("No configurable object found in graph config.");
   }
 
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Check for local mode first
+  const isLocalMode = (config.configurable as any)["x-local-mode"] === "true";
+  if (isLocalMode && !isProd) {
+    return {
+      githubAccessToken: "local-mode-token",
+      githubInstallationToken: "local-mode-token",
+      installationId: "local-mode",
+    };
+  }
+
   // Get the encryption key from environment variables
   const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
   if (!encryptionKey) {
     throw new Error("Missing SECRETS_ENCRYPTION_KEY environment variable.");
   }
-
-  const isProd = process.env.NODE_ENV === "production";
 
   const installationId = config.configurable[GITHUB_INSTALLATION_ID];
   if (!installationId) {

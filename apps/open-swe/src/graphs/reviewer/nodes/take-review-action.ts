@@ -45,9 +45,9 @@ export async function takeReviewerActions(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
-  const shellTool = createShellTool(state);
-  const searchTool = createSearchTool(state);
-  const installDependenciesTool = createInstallDependenciesTool(state);
+  const shellTool = createShellTool(state, config);
+  const searchTool = createSearchTool(state, config);
+  const installDependenciesTool = createInstallDependenciesTool(state, config);
   const scratchpadTool = createScratchpadTool("");
   const allTools = [
     shellTool,
@@ -155,7 +155,10 @@ export async function takeReviewerActions(
   let pullRequestNumber: number | undefined;
   let updatedTaskPlan: TaskPlan | undefined;
 
-  if (changedFiles.length > 0) {
+  // Check if this is local mode - if so, skip Git/GitHub operations
+  const isLocalMode = (config.configurable as any)?.["x-local-mode"] === "true";
+
+  if (changedFiles.length > 0 && !isLocalMode) {
     logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
       changedFiles,
     });
@@ -176,6 +179,10 @@ export async function takeReviewerActions(
       ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
       : undefined;
     updatedTaskPlan = result.updatedTaskPlan;
+  } else if (changedFiles.length > 0 && isLocalMode) {
+    logger.info(`Has ${changedFiles.length} changed files in local mode. Skipping Git operations.`, {
+      changedFiles,
+    });
   }
 
   let wereDependenciesInstalled: boolean | null = null;

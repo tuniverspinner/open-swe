@@ -1,13 +1,12 @@
 import { tool } from "@langchain/core/tools";
 import { applyPatch } from "diff";
-import { GraphState } from "@open-swe/shared/open-swe/types";
+import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { readFile, writeFile } from "../utils/read-write.js";
 import { fixGitPatch } from "../utils/diff.js";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { createApplyPatchToolFields } from "@open-swe/shared/open-swe/tools";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
-import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
-import { Sandbox } from "@daytonaio/sdk";
+import { getLocalExecutorOrThrow, LocalExecutor } from "../utils/local-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "ApplyPatchTool");
 
@@ -19,15 +18,15 @@ const logger = createLogger(LogLevel.INFO, "ApplyPatchTool");
  * @returns Object with success status and output or error message
  */
 async function applyPatchWithGit(
-  sandbox: Sandbox,
+  executor: LocalExecutor,
   workDir: string,
   diffContent: string,
 ): Promise<{ success: boolean; output: string }> {
   const tempPatchFile = `/tmp/patch_${Date.now()}_${Math.random().toString(36).substring(2)}.diff`;
 
   try {
-    // Create the patch file in the sandbox
-    const createFileResponse = await sandbox.process.executeCommand(
+    // Create the patch file locally
+    const createFileResponse = await executor.process.executeCommand(
       `cat > "${tempPatchFile}" << 'EOF'\n${diffContent}\nEOF`,
       workDir,
       {},
@@ -42,7 +41,7 @@ async function applyPatchWithGit(
     }
 
     // Execute git apply with --verbose for detailed error messages
-    const response = await sandbox.process.executeCommand(
+    const response = await executor.process.executeCommand(
       `git apply --verbose "${tempPatchFile}"`,
       workDir,
       {},
@@ -71,17 +70,17 @@ async function applyPatchWithGit(
   }
 }
 
-export function createApplyPatchTool(state: GraphState) {
+export function createApplyPatchTool(state: GraphState, config: GraphConfig) {
   const applyPatchTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
-      const sandbox = await getSandboxSessionOrThrow(input);
+      const executor = getLocalExecutorOrThrow(state.targetRepository, config);
 
       const { diff, file_path } = input;
 
       const workDir = getRepoAbsolutePath(state.targetRepository);
       const { success: readFileSuccess, output: readFileOutput } =
         await readFile({
-          sandbox,
+          executor,
           filePath: file_path,
           workDir,
         });
@@ -91,13 +90,13 @@ export function createApplyPatchTool(state: GraphState) {
 
       // First try to apply the patch using Git CLI for better error messages
       logger.info(`Attempting to apply patch to ${file_path} using Git CLI`);
-      const gitResult = await applyPatchWithGit(sandbox, workDir, diff);
+      const gitResult = await applyPatchWithGit(executor, workDir, diff);
 
       // If Git successfully applied the patch, read the updated file and return success
       if (gitResult.success) {
         const { success: readUpdatedFileSuccess, output: updatedContent } =
           await readFile({
-            sandbox,
+            executor,
             filePath: file_path,
             workDir,
           });
@@ -172,7 +171,7 @@ export function createApplyPatchTool(state: GraphState) {
 
       const { success: writeFileSuccess, output: writeFileOutput } =
         await writeFile({
-          sandbox,
+          executor,
           filePath: file_path,
           content: patchedContent,
           workDir,

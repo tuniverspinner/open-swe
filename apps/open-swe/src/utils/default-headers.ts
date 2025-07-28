@@ -12,6 +12,16 @@ import {
 export function getDefaultHeaders(config: GraphConfig): Record<string, string> {
   const githubPat = config.configurable?.[GITHUB_PAT];
   const isProd = process.env.NODE_ENV === "production";
+  // Check if this is a local mode request by looking for x-local-mode header in configurable
+  const isLocalModeHeader = (config.configurable as any)?.["x-local-mode"] === "true";
+  
+  // Local mode - pass the local mode header for internal graph communication
+  if (isLocalModeHeader && !isProd) {
+    return {
+      "x-local-mode": "true"
+    };
+  }
+  
   if (githubPat && !isProd) {
     // PAT-only
     return {
