@@ -856,8 +856,8 @@ const App: React.FC = () => {
   if (isLoggedIn && selectedRepo) {
     // Show local mode indicator
     const modeIndicator = isLocalMode ? (
-      <Box marginBottom={1}>
-        <Text color="green">🏠 Local Mode - Working on current directory</Text>
+      <Box paddingX={2} paddingY={1}>
+        <Text dimColor>🏠 Local Mode - Working on {process.cwd()}</Text>
       </Box>
     ) : null;
     // Calculate available space for logs based on whether welcome message is shown
@@ -880,7 +880,6 @@ const App: React.FC = () => {
 
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
-        {modeIndicator}
         {/* Auto-scrolling logs area - strict boundary container */}
         <Box
           height={availableLogHeight}
@@ -968,6 +967,9 @@ const App: React.FC = () => {
             </Box>
           )}
         </Box>
+        
+        {/* Local mode indicator below input bar */}
+        {modeIndicator}
       </Box>
     );
   }
