@@ -25,5 +25,3 @@ The CLI will guide you through:
 2. Repository selection with fuzzy search
 3. GitHub App installation (if required)
 4. Interactive chat with the Open SWE agent
-
-Use `Ctrl+C` during chat to switch repositories, and simply type messages to interact with or interrupt the running agent.
