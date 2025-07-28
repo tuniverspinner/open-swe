@@ -17,13 +17,16 @@
     "cli": "npx tsc && node dist/index.js"
   },
   "dependencies": {
+    "@langchain/langgraph-sdk": "^0.0.95",
+    "@open-swe/shared": "workspace:*",
     "dotenv": "^16.6.1",
     "express": "^4.18.2",
     "ink": "^6.0.1",
     "keytar": "^7.9.0",
     "node-fetch": "^2.6.7",
     "open": "^9.1.0",
-    "react": "^19.1.0"
+    "react": "^19.1.0",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
@@ -33,6 +36,7 @@
     "@types/node": "^24.1.0",
     "@types/node-fetch": "^2.6.4",
     "@types/react": "^19.1.8",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "eslint": "^9.19.0",

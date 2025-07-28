@@ -4141,11 +4141,14 @@ __metadata:
   dependencies:
     "@eslint/eslintrc": ^3.1.0
     "@eslint/js": ^9.19.0
+    "@langchain/langgraph-sdk": ^0.0.95
+    "@open-swe/shared": "workspace:*"
     "@tsconfig/recommended": ^1.0.8
     "@types/express": ^4.17.21
     "@types/node": ^24.1.0
     "@types/node-fetch": ^2.6.4
     "@types/react": ^19.1.8
+    "@types/uuid": ^10.0.0
     "@typescript-eslint/eslint-plugin": ^8.38.0
     "@typescript-eslint/parser": ^8.38.0
     dotenv: ^16.6.1
@@ -4163,6 +4166,7 @@ __metadata:
     react: ^19.1.0
     tsx: ^4.20.3
     typescript: ^5.8.3
+    uuid: ^10.0.0
   languageName: unknown
   linkType: soft
 
@@ -4175,7 +4179,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@open-swe/shared@*, @open-swe/shared@workspace:packages/shared":
+"@open-swe/shared@*, @open-swe/shared@workspace:*, @open-swe/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@open-swe/shared@workspace:packages/shared"
   dependencies:
