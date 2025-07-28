@@ -152,9 +152,9 @@ export async function generateAction(
   const markTaskCompletedTool = createMarkTaskCompletedToolFields();
 
   const tools = [
-    createSearchTool(state),
-    createShellTool(state),
-    createApplyPatchTool(state),
+    createSearchTool(state, config),
+    createShellTool(state, config),
+    createApplyPatchTool(state, config),
     createRequestHumanHelpToolFields(),
     createUpdatePlanToolFields(),
     createGetURLContentTool(state),

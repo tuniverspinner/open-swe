@@ -1,5 +1,5 @@
 import { tool } from "@langchain/core/tools";
-import { GraphState } from "@open-swe/shared/open-swe/types";
+import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
@@ -10,6 +10,8 @@ import {
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { wrapScript } from "../utils/wrap-script.js";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
+import { isLocalMode, getLocalWorkingDirectory } from "../utils/local-mode.js";
+import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "SearchTool");
 
@@ -20,24 +22,39 @@ const DEFAULT_ENV = {
 
 export function createSearchTool(
   state: Pick<GraphState, "sandboxSessionId" | "targetRepository">,
+  config: GraphConfig,
 ) {
   const searchTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
-        const sandbox = await getSandboxSessionOrThrow(input);
-
         const repoRoot = getRepoAbsolutePath(state.targetRepository);
         const command = formatSearchCommand(input);
         logger.info("Running search command", {
           command: command.join(" "),
           repoRoot,
         });
-        const response = await sandbox.process.executeCommand(
-          wrapScript(command.join(" ")),
-          repoRoot,
-          DEFAULT_ENV,
-          TIMEOUT_SEC,
-        );
+
+        let response;
+
+        if (isLocalMode(config)) {
+          // Local mode: use LocalShellExecutor without wrapScript
+          const executor = getLocalShellExecutor(getLocalWorkingDirectory());
+          response = await executor.executeCommand(
+            command.join(" "),
+            repoRoot,
+            DEFAULT_ENV,
+            TIMEOUT_SEC,
+          );
+        } else {
+          // Sandbox mode: use existing sandbox logic with wrapScript
+          const sandbox = await getSandboxSessionOrThrow(input);
+          response = await sandbox.process.executeCommand(
+            wrapScript(command.join(" ")),
+            repoRoot,
+            DEFAULT_ENV,
+            TIMEOUT_SEC,
+          );
+        }
 
         let successResult = response.result;
 
@@ -59,16 +76,22 @@ export function createSearchTool(
           status: "success",
         };
       } catch (e) {
-        const errorFields = getSandboxErrorFields(e);
-        if (errorFields) {
-          const errorResult =
-            errorFields.result ?? errorFields.artifacts?.stdout;
-          throw new Error(
-            `Failed to run search command. Exit code: ${errorFields.exitCode}\nError: ${errorResult}`,
-          );
-        }
+        if (isLocalMode(config)) {
+          // Local mode error handling
+          throw e;
+        } else {
+          // Sandbox mode error handling
+          const errorFields = getSandboxErrorFields(e);
+          if (errorFields) {
+            const errorResult =
+              errorFields.result ?? errorFields.artifacts?.stdout;
+            throw new Error(
+              `Failed to run search command. Exit code: ${errorFields.exitCode}\nError: ${errorResult}`,
+            );
+          }
 
-        throw e;
+          throw e;
+        }
       }
     },
     createSearchToolFields(state.targetRepository),

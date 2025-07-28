@@ -80,8 +80,8 @@ export async function generateAction(
   const mcpTools = await getMcpTools(config);
 
   const tools = [
-    createSearchTool(state),
-    createShellTool(state),
+    createSearchTool(state, config),
+    createShellTool(state, config),
     createScratchpadTool(
       "when generating a final plan, after all context gathering is complete",
     ),
