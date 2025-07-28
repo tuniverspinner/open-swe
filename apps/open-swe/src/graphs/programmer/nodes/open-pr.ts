@@ -181,10 +181,10 @@ export async function openPullRequest(
       pullNumber: prForTask,
       githubInstallationToken,
     });
-    
+
     if (!pullRequest) {
       throw new Error(
-        `Failed to mark pull request #${prForTask} as ready for review. This could be due to insufficient permissions, invalid GitHub token, or API errors. Please check the logs for more details.`
+        `Failed to mark pull request #${prForTask} as ready for review. This could be due to insufficient permissions, invalid GitHub token, or API errors. Please check the logs for more details.`,
       );
     }
   }
@@ -232,4 +232,3 @@ export async function openPullRequest(
     ...(updatedTaskPlan && { taskPlan: updatedTaskPlan }),
   };
 }
-
