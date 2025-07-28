@@ -1,4 +1,5 @@
 import {
+  getModelManager,
   loadModel,
   supportsParallelToolCallsParam,
   Task,
@@ -32,6 +33,7 @@ import {
   convertMessagesToCacheControlledMessages,
   trackCachePerformance,
 } from "../../../../utils/caching.js";
+import { createScratchpadTool } from "../../../../tools/scratchpad.js";
 
 const logger = createLogger(LogLevel.INFO, "GenerateReviewActionsNode");
 
@@ -111,6 +113,8 @@ export async function generateReviewActions(
   config: GraphConfig,
 ): Promise<ReviewerGraphUpdate> {
   const model = await loadModel(config, Task.PROGRAMMER);
+  const modelManager = getModelManager();
+  const modelName = modelManager.getModelNameForTask(config, Task.PROGRAMMER);
   const modelSupportsParallelToolCallsParam = supportsParallelToolCallsParam(
     config,
     Task.PROGRAMMER,
@@ -119,6 +123,9 @@ export async function generateReviewActions(
     createSearchTool(state),
     createShellTool(state),
     createInstallDependenciesTool(state),
+    createScratchpadTool(
+      "when generating a final review, after all context gathering and reviewing is complete",
+    ),
   ];
   tools[tools.length - 1] = {
     ...tools[tools.length - 1],
@@ -162,6 +169,6 @@ export async function generateReviewActions(
   return {
     messages: [response],
     reviewerMessages: [response],
-    tokenData: trackCachePerformance(response),
+    tokenData: trackCachePerformance(response, modelName),
   };
 }
