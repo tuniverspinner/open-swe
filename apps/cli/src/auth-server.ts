@@ -170,18 +170,6 @@ export async function getInstallationAccessToken(): Promise<string | null> {
     return null;
   }
   const data = await res.json();
-  // Print out all relevant info
-  const userAccessToken = tokenData?.access_token;
-  console.log("--- Open SWE CLI Auth Info ---");
-  console.log("installation_id:", installationId || "(not found)");
-  console.log(
-    "user access token:",
-    userAccessToken ? userAccessToken.slice(0, 6) + "..." : "(not found)",
-  );
-  console.log(
-    "installation access token:",
-    data.token ? data.token.slice(0, 6) + "..." : "(not found)",
-  );
-  console.log("--------------------------------");
+
   return data.token;
 }
