@@ -426,10 +426,10 @@ const App: React.FC = () => {
           const newClient = new Client({
             apiUrl: LANGGRAPH_URL,
             defaultHeaders: {
-              "x-github-access-token": encryptedUserToken,
-              "x-github-installation-token": encryptedInstallationToken,
-              "x-github-installation-name": owner,
-              "x-github-installation-id": installationId,
+              GITHUB_TOKEN_COOKIE: encryptedUserToken,
+              GITHUB_INSTALLATION_TOKEN_COOKIE: encryptedInstallationToken,
+              GITHUB_INSTALLATION_NAME: owner,
+              GITHUB_INSTALLATION_ID: installationId,
             },
           });
           setClient(newClient);
