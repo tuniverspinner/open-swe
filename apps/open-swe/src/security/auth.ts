@@ -20,6 +20,7 @@ import { LANGGRAPH_USER_PERMISSIONS } from "../constants.js";
 import { getGitHubPatFromRequest } from "../utils/github-pat.js";
 import { isAllowedUser } from "@open-swe/shared/github/allowed-users";
 import { validate } from "uuid";
+import jwt, { type JwtPayload } from "jsonwebtoken";
 
 // TODO: Export from LangGraph SDK
 export interface BaseAuthReturn {
@@ -90,6 +91,27 @@ function isRunReq(reqUrl: string): boolean {
 export const auth = new Auth()
   .authenticate<AuthenticateReturn>(async (request: Request) => {
     const isProd = process.env.NODE_ENV === "production";
+
+    try {
+      const token = request.headers.get("Authorization");
+      if (token) {
+        const decoded = jwt.verify(
+          token,
+          process.env.JWT_SECRET_KEY!,
+        ) as JwtPayload;
+        return {
+          identity: decoded.sub ?? "anonymous",
+          is_authenticated: true,
+          metadata: {
+            installation_name: "api-user",
+          },
+          display_name: "api-user",
+          permissions: LANGGRAPH_USER_PERMISSIONS,
+        };
+      }
+    } catch {
+      // pass
+    }
 
     if (request.method === "OPTIONS") {
       return {
