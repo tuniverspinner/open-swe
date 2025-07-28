@@ -1,8 +1,8 @@
-import { exec, spawn } from 'child_process';
-import { promisify } from 'util';
-import { createLogger, LogLevel } from './logger.js';
+import { exec, spawn } from "child_process";
+import { promisify } from "util";
+import { createLogger, LogLevel } from "./logger.js";
 
-const logger = createLogger(LogLevel.INFO, 'LocalShellExecutor');
+const logger = createLogger(LogLevel.INFO, "LocalShellExecutor");
 const execAsync = promisify(exec);
 
 export interface ExecuteResponse {
@@ -19,19 +19,19 @@ export class LocalShellExecutor {
 
   constructor(workingDirectory: string = process.cwd()) {
     this.workingDirectory = workingDirectory;
-    logger.info('LocalShellExecutor created', { workingDirectory });
+    logger.info("LocalShellExecutor created", { workingDirectory });
   }
 
   async executeCommand(
     command: string,
     workdir?: string,
     env?: Record<string, string>,
-    timeout: number = 30
+    timeout: number = 30,
   ): Promise<ExecuteResponse> {
     const cwd = workdir || this.workingDirectory;
     const environment = { ...process.env, ...(env || {}) };
 
-    logger.info('Executing command locally', { command, cwd });
+    logger.info("Executing command locally", { command, cwd });
 
     try {
       const { stdout, stderr } = await execAsync(command, {
@@ -39,7 +39,7 @@ export class LocalShellExecutor {
         env: environment,
         timeout: timeout * 1000, // Convert to milliseconds
         maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-        shell: '/bin/bash',
+        shell: "/bin/bash",
       });
 
       return {
@@ -51,29 +51,34 @@ export class LocalShellExecutor {
         },
       };
     } catch (error: any) {
-      logger.error('Command execution failed with exec, trying spawn', { 
-        command, 
-        error: error.message 
+      logger.error("Command execution failed with exec, trying spawn", {
+        command,
+        error: error.message,
       });
-      
+
       // Fallback to spawn if exec fails
       try {
         const cleanEnv = Object.fromEntries(
-          Object.entries(environment).filter(([_, v]) => v !== undefined)
+          Object.entries(environment).filter(([_, v]) => v !== undefined),
         ) as Record<string, string>;
-        const result = await this.executeWithSpawn(command, cwd, cleanEnv, timeout);
+        const result = await this.executeWithSpawn(
+          command,
+          cwd,
+          cleanEnv,
+          timeout,
+        );
         return result;
       } catch (spawnError: any) {
-        logger.error('Spawn fallback also failed', { 
-          command, 
-          error: spawnError.message 
+        logger.error("Spawn fallback also failed", {
+          command,
+          error: spawnError.message,
         });
-        
+
         return {
           exitCode: error.code || 1,
           result: error.stdout || error.message,
           artifacts: {
-            stdout: error.stdout || '',
+            stdout: error.stdout || "",
             stderr: error.stderr || error.message,
           },
         };
@@ -82,35 +87,40 @@ export class LocalShellExecutor {
   }
 
   private async executeWithSpawn(
-    command: string, 
-    cwd: string, 
-    env: Record<string, string>, 
-    timeout: number
+    command: string,
+    cwd: string,
+    env: Record<string, string>,
+    timeout: number,
   ): Promise<ExecuteResponse> {
     return new Promise((resolve, reject) => {
       // Try different shell paths
-      const shellPaths = ['/bin/bash', '/usr/bin/bash', '/bin/sh', '/usr/bin/sh'];
+      const shellPaths = [
+        "/bin/bash",
+        "/usr/bin/bash",
+        "/bin/sh",
+        "/usr/bin/sh",
+      ];
       let lastError: Error | null = null;
-      
+
       const tryShell = (shellPath: string) => {
-        const child = spawn(shellPath, ['-c', command], {
+        const child = spawn(shellPath, ["-c", command], {
           cwd,
           env: { ...process.env, ...env },
           timeout: timeout * 1000,
         });
 
-        let stdout = '';
-        let stderr = '';
+        let stdout = "";
+        let stderr = "";
 
-        child.stdout?.on('data', (data) => {
+        child.stdout?.on("data", (data) => {
           stdout += data.toString();
         });
 
-        child.stderr?.on('data', (data) => {
+        child.stderr?.on("data", (data) => {
           stderr += data.toString();
         });
 
-        child.on('close', (code) => {
+        child.on("close", (code) => {
           resolve({
             exitCode: code || 0,
             result: stdout,
@@ -121,7 +131,7 @@ export class LocalShellExecutor {
           });
         });
 
-        child.on('error', (error) => {
+        child.on("error", (error) => {
           lastError = error;
           // Try next shell path
           const nextIndex = shellPaths.indexOf(shellPath) + 1;
@@ -132,7 +142,7 @@ export class LocalShellExecutor {
           }
         });
       };
-      
+
       // Start with the first shell path
       tryShell(shellPaths[0]);
     });
@@ -144,16 +154,21 @@ export class LocalShellExecutor {
 
   setWorkingDirectory(directory: string): void {
     this.workingDirectory = directory;
-    logger.info('Working directory changed', { workingDirectory: directory });
+    logger.info("Working directory changed", { workingDirectory: directory });
   }
 }
 
-// Singleton instance for easy access
 let sharedExecutor: LocalShellExecutor | null = null;
 
-export function getLocalShellExecutor(workingDirectory?: string): LocalShellExecutor {
-  if (!sharedExecutor || (workingDirectory && sharedExecutor.getWorkingDirectory() !== workingDirectory)) {
+export function getLocalShellExecutor(
+  workingDirectory?: string,
+): LocalShellExecutor {
+  if (
+    !sharedExecutor ||
+    (workingDirectory &&
+      sharedExecutor.getWorkingDirectory() !== workingDirectory)
+  ) {
     sharedExecutor = new LocalShellExecutor(workingDirectory);
   }
   return sharedExecutor;
-} 
+}
