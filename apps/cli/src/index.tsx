@@ -422,12 +422,14 @@ const App: React.FC = () => {
             },
             autoAcceptPlan: false,
           };
+          const installationId = getInstallationId();
           const newClient = new Client({
             apiUrl: LANGGRAPH_URL,
             defaultHeaders: {
               "x-github-access-token": encryptedUserToken,
               "x-github-installation-token": encryptedInstallationToken,
               "x-github-installation-name": owner,
+              "x-github-installation-id": installationId,
             },
           });
           setClient(newClient);
@@ -578,12 +580,14 @@ const App: React.FC = () => {
           );
           const [owner] = selectedRepo?.full_name.split("/") || [];
 
+          const installationId = getInstallationId();
           const client = new Client({
             apiUrl: LANGGRAPH_URL,
             defaultHeaders: {
               "x-github-access-token": encryptedUserToken,
               "x-github-installation-token": encryptedInstallationToken,
               "x-github-installation-name": owner,
+              "x-github-installation-id": installationId,
             },
           });
 
