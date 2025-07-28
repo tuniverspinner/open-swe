@@ -1,6 +1,5 @@
 import { tool } from "@langchain/core/tools";
-import { GraphState } from "@open-swe/shared/open-swe/types";
-import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
+import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import {
@@ -9,7 +8,7 @@ import {
 } from "@open-swe/shared/open-swe/tools";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { wrapScript } from "../utils/wrap-script.js";
-import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
+import { getLocalExecutorOrThrow } from "../utils/local-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "SearchTool");
 
@@ -19,12 +18,13 @@ const DEFAULT_ENV = {
 };
 
 export function createSearchTool(
-  state: Pick<GraphState, "sandboxSessionId" | "targetRepository">,
+  state: Pick<GraphState, "targetRepository">,
+  config: GraphConfig,
 ) {
   const searchTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
-        const sandbox = await getSandboxSessionOrThrow(input);
+        const executor = getLocalExecutorOrThrow(state.targetRepository, config);
 
         const repoRoot = getRepoAbsolutePath(state.targetRepository);
         const command = formatSearchCommand(input);
@@ -32,7 +32,7 @@ export function createSearchTool(
           command: command.join(" "),
           repoRoot,
         });
-        const response = await sandbox.process.executeCommand(
+        const response = await executor.process.executeCommand(
           wrapScript(command.join(" ")),
           repoRoot,
           DEFAULT_ENV,
@@ -59,15 +59,10 @@ export function createSearchTool(
           status: "success",
         };
       } catch (e) {
-        const errorFields = getSandboxErrorFields(e);
-        if (errorFields) {
-          const errorResult =
-            errorFields.result ?? errorFields.artifacts?.stdout;
-          throw new Error(
-            `Failed to run search command. Exit code: ${errorFields.exitCode}\nError: ${errorResult}`,
-          );
+        // Handle local execution errors
+        if (e instanceof Error) {
+          throw new Error(`Failed to run search command: ${e.message}`);
         }
-
         throw e;
       }
     },

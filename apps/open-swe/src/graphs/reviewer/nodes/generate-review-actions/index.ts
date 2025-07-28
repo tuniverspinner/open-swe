@@ -120,9 +120,9 @@ export async function generateReviewActions(
     Task.PROGRAMMER,
   );
   const tools = [
-    createSearchTool(state),
-    createShellTool(state),
-    createInstallDependenciesTool(state),
+    createSearchTool(state, config),
+    createShellTool(state, config),
+    createInstallDependenciesTool(state, config),
     createScratchpadTool(
       "when generating a final review, after all context gathering and reviewing is complete",
     ),

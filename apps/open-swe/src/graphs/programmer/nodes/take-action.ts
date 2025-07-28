@@ -50,10 +50,10 @@ export async function takeAction(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
-  const applyPatchTool = createApplyPatchTool(state);
-  const shellTool = createShellTool(state);
-  const searchTool = createSearchTool(state);
-  const installDependenciesTool = createInstallDependenciesTool(state);
+  const applyPatchTool = createApplyPatchTool(state, config);
+  const shellTool = createShellTool(state, config);
+  const searchTool = createSearchTool(state, config);
+  const installDependenciesTool = createInstallDependenciesTool(state, config);
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
   const mcpTools = await getMcpTools(config);

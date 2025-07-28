@@ -1,9 +1,8 @@
 import { tool } from "@langchain/core/tools";
-import { GraphState } from "@open-swe/shared/open-swe/types";
-import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
+import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { createShellToolFields } from "@open-swe/shared/open-swe/tools";
-import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
+import { getLocalExecutorOrThrow } from "../utils/local-executor.js";
 
 const DEFAULT_ENV = {
   // Prevents corepack from showing a y/n download prompt which causes the command to hang
@@ -11,15 +10,16 @@ const DEFAULT_ENV = {
 };
 
 export function createShellTool(
-  state: Pick<GraphState, "sandboxSessionId" | "targetRepository">,
+  state: Pick<GraphState, "targetRepository">,
+  config: GraphConfig,
 ) {
   const shellTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
-        const sandbox = await getSandboxSessionOrThrow(input);
+        const executor = getLocalExecutorOrThrow(state.targetRepository, config);
 
         const { command, workdir, timeout } = input;
-        const response = await sandbox.process.executeCommand(
+        const response = await executor.process.executeCommand(
           command.join(" "),
           workdir,
           DEFAULT_ENV,
@@ -38,15 +38,10 @@ export function createShellTool(
           status: "success",
         };
       } catch (e) {
-        const errorFields = getSandboxErrorFields(e);
-        if (errorFields) {
-          const errorResult =
-            errorFields.result ?? errorFields.artifacts?.stdout;
-          throw new Error(
-            `Command failed. Exit code: ${errorFields.exitCode}\nError: ${errorResult}`,
-          );
+        // Handle local execution errors
+        if (e instanceof Error) {
+          throw new Error(`Command failed: ${e.message}`);
         }
-
         throw e;
       }
     },

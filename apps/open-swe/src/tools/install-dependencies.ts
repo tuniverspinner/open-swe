@@ -1,11 +1,10 @@
 import { tool } from "@langchain/core/tools";
-import { GraphState } from "@open-swe/shared/open-swe/types";
-import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
+import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { createInstallDependenciesToolFields } from "@open-swe/shared/open-swe/tools";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
-import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
+import { getLocalExecutorOrThrow } from "../utils/local-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "InstallDependenciesTool");
 
@@ -15,12 +14,13 @@ const DEFAULT_ENV = {
 };
 
 export function createInstallDependenciesTool(
-  state: Pick<GraphState, "sandboxSessionId" | "targetRepository">,
+  state: Pick<GraphState, "targetRepository">,
+  config: GraphConfig,
 ) {
   const installDependenciesTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
-        const sandbox = await getSandboxSessionOrThrow(input);
+        const executor = getLocalExecutorOrThrow(state.targetRepository, config);
 
         const repoRoot = getRepoAbsolutePath(state.targetRepository);
         const command = input.command.join(" ");
@@ -29,7 +29,7 @@ export function createInstallDependenciesTool(
           command,
           workdir,
         });
-        const response = await sandbox.process.executeCommand(
+        const response = await executor.process.executeCommand(
           command,
           workdir,
           DEFAULT_ENV,
@@ -48,15 +48,10 @@ export function createInstallDependenciesTool(
           status: "success",
         };
       } catch (e) {
-        const errorFields = getSandboxErrorFields(e);
-        if (errorFields) {
-          const errorResult =
-            errorFields.result ?? errorFields.artifacts?.stdout;
-          throw new Error(
-            `Failed to install dependencies. Exit code: ${errorFields.exitCode}\nError: ${errorResult}`,
-          );
+        // Handle local execution errors
+        if (e instanceof Error) {
+          throw new Error(`Failed to install dependencies: ${e.message}`);
         }
-
         throw e;
       }
     },
