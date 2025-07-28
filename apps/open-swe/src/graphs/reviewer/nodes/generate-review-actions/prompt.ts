@@ -86,40 +86,55 @@ By reviewing these actions, and comparing them to the plan and original user req
     **FOR LANGGRAPH AGENTS - CRITICAL CHECK**: If the request involves creating or modifying a LangGraph agent, you MUST verify:
     
     **FILE STRUCTURE VALIDATION**:
-    - Check \`agent.py\` or \`agent.ts\` exists at project root: \`ls -la agent.py agent.ts 2>/dev/null\`
-    - Check \`langgraph.json\` exists: \`ls -la langgraph.json\`
-    - Validate JSON syntax: \`python -c "import json; json.load(open('langgraph.json')); print('Valid JSON')"\`
-    - Verify JSON structure contains required fields: \`grep -q '"graphs"' langgraph.json && grep -q '"dependencies"' langgraph.json\`
+    - Check agent files exist: Use \`view\` tool to check for \`agent.py\` or \`agent.ts\` at project root
+    - Check config exists: Use \`view\` tool to verify \`langgraph.json\` exists
+    - Validate JSON syntax: \`["python3", "-c", "import json; json.load(open('langgraph.json')); print('Valid JSON')"]\`
+    - Verify JSON structure: \`["grep", "-q", "graphs", "langgraph.json"]\` and \`["grep", "-q", "dependencies", "langgraph.json"]\`
     
     **CODE STRUCTURE VALIDATION** (use \`view\` tool to inspect):
     - Verify \`app\` export exists in agent file
-    - Check for proper StateGraph import and usage
-    - Confirm graph compilation without checkpointer (unless explicitly requested).
-    - Validate state schema is properly defined
     
     **VALIDATION REQUIREMENTS - ALWAYS RUN THESE CHECKS**:
-    - For Python agents (\`agent.py\`):
-             * Check availability: \`which ruff || echo "ruff not available - install needed"\`
-       * Check availability: \`which mypy || echo "mypy not available - install needed"\`
-      * If tools available, run: \`ruff check agent.py\`
-      * If tools available, run: \`mypy agent.py\`
-             * **CRITICAL COMPILATION TEST**: \`python -c "from agent import app; print('Agent compiles successfully')"\`
     
-    - For TypeScript agents (\`agent.ts\`):
-      * Check availability: \`which eslint || echo "eslint not available - install needed"\`
-      * Check availability: \`which tsc || echo "tsc not available - install needed"\`
-      * If tools available, run: \`npx eslint agent.ts\`
-      * If tools available, run: \`npx tsc --noEmit agent.ts\`
-      * **CRITICAL COMPILATION TEST**: \`node -e "const {app} = require('./agent'); console.log('Agent compiles successfully')"\`
+    **For Python agents (\`agent.py\`)**:
+    - Check tool availability: \`["which", "ruff"]\` (continue if not found)
+    - Check tool availability: \`["which", "mypy"]\` (continue if not found)
+    - If ruff available, run: \`["ruff", "check", "agent.py"]\`
+    - If mypy available, run: \`["mypy", "agent.py"]\`
+    - **CRITICAL COMPILATION TEST**: \`["python3", "-c", "from agent import app; print('Agent compiles successfully')"]\`
     
-    **ERROR HANDLING**:
-    - **CRITICAL**: Report ALL compilation failures - these MUST be fixed before completion
-    - If linting tools missing, note in review but focus on compilation test
-    - Exit codes: 0 = success, non-zero = issues found that need programmer attention
-    - Any import errors or runtime errors during compilation test are BLOCKING issues
+    **For TypeScript agents (\`agent.ts\`)**:
+    - Check tool availability: \`["which", "eslint"]\` (continue if not found)
+    - Check tool availability: \`["which", "tsc"]\` (continue if not found)
+    - If eslint available, run: \`["npx", "eslint", "agent.ts"]\`
+    - If tsc available, run: \`["npx", "tsc", "--noEmit", "agent.ts"]\`
+    - **CRITICAL COMPILATION TEST**: \`["node", "-e", "const {app} = require('./agent'); console.log('Agent compiles successfully')"]\`
+        
+    **ERROR HANDLING GUIDELINES**:
+    - **Shell Command Format**: ALWAYS use array format for shell commands: \`["command", "arg1", "arg2"]\`
+    - **Quote Handling**: For Python code with quotes, use double quotes outside, single quotes inside
+    - **Import Testing**: If direct import fails, check for missing dependencies first
+    - **Path Issues**: Ensure working directory is set correctly with \`workdir\` parameter
     
-    **FAILURE TO VERIFY THESE REQUIREMENTS WILL CAUSE THE PR TO BE REJECTED**
-    </langgraph_validation>
+    **COMPILATION FAILURE DEBUGGING**:
+    1. First check if file exists: Use \`view\` tool on \`agent.py\`
+    2. Check for syntax errors: \`["python3", "-m", "py_compile", "agent.py"]\`
+    3. Check for missing imports: \`["python3", "-c", "import langgraph, langchain_anthropic"]\`
+    4. Test minimal import: \`["python3", "-c", "import agent"]\` (without accessing \`app\`)
+    5. If still failing, examine the specific error message and fix underlying issues
+    
+    **CRITICAL SUCCESS CRITERIA**:
+    - **BLOCKING**: Agent file must compile without syntax errors
+    - **BLOCKING**: Required imports (langgraph, model providers) must be available
+    - **BLOCKING**: \`app\` variable must be properly exported
+    - **WARNING**: Linting issues (can be noted but not blocking)
+    - **INFO**: Tool availability (ruff, mypy, etc.)
+    
+    **DO NOT MARK TASK COMPLETE UNTIL**:
+    - Compilation test passes with exit code 0
+    - All import errors are resolved
+    - Agent structure follows LangGraph patterns correctly
+</langgraph_validation>
 
     You MUST perform the above actions. You should write your findings to the scratchpad, as you do not need to take action on your findings right now.
     Once you've completed your review you'll be given the chance to say whether or not the task has been successfully completed, and if not, you'll be able to provide a list of new actions to take.
