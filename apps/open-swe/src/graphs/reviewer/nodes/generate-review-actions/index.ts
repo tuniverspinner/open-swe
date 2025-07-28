@@ -1,4 +1,5 @@
 import {
+  getModelManager,
   loadModel,
   supportsParallelToolCallsParam,
   Task,
@@ -13,7 +14,7 @@ import { getMessageContentString } from "@open-swe/shared/messages";
 import { PREVIOUS_REVIEW_PROMPT, SYSTEM_PROMPT } from "./prompt.js";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import {
-  createSearchTool,
+  createGrepTool,
   createShellTool,
   createInstallDependenciesTool,
 } from "../../../../tools/index.js";
@@ -32,6 +33,8 @@ import {
   convertMessagesToCacheControlledMessages,
   trackCachePerformance,
 } from "../../../../utils/caching.js";
+import { createScratchpadTool } from "../../../../tools/scratchpad.js";
+import { createViewTool } from "../../../../tools/builtin-tools/view.js";
 
 const logger = createLogger(LogLevel.INFO, "GenerateReviewActionsNode");
 
@@ -110,15 +113,21 @@ export async function generateReviewActions(
   state: ReviewerGraphState,
   config: GraphConfig,
 ): Promise<ReviewerGraphUpdate> {
-  const model = await loadModel(config, Task.PROGRAMMER);
+  const model = await loadModel(config, Task.REVIEWER);
+  const modelManager = getModelManager();
+  const modelName = modelManager.getModelNameForTask(config, Task.REVIEWER);
   const modelSupportsParallelToolCallsParam = supportsParallelToolCallsParam(
     config,
-    Task.PROGRAMMER,
+    Task.REVIEWER,
   );
   const tools = [
-    createSearchTool(state),
+    createGrepTool(state),
     createShellTool(state),
+    createViewTool(state),
     createInstallDependenciesTool(state),
+    createScratchpadTool(
+      "when generating a final review, after all context gathering and reviewing is complete",
+    ),
   ];
   tools[tools.length - 1] = {
     ...tools[tools.length - 1],
@@ -162,6 +171,6 @@ export async function generateReviewActions(
   return {
     messages: [response],
     reviewerMessages: [response],
-    tokenData: trackCachePerformance(response),
+    tokenData: trackCachePerformance(response, modelName),
   };
 }
