@@ -146,7 +146,7 @@ ls.describe("SWE-bench Evaluation", () => {
       });
 
       // Format the problem for the agent
-      const formattedProblem = formatProblemStatement(inputs);
+      const formattedProblem = await formatProblemStatement(inputs);
 
       // Run the manager graph
       logger.info("Running manager graph...", {
@@ -309,5 +309,6 @@ ls.describe("SWE-bench Evaluation", () => {
     TIMEOUT_MINUTES * 60 * 1000, // Convert to milliseconds
   );
 });
+
 
 
