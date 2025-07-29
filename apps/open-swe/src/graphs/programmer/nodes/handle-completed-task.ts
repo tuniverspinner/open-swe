@@ -17,6 +17,7 @@ import {
 } from "../../../utils/current-task.js";
 import { isAIMessage, ToolMessage } from "@langchain/core/messages";
 import { addTaskPlanToIssue } from "../../../utils/github/issue-task.js";
+import { isLocalMode } from "../../../utils/local-mode.js";
 import { createMarkTaskCompletedToolFields } from "@open-swe/shared/open-swe/tools";
 import {
   calculateConversationHistoryTokenCount,
@@ -87,14 +88,18 @@ export async function handleCompletedTask(
     summary,
   );
   // Update the github issue to reflect this task as completed.
-  await addTaskPlanToIssue(
-    {
-      githubIssueId: state.githubIssueId,
-      targetRepository: state.targetRepository,
-    },
-    config,
-    updatedPlanTasks,
-  );
+  if (!isLocalMode(config)) {
+    await addTaskPlanToIssue(
+      {
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+      },
+      config,
+      updatedPlanTasks,
+    );
+  } else {
+    logger.info("Skipping GitHub issue update in local mode");
+  }
 
   const commandUpdate: GraphUpdate = {
     messages: newMessages,

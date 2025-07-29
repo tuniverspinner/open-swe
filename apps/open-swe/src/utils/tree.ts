@@ -102,6 +102,7 @@ async function getCodebaseTreeLocal(targetRepository?: TargetRepository): Promis
       workingDirectory,
       {},
       TIMEOUT_SEC,
+      true, // localMode
     );
 
     if (response.exitCode !== 0) {

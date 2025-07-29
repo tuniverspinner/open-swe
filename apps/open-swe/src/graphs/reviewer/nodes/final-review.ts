@@ -22,7 +22,11 @@ import {
 import { GraphConfig, PlanItem } from "@open-swe/shared/open-swe/types";
 import { z } from "zod";
 import { addTaskPlanToIssue } from "../../../utils/github/issue-task.js";
+import { isLocalMode } from "../../../utils/local-mode.js";
+import { createLogger, LogLevel } from "../../../utils/logger.js";
 import { getMessageString } from "../../../utils/message/content.js";
+
+const logger = createLogger(LogLevel.INFO, "FinalReview");
 import {
   AIMessage,
   BaseMessage,
@@ -187,14 +191,18 @@ export async function finalReview(
     "agent",
   );
 
-  await addTaskPlanToIssue(
-    {
-      githubIssueId: state.githubIssueId,
-      targetRepository: state.targetRepository,
-    },
-    config,
-    updatedTaskPlan,
-  );
+  if (!isLocalMode(config)) {
+    await addTaskPlanToIssue(
+      {
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+      },
+      config,
+      updatedTaskPlan,
+    );
+  } else {
+    logger.info("Skipping GitHub issue update in local mode");
+  }
 
   const toolMessage = new ToolMessage({
     id: uuidv4(),

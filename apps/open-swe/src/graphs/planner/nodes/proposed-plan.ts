@@ -168,9 +168,18 @@ async function startProgrammerRun(input: {
   newMessages?: BaseMessage[];
 }) {
   const { runInput, state, config, newMessages } = input;
-  const langGraphClient = createLangGraphClient({
-    defaultHeaders: getDefaultHeaders(config),
-  });
+  
+  // Use appropriate headers based on mode
+  let langGraphClient;
+  if (isLocalMode(config)) {
+    langGraphClient = createLangGraphClient({
+      defaultHeaders: { "x-local-mode": "true" },
+    });
+  } else {
+    langGraphClient = createLangGraphClient({
+      defaultHeaders: getDefaultHeaders(config),
+    });
+  }
 
   const programmerThreadId = uuidv4();
   // Restart the sandbox.
@@ -195,7 +204,10 @@ async function startProgrammerRun(input: {
       input: runInput,
       config: {
         recursion_limit: 400,
-        configurable: getCustomConfigurableFields(config),
+        configurable: {
+          ...getCustomConfigurableFields(config),
+          ...(isLocalMode(config) && { "x-local-mode": "true" }),
+        },
       },
       ifNotExists: "create",
       streamResumable: true,
@@ -204,14 +216,17 @@ async function startProgrammerRun(input: {
     },
   );
 
-  await addTaskPlanToIssue(
-    {
-      githubIssueId: state.githubIssueId,
-      targetRepository: state.targetRepository,
-    },
-    config,
-    runInput.taskPlan,
-  );
+  // Skip GitHub operations in local mode
+  if (!isLocalMode(config)) {
+    await addTaskPlanToIssue(
+      {
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+      },
+      config,
+      runInput.taskPlan,
+    );
+  }
 
   return new Command({
     goto: END,
