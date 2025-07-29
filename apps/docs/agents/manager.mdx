@@ -1,0 +1,51 @@
+---
+title: "Manager Agent"
+description: "Entry point and request router for the agent system"
+---
+
+# Manager Agent
+
+The Manager agent serves as the entry point and coordinator for all user requests in the Open SWE system. It handles request classification, session management, and routing to appropriate specialized agents.
+
+## Role & Responsibilities
+
+### Request Classification
+- Analyzes incoming user messages to determine intent and routing
+- Classifies requests as new tasks, updates, or session management operations
+
+### GitHub Issue Management
+- Initializes GitHub issues for new requests
+- Links requests to appropriate repositories and branches
+
+### Session Coordination
+- Tracks active `plannerSession` and `programmerSession` states
+- Manages session lifecycle and handoffs between agents
+
+## Routing Options
+
+The Manager routes requests to different agents based on classification:
+
+- **`start_planner`** - New requests requiring plan generation
+- **`update_planner`** - Additional context for active planning sessions
+- **`resume_planner`** - Continue interrupted planning with feedback
+- **`update_programmer`** - Context for active implementation sessions
+- **`create_new_session`** - Independent requests for separate issues
+
+## Architecture
+
+### No Tools
+The Manager agent operates without tools, focusing purely on coordination logic and LLM-based message classification.
+
+### LangGraph Integration
+- Invokes Planner agent via LangGraph SDK
+- Manages thread creation and session state
+- Handles streaming and real-time updates
+
+## Key Nodes
+
+- **`initialize-github-issue`** - Sets up GitHub integration
+- **`classify-message`** - Determines routing strategy
+- **`start-planner`** - Initiates planning sessions
+- **`create-new-session`** - Handles session creation
+
+The Manager ensures smooth coordination between all agents while maintaining session state and providing appropriate routing for complex software engineering workflows.
