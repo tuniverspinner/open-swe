@@ -1,0 +1,50 @@
+---
+title: "Reviewer Agent"
+description: "Code review and quality assurance"
+---
+
+# Reviewer Agent
+
+The Reviewer agent performs code review to ensure quality and correctness before pull request creation.
+
+## Role
+
+- **Code reviewer** that analyzes changes for quality and correctness
+- **Quality gatekeeper** that ensures changes meet standards
+- **Feedback provider** that can request additional changes
+
+## How It's Invoked
+
+The Reviewer agent is invoked:
+- As a subgraph within the Programmer agent
+- After all tasks are completed but before PR creation
+- Can be invoked multiple times based on review feedback
+
+## Workflow Steps
+
+Key nodes in the Reviewer workflow:
+
+1. **`initialize-state`** - Sets up review context and environment
+2. **`generate-review-actions`** - Main tool-calling node for review analysis
+3. **`take-review-actions`** - Executes review tool calls
+4. **`diagnose-reviewer-error`** - Handles any errors during review
+5. **`final-review`** - Makes final determination on code quality
+
+## Available Tools
+
+During the `generate-review-actions` node, the Reviewer has access to:
+
+- **`grep`** - Search for patterns and potential issues
+- **`shell`** - Run tests, linters, and type checkers
+- **`view`** - Examine changed files and their context
+- **`install_dependencies`** - Install dependencies if needed for testing
+- **`scratchpad`** - Take notes during review process
+
+## Key Characteristics
+
+- **Focused scope** - Reviews only the changes made by the Programmer
+- **Automated testing** - Runs relevant tests and checks
+- **Iterative process** - Can request changes and re-review
+- **Binary outcome** - Either approves for PR or requests improvements
+
+The Reviewer agent acts as an automated code review process, catching issues before they reach human reviewers and ensuring consistent quality standards.
