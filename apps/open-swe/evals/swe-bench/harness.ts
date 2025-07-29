@@ -51,7 +51,7 @@ export async function checkDockerAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
     const dockerCheck = spawn("docker", ["--version"]);
     
-    dockerCheck.on("close", (code) => {
+    dockerCheck.on("close", (code: number | null) => {
       if (code === 0) {
         logger.info("Docker is available");
         resolve(true);
@@ -61,7 +61,7 @@ export async function checkDockerAvailable(): Promise<boolean> {
       }
     });
 
-    dockerCheck.on("error", (error) => {
+    dockerCheck.on("error", (error: Error) => {
       logger.error("Docker not found", { error });
       resolve(false);
     });
@@ -508,5 +508,6 @@ async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }>
     });
   });
 }
+
 
 
