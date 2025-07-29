@@ -379,7 +379,7 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
 
   for (const step of steps) {
     logger.info(`\n${step.name}:`);
-    logger.info("-" * 30);
+    logger.info("-".repeat(30));
 
     const success = await step.check();
 
@@ -455,5 +455,6 @@ Examples:
 setup(options).then((success) => {
   process.exit(success ? 0 : 1);
 });
+
 
 
