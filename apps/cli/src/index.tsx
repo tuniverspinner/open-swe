@@ -9,13 +9,15 @@ import {
 } from "./auth-server.js";
 import open from "open";
 import { v4 as uuidv4 } from "uuid";
-import { encryptSecret } from "../../../packages/shared/dist/crypto.js";
+import { encryptSecret } from "@open-swe/shared/crypto";
 import {
   MANAGER_GRAPH_ID,
-  PLANNER_GRAPH_ID,
-} from "../../../packages/shared/dist/constants.js";
-import { Client } from "@langchain/langgraph-sdk";
+  OPEN_SWE_STREAM_MODE,
+} from "@open-swe/shared/constants";
+import { Client, StreamMode } from "@langchain/langgraph-sdk";
 import { formatDisplayLog } from "./logger.js";
+import { submitFeedback } from "./utils.js";
+import { StreamingService } from "./streaming.js";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 const GITHUB_LOGIN_URL =
@@ -228,7 +230,6 @@ const App: React.FC = () => {
   const INSTALLATION_CALLBACK_URL = process.env.GITHUB_CALLBACK_URL || "";
   const [pollingForToken, setPollingForToken] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
-  const [prompt, setPrompt] = useState<string>("");
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
   const [streamingPhase, setStreamingPhase] = useState<
     "streaming" | "awaitingFeedback" | "done"
@@ -246,7 +247,7 @@ const App: React.FC = () => {
         return;
       }
 
-      setLogs((prev) => [...prev, `📤 Interrupt: "${message}"`]);
+      setLogs((prev) => [...prev, `📤 Interrupt Response: "${message}"`]);
 
       try {
         const [owner, repoName] = selectedRepo.full_name.split("/");
@@ -270,7 +271,7 @@ const App: React.FC = () => {
           ifNotExists: "create",
           streamResumable: true,
           multitaskStrategy: "enqueue",
-          streamMode: ["values", "messages"],
+          streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
         });
 
         // Just submit the interrupt - existing planner session will pick it up automatically
@@ -327,7 +328,6 @@ const App: React.FC = () => {
   // Poll for installation_id after opening install page (skip in local mode)
   useEffect(() => {
     if (isLocalMode) return; // Skip installation polling in local mode
-
     let interval: ReturnType<typeof setInterval>;
     if (waitingForInstall) {
       interval = setInterval(() => {
@@ -430,211 +430,6 @@ const App: React.FC = () => {
     );
   };
 
-  // Streaming logic: when prompt is set, stream logs
-  useEffect(() => {
-    if (prompt && selectedRepo && streamingPhase === "streaming") {
-      setLogs([]);
-      setPlannerFeedback(null);
-      setLoadingLogs(true);
-      (async () => {
-        try {
-          let newClient;
-          let runInput;
-
-          if (isLocalMode) {
-            // In local mode, create minimal run input and client
-            runInput = {
-              messages: [
-                {
-                  id: uuidv4(),
-                  type: "human",
-                  content: [{ type: "text", text: prompt }],
-                },
-              ],
-              targetRepository: {
-                owner: "local",
-                repo: "project",
-                branch: "main",
-              },
-              autoAcceptPlan: false,
-            };
-
-            newClient = new Client({
-              apiUrl: LANGGRAPH_URL,
-              defaultHeaders: {
-                "x-local-mode": "true", // Signal to server this is local mode
-              },
-            });
-          } else {
-            const userAccessToken = getAccessToken();
-            const installationAccessToken = await getInstallationAccessToken();
-            const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
-            if (
-              !userAccessToken ||
-              !installationAccessToken ||
-              !encryptionKey
-            ) {
-              setLogs([
-                `Missing secrets: ${userAccessToken ? "" : "userAccessToken, "}${installationAccessToken ? "" : "installationAccessToken, "}${encryptionKey ? "" : "encryptionKey"}`,
-              ]);
-              return;
-            }
-            const encryptedUserToken = encryptSecret(
-              userAccessToken,
-              encryptionKey,
-            );
-            const encryptedInstallationToken = encryptSecret(
-              installationAccessToken,
-              encryptionKey,
-            );
-            const [owner, repoName] = selectedRepo.full_name.split("/");
-            runInput = {
-              messages: [
-                {
-                  id: uuidv4(),
-                  type: "human",
-                  content: [{ type: "text", text: prompt }],
-                },
-              ],
-              targetRepository: {
-                owner,
-                repo: repoName,
-                branch: selectedRepo.default_branch || "main",
-              },
-              autoAcceptPlan: false,
-            };
-            const installationId = getInstallationId();
-            newClient = new Client({
-              apiUrl: LANGGRAPH_URL,
-              defaultHeaders: {
-                GITHUB_TOKEN_COOKIE: encryptedUserToken,
-                GITHUB_INSTALLATION_TOKEN_COOKIE: encryptedInstallationToken,
-                GITHUB_INSTALLATION_NAME: owner,
-                GITHUB_INSTALLATION_ID: installationId,
-              },
-            });
-          }
-          setClient(newClient);
-          const thread = await newClient.threads.create();
-          const threadId = thread.thread_id;
-          setThreadId(threadId);
-          const run = await newClient.runs.create(threadId, MANAGER_GRAPH_ID, {
-            input: runInput,
-            config: {
-              recursion_limit: 400,
-              ...(isLocalMode && {
-                configurable: {
-                  "x-local-mode": "true",
-                },
-              }),
-            },
-            ifNotExists: "create",
-            streamResumable: true,
-            streamMode: ["updates", "values"],
-          });
-
-          let plannerStreamed = false;
-          let programmerStreamed = false;
-          for await (const chunk of newClient.runs.joinStream(
-            threadId,
-            run.run_id,
-          )) {
-            if (chunk.event === "updates") {
-              const formatted = formatDisplayLog(chunk);
-              if (formatted.length > 0) {
-                setLogs((prev) => {
-                  if (prev.length === 0) {
-                    setLoadingLogs(false);
-                  }
-                  return [...prev, ...formatted];
-                });
-              }
-            }
-
-            // Check for plannerSession
-            if (
-              !plannerStreamed &&
-              chunk.data &&
-              chunk.data.plannerSession &&
-              typeof chunk.data.plannerSession.threadId === "string" &&
-              typeof chunk.data.plannerSession.runId === "string"
-            ) {
-              plannerStreamed = true;
-              setPlannerThreadId(chunk.data.plannerSession.threadId);
-              for await (const subChunk of newClient.runs.joinStream(
-                chunk.data.plannerSession.threadId,
-                chunk.data.plannerSession.runId,
-                {
-                  streamMode: ["updates", "values"],
-                },
-              )) {
-                if (subChunk.event === "updates") {
-                  const formatted = formatDisplayLog(subChunk);
-                  // Filter out human messages from planner stream (already logged in manager)
-                  const filteredFormatted = formatted.filter(
-                    (log) => !log.startsWith("[HUMAN]"),
-                  );
-                  if (filteredFormatted.length > 0) {
-                    setLogs((prev) => [...prev, ...filteredFormatted]);
-                  }
-                }
-
-                // Check for programmer session
-                if (
-                  !programmerStreamed &&
-                  subChunk.data?.programmerSession?.threadId &&
-                  typeof subChunk.data.programmerSession.threadId ===
-                    "string" &&
-                  typeof subChunk.data.programmerSession.runId === "string"
-                ) {
-                  programmerStreamed = true;
-                  for await (const programmerChunk of newClient.runs.joinStream(
-                    subChunk.data.programmerSession.threadId,
-                    subChunk.data.programmerSession.runId,
-                    {
-                      streamMode: ["updates", "values"],
-                    },
-                  )) {
-                    if (programmerChunk.event === "updates") {
-                      const formatted = formatDisplayLog(programmerChunk);
-                      if (formatted.length > 0) {
-                        setLogs((prev) => [...prev, ...formatted]);
-                      }
-                    }
-                  }
-                }
-
-                // Detect HumanInterrupt in planner stream
-                const interruptArr =
-                  subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
-                    ? subChunk.data["__interrupt__"]
-                    : undefined;
-                const firstInterruptValue =
-                  interruptArr && interruptArr[0] && interruptArr[0].value
-                    ? interruptArr[0].value
-                    : undefined;
-                if (isAgentInboxInterruptSchema(firstInterruptValue)) {
-                  setStreamingPhase("awaitingFeedback");
-                  return; // Pause streaming, let React render feedback prompt
-                }
-              }
-            }
-          }
-          setStreamingPhase("done");
-        } catch (err: any) {
-          setLogs((prev) => [
-            ...prev,
-            `Error during streaming: ${err.message}`,
-          ]);
-          setLoadingLogs(false);
-        } finally {
-          setPrompt("");
-          setLoadingLogs(false);
-        }
-      })();
-    }
-  }, [prompt, selectedRepo, streamingPhase]);
-
   // Add this where we handle planner feedback
   useEffect(() => {
     if (
@@ -645,136 +440,20 @@ const App: React.FC = () => {
       // Immediately switch to streaming mode to hide the feedback prompt
       setStreamingPhase("streaming");
 
-      const submitFeedback = async () => {
-        try {
-          let client;
-
-          if (isLocalMode) {
-            // In local mode, create client without GitHub authentication
-            client = new Client({
-              apiUrl: LANGGRAPH_URL,
-              defaultHeaders: {
-                "x-local-mode": "true", // Signal to server this is local mode
-              },
-            });
-          } else {
-            const userAccessToken = getAccessToken();
-            const installationAccessToken = await getInstallationAccessToken();
-            const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
-
-            if (
-              !userAccessToken ||
-              !installationAccessToken ||
-              !encryptionKey
-            ) {
-              setLogs((prev) => [
-                ...prev,
-                "Missing access tokens for feedback submission",
-              ]);
-              return;
-            }
-
-            const encryptedUserToken = encryptSecret(
-              userAccessToken,
-              encryptionKey,
-            );
-            const encryptedInstallationToken = encryptSecret(
-              installationAccessToken,
-              encryptionKey,
-            );
-            const [owner] = selectedRepo?.full_name.split("/") || [];
-
-            const installationId = getInstallationId();
-            client = new Client({
-              apiUrl: LANGGRAPH_URL,
-              defaultHeaders: {
-                "x-github-access-token": encryptedUserToken,
-                "x-github-installation-token": encryptedInstallationToken,
-                "x-github-installation-name": owner,
-                "x-github-installation-id": installationId,
-              },
-            });
-          }
-
-          const formatted = formatDisplayLog(
-            `Human feedback: ${plannerFeedback}`,
-          );
-          if (formatted.length > 0) {
-            setLogs((prev) => [...prev, ...formatted]);
-          }
-
-          // Create a new stream with the feedback
-          const stream = await client.runs.stream(
-            plannerThreadId,
-            PLANNER_GRAPH_ID,
-            {
-              command: {
-                resume: [
-                  {
-                    type: plannerFeedback === "approve" ? "accept" : "ignore",
-                    args: null,
-                  },
-                ],
-              },
-              streamMode: ["updates", "messages"],
-              ...(isLocalMode && {
-                config: {
-                  configurable: {
-                    "x-local-mode": "true",
-                  },
-                },
-              }),
-            },
-          );
-
-          let programmerStreamed = false;
-          // Process the stream response
-          for await (const chunk of stream) {
-            const formatted = formatDisplayLog(chunk);
-            if (formatted.length > 0) {
-              setLogs((prev) => [...prev, ...formatted]);
-            }
-
-            // Check for programmer session in the resumed planner stream
-            const chunkData = chunk.data as any;
-            if (
-              !programmerStreamed &&
-              chunkData?.programmerSession?.threadId &&
-              typeof chunkData.programmerSession.threadId === "string" &&
-              typeof chunkData.programmerSession.runId === "string"
-            ) {
-              programmerStreamed = true;
-              // Join programmer stream
-              for await (const programmerChunk of client.runs.joinStream(
-                chunkData.programmerSession.threadId,
-                chunkData.programmerSession.runId,
-              )) {
-                const formatted = formatDisplayLog(programmerChunk);
-                if (formatted.length > 0) {
-                  setLogs((prev) => [...prev, ...formatted]);
-                }
-              }
-            }
-          }
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error ? error.message : "Unknown error";
-          setLogs((prev) => [
-            ...prev,
-            `Error submitting feedback: ${errorMessage}`,
-          ]);
-        } finally {
-          // Clear feedback state
-          setPlannerFeedback(null);
-        }
-      };
-
-      submitFeedback();
+      (async () => {
+        await submitFeedback({
+          plannerFeedback,
+          plannerThreadId,
+          selectedRepo,
+          setLogs,
+          setPlannerFeedback: () => setPlannerFeedback(null),
+        });
+      })();
     }
   }, [streamingPhase, plannerFeedback, selectedRepo, plannerThreadId]);
 
-  // Loading repos after login (skip in local mode)
-  if (isLoggedIn && loadingRepos && !isLocalMode) {
+  // Loading repos after login
+  if (isLoggedIn && loadingRepos) {
     return (
       <Box flexDirection="column" padding={1}>
         <LoadingSpinner text="Loading your repositories" />
@@ -959,30 +638,41 @@ const App: React.FC = () => {
           flexShrink={0}
           justifyContent="center"
         >
-          {streamingPhase === "awaitingFeedback" ? (
-            <PlannerFeedbackInput />
-          ) : (
-            <Box>
-              {!hasStartedChat ? (
-                <CustomInput
-                  onSubmit={(value) => {
-                    setHasStartedChat(true);
-                    setPrompt(value);
-                  }}
-                />
-              ) : (
-                <CustomInput
-                  onSubmit={(value) => {
-                    sendInterruptMessage(value);
-                  }}
-                />
-              )}
-            </Box>
-          )}
+          <Box>
+            {!hasStartedChat ? (
+              <CustomInput
+                onSubmit={(value) => {
+                  setHasStartedChat(true);
+                  setPlannerFeedback(null);
+
+                  const streamingService = new StreamingService({
+                    setLogs,
+                    setPlannerThreadId,
+                    setStreamingPhase,
+                    setLoadingLogs,
+                    setClient,
+                    setThreadId,
+                  });
+
+                  streamingService.startNewSession(value, selectedRepo);
+                }}
+              />
+            ) : (
+              <CustomInput
+                onSubmit={(value) => {
+                  sendInterruptMessage(value);
+                }}
+              />
+            )}
+          </Box>
         </Box>
 
-        {/* Local mode indicator below input bar */}
-        {modeIndicator}
+        {/* Plan feedback below the input bar */}
+        {streamingPhase === "awaitingFeedback" && (
+          <Box flexDirection="column" paddingX={2} marginTop={1}>
+            <PlanFeedbackSelect />
+          </Box>
+        )}
       </Box>
     );
   }

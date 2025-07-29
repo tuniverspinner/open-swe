@@ -7,8 +7,8 @@ import {
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { traceable } from "langsmith/traceable";
 
-// After 60k tokens, summarize the conversation history.
-export const MAX_INTERNAL_TOKENS = 60_000;
+// After 100k tokens, summarize the conversation history.
+export const MAX_INTERNAL_TOKENS = 100_000;
 
 export function calculateConversationHistoryTokenCount(
   messages: BaseMessage[],
@@ -139,12 +139,12 @@ export function getMessagesSinceLastSummaryFunc(
     excludeCountFromEnd?: number;
   },
 ): BaseMessage[] {
-  // Find the index of the last summary message
-  const lastSummaryIndex = messages.findIndex(
-    (m) => m.additional_kwargs?.summary_message,
+  // Find the last summary tool message (summary_messages are AI/tool pairs)
+  const lastSummaryIndex = messages.findLastIndex(
+    (m) => m.additional_kwargs?.summary_message && isToolMessage(m),
   );
 
-  // Get all messages after the last summary message
+  // Get all messages after the last summary_message
   let messagesAfterLastSummary =
     lastSummaryIndex >= 0
       ? messages.slice(lastSummaryIndex + 1)

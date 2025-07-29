@@ -19,8 +19,92 @@ import { createPullRequest } from "./api.js";
 import { addTaskPlanToIssue } from "./issue-task.js";
 import { getLocalShellExecutor } from "../local-shell-executor.js";
 import { getLocalWorkingDirectory } from "../local-mode.js";
+import { DEFAULT_EXCLUDED_PATTERNS } from "./constants.js";
+import { escapeRegExp } from "../string-utils.js";
 
 const logger = createLogger(LogLevel.INFO, "GitHub-Git");
+
+/**
+ * Parses git status output and returns an array of file paths.
+ * Removes the git status indicators (first 3 characters) from each line.
+ */
+export function parseGitStatusOutput(gitStatusOutput: string): string[] {
+  return gitStatusOutput
+    .split("\n")
+    .filter((line) => line.trim() !== "")
+    .map((line) => line.substring(3))
+    .filter(Boolean);
+}
+
+/**
+ * Validates and filters files before git add operation.
+ * Excludes files/directories that should not be committed.
+ */
+async function getValidFilesToCommit(
+  absoluteRepoDir: string,
+  sandbox: Sandbox,
+  excludePatterns: string[] = DEFAULT_EXCLUDED_PATTERNS,
+): Promise<string[]> {
+  const gitStatusOutput = await sandbox.process.executeCommand(
+    "git status --porcelain",
+    absoluteRepoDir,
+    undefined,
+    TIMEOUT_SEC,
+  );
+
+  if (gitStatusOutput.exitCode !== 0) {
+    logger.error(`Failed to get git status for file validation`, {
+      gitStatusOutput,
+    });
+    throw new Error("Failed to get git status for file validation");
+  }
+
+  const allFiles = parseGitStatusOutput(gitStatusOutput.result);
+
+  const validFiles = allFiles.filter((filePath) => {
+    return !shouldExcludeFile(filePath, excludePatterns);
+  });
+
+  const excludedFiles = allFiles.filter((filePath) => {
+    return shouldExcludeFile(filePath, excludePatterns);
+  });
+
+  if (excludedFiles.length > 0) {
+    logger.info(`Excluded ${excludedFiles.length} files from commit:`, {
+      excludedFiles: excludedFiles,
+    });
+  }
+
+  return validFiles;
+}
+
+/**
+ * Checks if a file should be excluded from commits based on patterns.
+ */
+export function shouldExcludeFile(
+  filePath: string,
+  excludePatterns: string[],
+): boolean {
+  const normalizedPath = filePath.replace(/\\/g, "/");
+
+  return excludePatterns.some((pattern) => {
+    if (pattern.includes("*")) {
+      const escapedPattern = escapeRegExp(pattern);
+      const regexPattern = escapedPattern.replace(/\\\*/g, ".*");
+      const regex = new RegExp(
+        `^${regexPattern}$|/${regexPattern}$|^${regexPattern}/|/${regexPattern}/`,
+      );
+      return regex.test(normalizedPath);
+    }
+
+    return (
+      normalizedPath === pattern ||
+      normalizedPath.startsWith(pattern + "/") ||
+      normalizedPath.includes("/" + pattern + "/") ||
+      normalizedPath.endsWith("/" + pattern)
+    );
+  });
+}
 
 export function getBranchName(configOrThreadId: GraphConfig | string): string {
   const threadId =
@@ -68,10 +152,7 @@ export async function getChangedFilesStatus(
     return [];
   }
 
-  return gitStatusOutput.result
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line !== "");
+  return parseGitStatusOutput(gitStatusOutput.result);
 }
 
 export async function stashAndClearChanges(
@@ -122,6 +203,16 @@ export async function stashAndClearChanges(
   }
 }
 
+function constructCommitMessage(): string {
+  const baseCommitMessage = "Apply patch";
+  const skipCiString = "[skip ci]";
+  const vercelSkipCi = process.env.SKIP_CI_UNTIL_LAST_COMMIT === "true";
+  if (vercelSkipCi) {
+    return `${baseCommitMessage} ${skipCiString}`;
+  }
+  return baseCommitMessage;
+}
+
 export async function checkoutBranchAndCommit(
   config: GraphConfig,
   targetRepository: TargetRepository,
@@ -137,8 +228,17 @@ export async function checkoutBranchAndCommit(
   const branchName = options.branchName || getBranchName(config);
 
   logger.info(`Committing changes to branch ${branchName}`);
-  // Commit the changes. We can use the sandbox executeCommand API for this since it doesn't require a token.
-  await sandbox.git.add(absoluteRepoDir, ["."]);
+
+  // Validate and filter files before committing
+  const validFiles = await getValidFilesToCommit(absoluteRepoDir, sandbox);
+
+  if (validFiles.length === 0) {
+    logger.info("No valid files to commit after filtering");
+    return { branchName, updatedTaskPlan: options.taskPlan };
+  }
+
+  // Add only validated files instead of adding all files with "."
+  await sandbox.git.add(absoluteRepoDir, validFiles);
 
   const botAppName = process.env.GITHUB_APP_NAME;
   if (!botAppName) {
@@ -147,7 +247,12 @@ export async function checkoutBranchAndCommit(
   }
   const userName = `${botAppName}[bot]`;
   const userEmail = `${botAppName}@users.noreply.github.com`;
-  await sandbox.git.commit(absoluteRepoDir, "Apply patch", userName, userEmail);
+  await sandbox.git.commit(
+    absoluteRepoDir,
+    constructCommitMessage(),
+    userName,
+    userEmail,
+  );
 
   // Push the changes using the git API so it handles authentication for us.
   const pushRes = await withRetry(
@@ -243,6 +348,71 @@ export async function checkoutBranchAndCommit(
   });
 
   return { branchName, updatedTaskPlan };
+}
+
+export async function pushEmptyCommit(
+  targetRepository: TargetRepository,
+  sandbox: Sandbox,
+  options: {
+    githubInstallationToken: string;
+  },
+) {
+  const botAppName = process.env.GITHUB_APP_NAME;
+  if (!botAppName) {
+    logger.error("GITHUB_APP_NAME environment variable is not set.");
+    throw new Error("GITHUB_APP_NAME environment variable is not set.");
+  }
+  const userName = `${botAppName}[bot]`;
+  const userEmail = `${botAppName}@users.noreply.github.com`;
+
+  try {
+    const absoluteRepoDir = getRepoAbsolutePath(targetRepository);
+    const setGitConfigRes = await sandbox.process.executeCommand(
+      `git config user.name "${userName}" && git config user.email "${userEmail}"`,
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+    if (setGitConfigRes.exitCode !== 0) {
+      logger.error(`Failed to set git config`, {
+        exitCode: setGitConfigRes.exitCode,
+        result: setGitConfigRes.result,
+      });
+      return;
+    }
+
+    const emptyCommitRes = await sandbox.process.executeCommand(
+      "git commit --allow-empty -m 'Empty commit to trigger CI'",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+    if (emptyCommitRes.exitCode !== 0) {
+      logger.error(`Failed to push empty commit`, {
+        exitCode: emptyCommitRes.exitCode,
+        result: emptyCommitRes.result,
+      });
+      return;
+    }
+
+    await sandbox.git.push(
+      absoluteRepoDir,
+      "git",
+      options.githubInstallationToken,
+    );
+
+    logger.info("Successfully pushed empty commit");
+  } catch (e) {
+    const errorFields = getSandboxErrorFields(e);
+    logger.error(`Failed to push empty commit`, {
+      ...(errorFields && { errorFields }),
+      ...(e instanceof Error && {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      }),
+    });
+  }
 }
 
 export async function pullLatestChanges(

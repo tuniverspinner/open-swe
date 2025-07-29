@@ -4,6 +4,7 @@ import { createLogger, LogLevel } from "../../../utils/logger.js";
 import {
   createApplyPatchTool,
   createGetURLContentTool,
+  createTextEditorTool,
   createShellTool,
   createSearchDocumentForTool,
 } from "../../../tools/index.js";
@@ -30,7 +31,7 @@ import {
 } from "../../../utils/tree.js";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { createInstallDependenciesTool } from "../../../tools/install-dependencies.js";
-import { createSearchTool } from "../../../tools/search.js";
+import { createGrepTool } from "../../../tools/grep.js";
 import { getMcpTools } from "../../../utils/mcp-client.js";
 import { shouldDiagnoseError } from "../../../utils/tool-message-error.js";
 import { getGitHubTokensFromConfig } from "../../../utils/github-tokens.js";
@@ -54,7 +55,8 @@ export async function takeAction(
 
   const applyPatchTool = createApplyPatchTool(state, config);
   const shellTool = createShellTool(state, config);
-  const searchTool = createSearchTool(state, config);
+  const searchTool = createGrepTool(state, config);
+  const textEditorTool = createTextEditorTool(state);
   const installDependenciesTool = createInstallDependenciesTool(state, config);
   const getURLContentTool = createGetURLContentTool(state, config);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
@@ -69,6 +71,7 @@ export async function takeAction(
   const allTools = [
     shellTool,
     searchTool,
+    textEditorTool,
     installDependenciesTool,
     applyPatchTool,
     getURLContentTool,
