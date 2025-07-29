@@ -94,6 +94,8 @@ export function ThreadView({
   allDisplayThreads,
   onBackToHome,
 }: ThreadViewProps) {
+  const router = useRouter();
+  const { getConfig } = useConfigStore();
   const [chatInput, setChatInput] = useState("");
   const [selectedTab, setSelectedTab] = useState<"planner" | "programmer">(
     "planner",
@@ -104,6 +106,7 @@ export function ThreadView({
     useState<ManagerGraphState["programmerSession"]>();
   const [isTaskSidebarOpen, setIsTaskSidebarOpen] = useState(false);
   const [programmerTaskPlan, setProgrammerTaskPlan] = useState<TaskPlan>();
+  const [isRerunning, setIsRerunning] = useState(false);
 
   const { status: realTimeStatus, taskPlan: realTimeTaskPlan } =
     useThreadStatus(displayThread.id, {
@@ -496,4 +499,5 @@ export function ThreadView({
     </div>
   );
 }
+
 
