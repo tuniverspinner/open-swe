@@ -1,7 +1,7 @@
 "use client";
 
 import { v4 as uuidv4 } from "uuid";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, GitBranch, Terminal, Clock } from "lucide-react";
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreadSwitcher } from "./thread-switcher";
 import { ThreadMetadata } from "./types";
 import { useStream } from "@langchain/langgraph-sdk/react";
-import { ManagerGraphState } from "@open-swe/shared/open-swe/manager/types";
+import { ManagerGraphState, ManagerGraphUpdate } from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import {
   GraphState,
@@ -23,9 +23,13 @@ import {
   DO_NOT_RENDER_ID_PREFIX,
   PROGRAMMER_GRAPH_ID,
   PLANNER_GRAPH_ID,
+  MANAGER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { useThreadStatus } from "@/hooks/useThreadStatus";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { DEFAULT_CONFIG_KEY, useConfigStore } from "@/hooks/useConfigStore";
+import { RerunButton } from "./rerun-button";
 
 import {
   StickyToBottomContent,
@@ -492,3 +496,4 @@ export function ThreadView({
     </div>
   );
 }
+
