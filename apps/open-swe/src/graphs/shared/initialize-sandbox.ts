@@ -24,9 +24,6 @@ import { DEFAULT_SANDBOX_CREATE_PARAMS } from "../../constants.js";
 import { getCustomRules } from "../../utils/custom-rules.js";
 import { withRetry } from "../../utils/retry.js";
 import { isLocalMode } from "../../utils/local-mode.js";
-import { getLocalShellExecutor } from "../../utils/local-shell-executor.js";
-import { promises as fs } from "fs";
-import { join } from "path";
 
 const logger = createLogger(LogLevel.INFO, "InitializeSandbox");
 
@@ -82,6 +79,11 @@ export async function initializeSandbox(
       },
     }),
   ];
+
+  // Check if we're in local mode
+  if (isLocalMode(config)) {
+    return initializeSandboxLocal(state, config, emitStepEvent, createEventsMessage);
+  }
 
   if (!sandboxSessionId) {
     emitStepEvent(
@@ -346,5 +348,116 @@ export async function initializeSandbox(
     dependenciesInstalled: false,
     customRules: await getCustomRules(sandbox, absoluteRepoDir),
     branchName: newBranchName,
+  };
+}
+
+/**
+ * Local mode version of initializeSandbox
+ * Skips sandbox creation and repository cloning, works directly with local filesystem
+ */
+async function initializeSandboxLocal(
+  state: InitializeSandboxState,
+  config: GraphConfig,
+  emitStepEvent: (
+    base: CustomNodeEvent,
+    status: "pending" | "success" | "error" | "skipped",
+    error?: string,
+  ) => void,
+  createEventsMessage: () => BaseMessage[],
+): Promise<Partial<InitializeSandboxState>> {
+  const { targetRepository, branchName } = state;
+  const absoluteRepoDir = getRepoAbsolutePath(targetRepository);
+  const repoName = `${targetRepository.owner}/${targetRepository.repo}`;
+
+  // Skip sandbox creation in local mode
+  emitStepEvent(
+    {
+      nodeId: INITIALIZE_NODE_ID,
+      createdAt: new Date().toISOString(),
+      actionId: uuidv4(),
+      action: "Creating sandbox",
+      data: {
+        status: "skipped",
+        sandboxSessionId: null,
+        branch: branchName,
+        repo: repoName,
+      },
+    },
+    "skipped",
+  );
+
+  // Skip repository cloning in local mode
+  emitStepEvent(
+    {
+      nodeId: INITIALIZE_NODE_ID,
+      createdAt: new Date().toISOString(),
+      actionId: uuidv4(),
+      action: "Cloning repository",
+      data: {
+        status: "skipped",
+        sandboxSessionId: null,
+        branch: branchName,
+        repo: repoName,
+      },
+    },
+    "skipped",
+  );
+
+  // Skip branch checkout in local mode
+  emitStepEvent(
+    {
+      nodeId: INITIALIZE_NODE_ID,
+      createdAt: new Date().toISOString(),
+      actionId: uuidv4(),
+      action: "Checking out branch",
+      data: {
+        status: "skipped",
+        sandboxSessionId: null,
+        branch: branchName,
+        repo: repoName,
+      },
+    },
+    "skipped",
+  );
+
+  // Generate codebase tree locally
+  const generateCodebaseTreeActionId = uuidv4();
+  const baseGenerateCodebaseTreeAction: CustomNodeEvent = {
+    nodeId: INITIALIZE_NODE_ID,
+    createdAt: new Date().toISOString(),
+    actionId: generateCodebaseTreeActionId,
+    action: "Generating codebase tree",
+    data: {
+      status: "pending",
+      sandboxSessionId: null,
+      branch: branchName,
+      repo: repoName,
+    },
+  };
+  emitStepEvent(baseGenerateCodebaseTreeAction, "pending");
+  
+  let codebaseTree = undefined;
+  try {
+    codebaseTree = await getCodebaseTree(undefined, targetRepository, config);
+    emitStepEvent(baseGenerateCodebaseTreeAction, "success");
+  } catch (_) {
+    emitStepEvent(
+      baseGenerateCodebaseTreeAction,
+      "error",
+      "Failed to generate codebase tree.",
+    );
+  }
+
+  // Create a mock sandbox ID for consistency
+  const mockSandboxId = `local-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+
+  return {
+    sandboxSessionId: mockSandboxId,
+    targetRepository,
+    codebaseTree,
+    messages: createEventsMessage(),
+    dependenciesInstalled: false,
+    customRules: await getCustomRules(null as any, absoluteRepoDir, config),
+    branchName: branchName,
   };
 }
