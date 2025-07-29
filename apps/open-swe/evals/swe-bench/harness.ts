@@ -198,7 +198,7 @@ export async function runSWEBenchHarness(
       }
     });
 
-    process.on("error", (error) => {
+    harnessProcess.on("error", (error: Error) => {
       logger.error("Failed to spawn harness process", { error });
       resolve({
         success: false,
@@ -508,4 +508,5 @@ async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }>
     });
   });
 }
+
 
