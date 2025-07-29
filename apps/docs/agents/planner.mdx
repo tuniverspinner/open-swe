@@ -1,0 +1,53 @@
+---
+title: "Planner Agent"
+description: "Context gathering and task planning for code changes"
+---
+
+# Planner Agent
+
+The Planner agent analyzes user requests and creates detailed execution plans by gathering context from the codebase.
+
+## Role
+
+- **Context analyzer** that explores codebases to understand structure and dependencies
+- **Plan generator** that breaks down requests into actionable tasks
+- **Decision maker** that determines if sufficient context exists to proceed
+
+## How It's Invoked
+
+The Planner agent is invoked by:
+- The Manager agent when a coding task is identified
+- Direct thread creation via the LangGraph SDK with a GitHub issue ID
+
+## Workflow Steps
+
+Key nodes in the Planner workflow:
+
+1. **`prepare-graph-state`** - Initializes state and checks for existing plans
+2. **`initialize-sandbox`** - Sets up the development environment
+3. **`generate-plan-context-action`** - Main tool-calling node for context gathering
+4. **`take-plan-actions`** - Executes tool calls and processes results
+5. **`generate-plan`** - Creates the final task plan
+6. **`notetaker`** - Summarizes the plan for clarity
+7. **`interrupt-proposed-plan`** - Pauses for user approval (if not auto-accept)
+8. **`determine-needs-context`** - Evaluates if more information is needed
+
+## Available Tools
+
+During the `generate-plan-context-action` node, the Planner has access to:
+
+- **`grep`** - Search for code patterns and content
+- **`shell`** - Execute commands for analysis
+- **`view`** - Read file contents and directory structures
+- **`scratchpad`** - Take notes during planning
+- **`get_url_content`** - Fetch documentation from URLs
+- **`search_document_for`** - Search within fetched documents
+- **MCP tools** - Any configured Model Context Protocol tools
+
+## Key Characteristics
+
+- **Iterative context gathering** - Makes multiple tool calls to understand the codebase
+- **Plan validation** - Ensures plans are complete before proceeding
+- **Programmer handoff** - Creates a new Programmer session when plan is accepted
+
+The Planner agent ensures thorough understanding before execution, reducing errors and improving task success rates.
