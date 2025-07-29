@@ -153,7 +153,7 @@ ls.describe("SWE-bench Evaluation", () => {
         thread_id: threadId,
       });
 
-      let managerRun;
+      let managerRun: any;
       try {
         managerRun = await withRetry(() =>
           lgClient.runs.wait(threadId, MANAGER_GRAPH_ID, {
@@ -309,6 +309,7 @@ ls.describe("SWE-bench Evaluation", () => {
     TIMEOUT_MINUTES * 60 * 1000, // Convert to milliseconds
   );
 });
+
 
 
 
