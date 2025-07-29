@@ -393,6 +393,13 @@ export function ThreadView({
             currentThread={displayThread}
             allThreads={allDisplayThreads}
           />
+          {hasAnyError && (
+            <RerunButton
+              threadValues={stream.values || {}}
+              isLoading={isRerunning}
+              onRerun={handleRerun}
+            />
+          )}
           <ThemeToggle />
         </div>
       </div>
@@ -569,6 +576,7 @@ export function ThreadView({
     </div>
   );
 }
+
 
 
 
