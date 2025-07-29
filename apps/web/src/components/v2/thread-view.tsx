@@ -188,6 +188,11 @@ export function ThreadView({
     }
   }, [stream?.values]);
 
+  // Check if any of the three streams have errors
+  const hasAnyError = useMemo(() => {
+    return !!(stream.error || plannerStream.error || programmerStream.error);
+  }, [stream.error, plannerStream.error, programmerStream.error]);
+
   useEffect(() => {
     if (stream.error) {
       const rawErrorMessage =
@@ -206,10 +211,26 @@ export function ThreadView({
           message: rawErrorMessage,
         });
       }
+    } else if (plannerStream.error) {
+      const rawErrorMessage =
+        typeof plannerStream.error === "object" && "message" in plannerStream.error
+          ? (plannerStream.error.message as string)
+          : "An unknown error occurred in the planner";
+      setErrorState({
+        message: rawErrorMessage,
+      });
+    } else if (programmerStream.error) {
+      const rawErrorMessage =
+        typeof programmerStream.error === "object" && "message" in programmerStream.error
+          ? (programmerStream.error.message as string)
+          : "An unknown error occurred in the programmer";
+      setErrorState({
+        message: rawErrorMessage,
+      });
     } else {
       setErrorState(null);
     }
-  }, [stream.error]);
+  }, [stream.error, plannerStream.error, programmerStream.error]);
 
   useEffect(() => {
     if (
@@ -499,5 +520,6 @@ export function ThreadView({
     </div>
   );
 }
+
 
 
