@@ -1,0 +1,73 @@
+---
+title: "Reviewer Agent"
+description: "Code review and feedback subgraph within the Programmer"
+---
+
+# Reviewer Agent
+
+The Reviewer agent operates as a subgraph within the Programmer agent, providing code review and feedback to ensure quality and correctness before implementation completion.
+
+## Role & Responsibilities
+
+### Code Review
+- Reviews all code changes made during implementation
+- Analyzes changes for correctness, quality, and adherence to standards
+- Provides specific feedback and improvement suggestions
+
+### Quality Assurance
+- Validates that implementations meet requirements
+- Checks for potential issues, bugs, or improvements
+- Ensures code follows project patterns and conventions
+
+## Invocation
+
+The Reviewer is invoked as an **embedded subgraph** within the Programmer agent:
+- Automatically triggered before the Programmer concludes
+- Runs after implementation tasks are completed
+- Operates within the same execution context as the Programmer
+
+## Available Tools
+
+During the `generate-review-actions` node, the Reviewer has access to:
+
+- **`grep`** - Search codebase for patterns and references
+- **`shell`** - Execute commands, run tests, check builds
+- **`install-dependencies`** - Install packages needed for testing
+- **`scratchpad`** - Take notes during review process
+- **`view`** - Read and examine file contents
+
+## Key Nodes
+
+- **`initialize-state`** - Set up review context and state
+- **`generate-review-actions`** - Determine review actions to take
+- **`take-review-actions`** - Execute review tools and analysis
+- **`final-review`** - Generate final review feedback
+
+## Feedback Loop Mechanism
+
+### Review Process
+1. **Initialize** - Set up review context with code changes
+2. **Analysis** - Use tools to examine changes and run tests
+3. **Feedback** - Generate specific review comments and suggestions
+4. **Decision** - Determine if changes are acceptable or need revision
+
+### Iteration Limits
+- **`maxReviewCount`** - Default limit of 3 review iterations
+- Prevents infinite feedback loops
+- Ensures timely completion while maintaining quality
+
+### Loop Back to Programmer
+If the review identifies issues:
+- Feedback is provided to the Programmer
+- Programmer addresses the feedback
+- Process repeats until approval or iteration limit
+
+## Integration with Programmer
+
+The Reviewer operates seamlessly within the Programmer workflow:
+- No separate session management required
+- Shares context and state with Programmer
+- Provides feedback that directly influences next actions
+- Ensures quality gates before PR creation
+
+The Reviewer ensures that all implementations meet quality standards while maintaining efficient development workflows.
