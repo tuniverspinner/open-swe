@@ -422,7 +422,7 @@ const options: SetupOptions = {
 };
 
 if (args.includes("--help") || args.includes("-h")) {
-  console.log(`
+  logger.info(`
 SWE-bench Setup Script
 
 Usage: tsx scripts/setup-swe-bench.ts [options]
@@ -455,3 +455,4 @@ Examples:
 setup(options).then((success) => {
   process.exit(success ? 0 : 1);
 });
+
