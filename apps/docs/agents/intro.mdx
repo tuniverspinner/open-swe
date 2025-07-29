@@ -1,0 +1,36 @@
+---
+title: "Agents Overview"
+description: "Introduction to the four-agent system architecture"
+---
+
+# Agents Overview
+
+Open SWE uses a four-agent system to handle software engineering tasks from initial request to final implementation. Each agent has a specific role in the workflow, working together to understand requirements, generate plans, implement code changes, and ensure quality.
+
+## Agent Architecture
+
+The system consists of four specialized agents:
+
+### **Manager Agent**
+The entry point and coordinator that routes user requests to appropriate agents and manages session state.
+
+### **Planner Agent** 
+Generates comprehensive implementation plans by analyzing codebases and gathering context about user requirements.
+
+### **Programmer Agent**
+Executes approved plans by making code changes, running tests, and handling implementation details.
+
+### **Reviewer Agent**
+Reviews code changes and provides feedback to ensure quality and correctness before completion.
+
+## Workflow
+
+The agents work together in a coordinated flow:
+
+1. **Manager** receives and classifies user requests
+2. **Planner** generates detailed implementation plans
+3. **Programmer** implements the approved plan
+4. **Reviewer** reviews changes and provides feedback
+5. **Programmer** addresses feedback and creates pull requests
+
+This architecture ensures that complex software engineering tasks are broken down systematically, implemented carefully, and reviewed thoroughly before completion.
