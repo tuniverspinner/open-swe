@@ -102,7 +102,7 @@ def load_compiled_graph(file_path: str) -> Any:
         module_path, script_name = parse_file_path(file_path)
         module = importlib.import_module(module_path)
         
-        for attr_name in ['compiled_graph', 'graph']:
+        for attr_name in ['compiled_graph', 'graph', 'app']:
             if hasattr(module, attr_name):
                 graph = getattr(module, attr_name)
                 return graph
