@@ -313,10 +313,6 @@ ls.describe("SWE-bench Evaluation", () => {
   );
 });
 
-// Export for vitest to recognize
-export default {
-  description: "SWE-bench evaluation suite for Open SWE agent",
-};
 
 
 
