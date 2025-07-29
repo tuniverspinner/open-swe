@@ -100,12 +100,13 @@ async function loadDataset(): Promise<SWEBenchInput[]> {
 }
 
 // Format the problem statement for the agent
-function formatProblemStatement(input: SWEBenchInput): string {
-  return formatInputs({
+async function formatProblemStatement(input: SWEBenchInput): Promise<string> {
+  const formatted = await formatInputs({
     user_input: input.problem_statement,
     repo: input.repo,
     branch: "main", // SWE-bench typically uses main branch
   });
+  return formatted.messages[0].content as string;
 }
 
 // Main dataset for evaluation
@@ -308,4 +309,5 @@ ls.describe("SWE-bench Evaluation", () => {
     TIMEOUT_MINUTES * 60 * 1000, // Convert to milliseconds
   );
 });
+
 
