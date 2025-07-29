@@ -267,7 +267,7 @@ export async function generatePatchFromBranch(
       try {
         logger.info("Cleaning up sandbox...");
         const daytonaInstance = new Daytona();
-        await daytonaInstance.sandbox.delete(sandbox.id);
+        await daytonaInstance.delete(sandbox.id);
       } catch (cleanupError) {
         logger.warn("Failed to cleanup sandbox", { error: cleanupError });
       }
@@ -355,4 +355,5 @@ export function countPatchChanges(patch: string): { additions: number; deletions
 
   return { additions, deletions };
 }
+
 
