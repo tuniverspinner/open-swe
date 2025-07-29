@@ -22,6 +22,16 @@
             "pages": ["usage/intro", "usage/ui", "usage/github"]
           },
           {
+            "group": "Agents",
+            "pages": [
+              "agents/intro",
+              "agents/manager",
+              "agents/planner",
+              "agents/programmer",
+              "agents/reviewer"
+            ]
+          },
+          {
             "group": "Development Setup",
             "pages": [
               "setup/intro",
@@ -68,3 +78,4 @@
     }
   }
 }
+
