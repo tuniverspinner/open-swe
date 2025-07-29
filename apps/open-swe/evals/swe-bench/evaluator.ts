@@ -5,7 +5,6 @@ import {
   SWEBenchInput,
   SWEBenchPrediction,
   SWEBenchHarnessOptions,
-  SWEBenchEvaluationReport,
 } from "./types.js";
 import { generatePatchFromBranch } from "./patch-generator.js";
 import {
@@ -386,3 +385,4 @@ export function createSWEBenchInput(
 export function formatInstanceId(owner: string, repo: string, issueNumber: number): string {
   return `${owner}__${repo}-${issueNumber}`;
 }
+
