@@ -75,7 +75,7 @@ export async function checkSWEBenchInstalled(): Promise<boolean> {
   return new Promise((resolve) => {
     const pythonCheck = spawn("python", ["-c", "import swebench"]);
     
-    pythonCheck.on("close", (code) => {
+    pythonCheck.on("close", (code: number | null) => {
       if (code === 0) {
         logger.info("SWE-bench Python package is installed");
         resolve(true);
@@ -85,7 +85,7 @@ export async function checkSWEBenchInstalled(): Promise<boolean> {
       }
     });
 
-    pythonCheck.on("error", (error) => {
+    pythonCheck.on("error", (error: Error) => {
       logger.error("Python or SWE-bench not found", { error });
       resolve(false);
     });
@@ -508,6 +508,7 @@ async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }>
     });
   });
 }
+
 
 
 
