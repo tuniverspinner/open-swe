@@ -30,6 +30,16 @@
               "setup/monorepo",
               "setup/ci"
             ]
+          },
+          {
+            "group": "Agents",
+            "pages": [
+              "agents/intro",
+              "agents/manager",
+              "agents/planner",
+              "agents/programmer",
+              "agents/reviewer"
+            ]
           }
         ]
       }
@@ -68,3 +78,4 @@
     }
   }
 }
+
