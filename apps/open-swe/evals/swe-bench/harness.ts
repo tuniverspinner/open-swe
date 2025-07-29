@@ -155,12 +155,12 @@ export async function runSWEBenchHarness(
     const output: string[] = [];
     const errorOutput: string[] = [];
 
-    const process = spawn("python", args, {
+    const harnessProcess = spawn("python", args, {
       env: { ...process.env },
       cwd: process.cwd(),
     });
 
-    process.stdout.on("data", (data) => {
+    harnessProcess.stdout.on("data", (data: Buffer) => {
       const text = data.toString();
       output.push(text);
       // Log important lines
@@ -169,13 +169,13 @@ export async function runSWEBenchHarness(
       }
     });
 
-    process.stderr.on("data", (data) => {
+    harnessProcess.stderr.on("data", (data: Buffer) => {
       const text = data.toString();
       errorOutput.push(text);
       logger.warn("Harness stderr:", text.trim());
     });
 
-    process.on("close", (code) => {
+    harnessProcess.on("close", (code: number | null) => {
       const fullOutput = output.join("");
       const fullError = errorOutput.join("");
 
@@ -508,3 +508,4 @@ async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }>
     });
   });
 }
+
