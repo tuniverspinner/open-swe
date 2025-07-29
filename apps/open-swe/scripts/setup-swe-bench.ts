@@ -2,7 +2,6 @@
 
 import { spawn } from "child_process";
 import * as fs from "fs/promises";
-import * as path from "path";
 import { createLogger, LogLevel } from "../src/utils/logger.js";
 
 const logger = createLogger(LogLevel.INFO, "SWEBenchSetup");
@@ -436,4 +435,5 @@ Examples:
 setup(options).then((success) => {
   process.exit(success ? 0 : 1);
 });
+
 
