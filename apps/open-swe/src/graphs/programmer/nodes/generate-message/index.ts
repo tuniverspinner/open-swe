@@ -58,7 +58,6 @@ import {
   HumanMessage,
 } from "@langchain/core/messages";
 import { BindToolsInput } from "@langchain/core/language_models/chat_models";
-import { createSearchTool } from "../../../../tools/search.js";
 
 const logger = createLogger(LogLevel.INFO, "GenerateMessageNode");
 

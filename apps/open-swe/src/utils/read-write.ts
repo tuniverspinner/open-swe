@@ -164,13 +164,20 @@ async function readFileFunc(inputs: {
     };
   } catch (e: any) {
     if (e instanceof Error && e.message.includes("No such file or directory")) {
-      const createOutput = await handleCreateFile(sandbox, filePath, {
-        workDir,
-      });
+      let createOutput;
+      if (config && isLocalMode(config)) {
+        // Local mode: use handleCreateFileLocal
+        createOutput = await handleCreateFileLocal(filePath, workDir);
+      } else {
+        // Sandbox mode: use handleCreateFile
+        createOutput = await handleCreateFile(sandbox, filePath, {
+          workDir,
+        });
+      }
       if (createOutput.exitCode !== 0) {
         return {
           success: false,
-          output: `FAILED TO EXECUTE READ COMMAND for sandbox '${filePath}'. Error: ${(e as Error).message || String(e)}`,
+          output: `FAILED TO EXECUTE READ COMMAND for ${config && isLocalMode(config) ? 'local' : 'sandbox'} '${filePath}'. Error: ${(e as Error).message || String(e)}`,
         };
       } else {
         // If the file was created successfully, try reading it again.

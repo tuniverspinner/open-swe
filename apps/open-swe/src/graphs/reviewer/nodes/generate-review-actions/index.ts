@@ -15,7 +15,6 @@ import { getMessageContentString } from "@open-swe/shared/messages";
 import { PREVIOUS_REVIEW_PROMPT, SYSTEM_PROMPT } from "./prompt.js";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import {
-  createGrepTool,
   createShellTool,
   createInstallDependenciesTool,
 } from "../../../../tools/index.js";
@@ -35,6 +34,7 @@ import {
   trackCachePerformance,
 } from "../../../../utils/caching.js";
 import { createScratchpadTool } from "../../../../tools/scratchpad.js";
+import { createGrepTool } from "../../../../tools/grep.js";
 import { createViewTool } from "../../../../tools/builtin-tools/view.js";
 import { BindToolsInput } from "@langchain/core/language_models/chat_models";
 
@@ -120,15 +120,15 @@ ${messages.map(getMessageString).join("\n")}
   ];
 }
 
-function createToolsAndPrompt(state: ReviewerGraphState): {
+function createToolsAndPrompt(state: ReviewerGraphState, config: GraphConfig): {
   providerTools: Record<Provider, BindToolsInput[]>;
   providerMessages: Record<Provider, BaseMessageLike[]>;
 } {
   const tools = [
-    createGrepTool(state),
-    createShellTool(state),
-    createViewTool(state),
-    createInstallDependenciesTool(state),
+    createGrepTool(state, config),
+    createShellTool(state, config),
+    createViewTool(state, config),
+    createInstallDependenciesTool(state, config),
     createScratchpadTool(
       "when generating a final review, after all context gathering and reviewing is complete",
     ),
@@ -192,7 +192,7 @@ export async function generateReviewActions(
     Task.REVIEWER,
   );
   const tools = [
-    createSearchTool(state, config),
+    createGrepTool(state, config),
     createShellTool(state, config),
     createInstallDependenciesTool(state, config),
     createScratchpadTool(
@@ -205,7 +205,7 @@ export async function generateReviewActions(
   } as any;
   const isAnthropicModel = modelName.includes("claude-");
 
-  const { providerTools, providerMessages } = createToolsAndPrompt(state);
+  const { providerTools, providerMessages } = createToolsAndPrompt(state, config);
 
   const model = await loadModel(config, Task.REVIEWER, {
     providerTools,

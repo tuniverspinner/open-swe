@@ -222,23 +222,23 @@ export async function takeAction(
     });
     
     if (!isLocalMode(config)) {
-      const { githubInstallationToken } = getGitHubTokensFromConfig(config);
-      const result = await checkoutBranchAndCommit(
-        config,
-        state.targetRepository,
-        sandbox,
-        {
-          branchName,
-          githubInstallationToken,
-          taskPlan: state.taskPlan,
-          githubIssueId: state.githubIssueId,
-        },
-      );
-      branchName = result.branchName;
-      pullRequestNumber = result.updatedTaskPlan
-        ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
-        : undefined;
-      updatedTaskPlan = result.updatedTaskPlan;
+    const { githubInstallationToken } = getGitHubTokensFromConfig(config);
+    const result = await checkoutBranchAndCommit(
+      config,
+      state.targetRepository,
+      sandbox,
+      {
+        branchName,
+        githubInstallationToken,
+        taskPlan: state.taskPlan,
+        githubIssueId: state.githubIssueId,
+      },
+    );
+    branchName = result.branchName;
+    pullRequestNumber = result.updatedTaskPlan
+      ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
+      : undefined;
+    updatedTaskPlan = result.updatedTaskPlan;
     } else {
       logger.info("Skipping GitHub commit operations in local mode");
       const executor = getLocalShellExecutor(getLocalWorkingDirectory());

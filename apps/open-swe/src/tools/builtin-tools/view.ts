@@ -29,7 +29,6 @@ export function createViewTool(
           workDir = getLocalWorkingDirectory();
         } else {
           // In sandbox mode, use the sandbox path
-          const sandbox = await getSandboxSessionOrThrow(input);
           workDir = getRepoAbsolutePath(state.targetRepository);
         }
 

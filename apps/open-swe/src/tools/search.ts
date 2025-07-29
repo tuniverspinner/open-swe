@@ -3,15 +3,11 @@ import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
-import {
-  createSearchToolFields,
-  formatSearchCommand,
-} from "@open-swe/shared/open-swe/tools";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
-import { wrapScript } from "../utils/wrap-script.js";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
 import { isLocalMode, getLocalWorkingDirectory } from "../utils/local-mode.js";
 import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
+import { formatGrepCommand, createGrepToolFields } from "@open-swe/shared/open-swe/tools";
 
 const logger = createLogger(LogLevel.INFO, "SearchTool");
 
@@ -27,7 +23,7 @@ export function createSearchTool(
   const searchTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
-        const command = formatSearchCommand(input);
+        const command = formatGrepCommand(input as any);
         
         let repoRoot;
         if (isLocalMode(config)) {
@@ -58,7 +54,7 @@ export function createSearchTool(
           );
         } else {
           // Sandbox mode: use existing sandbox logic with wrapScript
-          const sandbox = await getSandboxSessionOrThrow(input);
+          const sandbox = await getSandboxSessionOrThrow(input as any);
           response = await sandbox.process.executeCommand(
             command.join(" "),
             repoRoot,
@@ -105,7 +101,7 @@ export function createSearchTool(
         }
       }
     },
-    createSearchToolFields(state.targetRepository),
+    createGrepToolFields(state.targetRepository),
   );
 
   return searchTool;

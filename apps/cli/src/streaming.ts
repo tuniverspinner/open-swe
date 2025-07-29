@@ -200,14 +200,21 @@ export class StreamingService {
       };
 
       const installationId = getInstallationId();
+      const headers: Record<string, string> = {
+        [GITHUB_TOKEN_COOKIE]: encryptedUserToken,
+        [GITHUB_INSTALLATION_TOKEN_COOKIE]: encryptedInstallationToken,
+        [GITHUB_INSTALLATION_NAME]: owner,
+        [GITHUB_INSTALLATION_ID]: installationId,
+      };
+
+      // Add local mode header if in local mode
+      if (process.env.OPEN_SWE_LOCAL_MODE === "true") {
+        headers["x-local-mode"] = "true";
+      }
+
       const newClient = new Client({
         apiUrl: LANGGRAPH_URL,
-        defaultHeaders: {
-          [GITHUB_TOKEN_COOKIE]: encryptedUserToken,
-          [GITHUB_INSTALLATION_TOKEN_COOKIE]: encryptedInstallationToken,
-          [GITHUB_INSTALLATION_NAME]: owner,
-          [GITHUB_INSTALLATION_ID]: installationId,
-        },
+        defaultHeaders: headers,
       });
 
       this.callbacks.setClient(newClient);

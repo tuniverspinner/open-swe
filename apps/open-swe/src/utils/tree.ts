@@ -37,7 +37,7 @@ export async function getCodebaseTree(
 
     // Check if we're in local mode
     if (config && isLocalMode(config)) {
-      return getCodebaseTreeLocal(targetRepository);
+      return getCodebaseTreeLocal();
     }
 
     if (!sandboxSessionId) {
@@ -88,7 +88,7 @@ export async function getCodebaseTree(
 /**
  * Local version of getCodebaseTree using LocalShellExecutor
  */
-async function getCodebaseTreeLocal(targetRepository?: TargetRepository): Promise<string> {
+async function getCodebaseTreeLocal(): Promise<string> {
   try {
     // In local mode, always use the current working directory
     const workingDirectory = getLocalWorkingDirectory();

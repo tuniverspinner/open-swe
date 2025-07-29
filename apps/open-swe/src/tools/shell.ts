@@ -6,7 +6,6 @@ import { createShellToolFields } from "@open-swe/shared/open-swe/tools";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
 import { isLocalMode, getLocalWorkingDirectory } from "../utils/local-mode.js";
 import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
-import { wrapScript } from "../utils/wrap-script.js";
 
 const DEFAULT_ENV = {
   // Prevents corepack from showing a y/n download prompt which causes the command to hang

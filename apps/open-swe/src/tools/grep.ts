@@ -3,14 +3,11 @@ import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
 import { createLogger, LogLevel } from "../utils/logger.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
-import {
-  createSearchToolFields,
-  formatSearchCommand,
-} from "@open-swe/shared/open-swe/tools";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
 import { isLocalMode, getLocalWorkingDirectory } from "../utils/local-mode.js";
 import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
+import { createGrepToolFields, formatGrepCommand } from "@open-swe/shared/open-swe/tools";
 
 const logger = createLogger(LogLevel.INFO, "GrepTool");
 
@@ -26,7 +23,7 @@ export function createGrepTool(
   const grepTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
-        const command = formatSearchCommand(input);
+        const command = formatGrepCommand(input as any);
         
         let repoRoot;
         if (isLocalMode(config)) {
@@ -104,7 +101,7 @@ export function createGrepTool(
         }
       }
     },
-    createSearchToolFields(state.targetRepository),
+    createGrepToolFields(state.targetRepository),
   );
 
   return grepTool;

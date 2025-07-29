@@ -1,4 +1,5 @@
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
+import { OPEN_SWE_STREAM_MODE } from "@open-swe/shared/constants";
 import {
   ManagerGraphState,
   ManagerGraphUpdate,
