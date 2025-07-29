@@ -1,0 +1,58 @@
+---
+title: "Planner Agent"
+description: "Generates comprehensive implementation plans for user requests"
+---
+
+# Planner Agent
+
+The Planner agent generates detailed implementation plans by analyzing codebases, gathering context, and breaking down user requests into actionable tasks.
+
+## Role & Responsibilities
+
+### Plan Generation
+- Analyzes user requests and codebase structure
+- Generates comprehensive step-by-step implementation plans
+- Gathers necessary context through tool usage before planning
+
+### Context Gathering
+- Explores codebases to understand existing patterns and architecture
+- Searches for relevant files, functions, and dependencies
+- Documents findings for informed plan creation
+
+## Invocation
+
+The Planner is invoked by the Manager agent via LangGraph SDK when:
+- New requests require planning (`start_planner`)
+- Additional context is needed for active sessions (`update_planner`)
+- Interrupted sessions need to resume (`resume_planner`)
+
+## Available Tools
+
+During the `generate-plan-context-action` node, the Planner has access to:
+
+- **`grep`** - Search codebase for patterns, functions, and text
+- **`shell`** - Execute commands for exploration and analysis
+- **`view`** - Read file contents and directory structures
+- **`scratchpad`** - Take notes during context gathering
+- **`get-url-content`** - Fetch external documentation or resources
+- **`search-document-for`** - Search within fetched documents
+- **`MCP tools`** - Additional tools via Model Context Protocol
+
+## Key Nodes
+
+- **`prepare-graph-state`** - Initialize planning session
+- **`generate-plan-context-action`** - Generate actions for context gathering
+- **`take-plan-actions`** - Execute context-gathering tools
+- **`generate-plan`** - Create the final implementation plan
+- **`notetaker`** - Document plan details
+- **`interrupt-proposed-plan`** - Present plan for human approval
+
+## Plan Approval Process
+
+1. **Context Gathering** - Uses tools to understand the codebase
+2. **Plan Generation** - Creates detailed implementation steps
+3. **Human Interrupt** - Presents plan for approval (unless auto mode)
+4. **Plan Acceptance** - User approves or requests modifications
+5. **Programmer Invocation** - Calls `startProgrammerRun()` after acceptance
+
+The Planner ensures thorough analysis and well-structured plans before implementation begins.
