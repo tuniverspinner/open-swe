@@ -116,7 +116,22 @@ DATASET.forEach(({ inputs }) => {
     `SWE-bench: ${inputs.instance_id}`,
     async () => {
       const threadId = uuidv4();
-      const lgClient = createLangGraphClient();
+      
+      const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+      const githubPat = process.env.GITHUB_PAT;
+
+      if (!encryptionKey || !githubPat) {
+        throw new Error(
+          "SECRETS_ENCRYPTION_KEY and GITHUB_PAT environment variables are required",
+        );
+      }
+
+      const encryptedGitHubToken = encryptSecret(githubPat, encryptionKey);
+
+      const lgClient = createLangGraphClient({
+        includeApiKey: true,
+        defaultHeaders: { [GITHUB_PAT]: encryptedGitHubToken },
+      });
 
       logger.info("Starting SWE-bench evaluation", {
         instance_id: inputs.instance_id,
@@ -308,3 +323,4 @@ DATASET.forEach(({ inputs }) => {
 export default {
   description: "SWE-bench evaluation suite for Open SWE agent",
 };
+
