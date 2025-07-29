@@ -82,59 +82,133 @@ By reviewing these actions, and comparing them to the plan and original user req
     You should write to your scratchpad to record the names of the files, and the content inside the files which should be removed/updated.
     </changed_files>
 
+    # Fixed LangGraph Validation Section
+
+
     <langgraph_validation>
-    **FOR LANGGRAPH AGENTS - CRITICAL CHECK**: If the request involves creating or modifying a LangGraph agent, you MUST verify:
-    
-    **FILE STRUCTURE VALIDATION**:
-    - Check agent files exist: Use \`view\` tool to check for \`agent.py\` or \`agent.ts\` at project root
-    - Check config exists: Use \`view\` tool to verify \`langgraph.json\` exists
-    - Validate JSON syntax: \`["python3", "-c", "import json; json.load(open('langgraph.json')); print('Valid JSON')"]\`
-    - Verify JSON structure: \`["grep", "-q", "graphs", "langgraph.json"]\` and \`["grep", "-q", "dependencies", "langgraph.json"]\`
-    
-    **CODE STRUCTURE VALIDATION** (use \`view\` tool to inspect):
-    - Verify \`app\` export exists in agent file
-    
-    **VALIDATION REQUIREMENTS - ALWAYS RUN THESE CHECKS**:
-    
-    **For Python agents (\`agent.py\`)**:
-    - Check tool availability: \`["which", "ruff"]\` (continue if not found)
-    - Check tool availability: \`["which", "mypy"]\` (continue if not found)
-    - If ruff available, run: \`["ruff", "check", "agent.py"]\`
-    - If mypy available, run: \`["mypy", "agent.py"]\`
-    - **CRITICAL COMPILATION TEST**: \`["python3", "-c", "from agent import app; print('Agent compiles successfully')"]\`
-    
-    **For TypeScript agents (\`agent.ts\`)**:
-    - Check tool availability: \`["which", "eslint"]\` (continue if not found)
-    - Check tool availability: \`["which", "tsc"]\` (continue if not found)
-    - If eslint available, run: \`["npx", "eslint", "agent.ts"]\`
-    - If tsc available, run: \`["npx", "tsc", "--noEmit", "agent.ts"]\`
-    - **CRITICAL COMPILATION TEST**: \`["node", "-e", "const {app} = require('./agent'); console.log('Agent compiles successfully')"]\`
+        **FOR LANGGRAPH AGENTS - CRITICAL CHECK**: If the request involves creating or modifying a LangGraph agent, you MUST verify:
         
-    **ERROR HANDLING GUIDELINES**:
-    - **Shell Command Format**: ALWAYS use array format for shell commands: \`["command", "arg1", "arg2"]\`
-    - **Quote Handling**: For Python code with quotes, use double quotes outside, single quotes inside
-    - **Import Testing**: If direct import fails, check for missing dependencies first
-    - **Path Issues**: Ensure working directory is set correctly with \`workdir\` parameter
+        **CRITICAL: ALL SHELL COMMANDS MUST USE ARRAY FORMAT**
+        - CORRECT: \`shell\` tool with \`command: ["python3", "-c", "import agent; print('Success')"]\`
+        - WRONG: \`shell\` tool with \`command: "python3 -c import agent"\`
+        - WRONG: Running commands without proper array formatting
     
-    **COMPILATION FAILURE DEBUGGING**:
-    1. First check if file exists: Use \`view\` tool on \`agent.py\`
-    2. Check for syntax errors: \`["python3", "-m", "py_compile", "agent.py"]\`
-    3. Check for missing imports: \`["python3", "-c", "import langgraph, langchain_anthropic"]\`
-    4. Test minimal import: \`["python3", "-c", "import agent"]\` (without accessing \`app\`)
-    5. If still failing, examine the specific error message and fix underlying issues
-    
-    **CRITICAL SUCCESS CRITERIA**:
-    - **BLOCKING**: Agent file must compile without syntax errors
-    - **BLOCKING**: Required imports (langgraph, model providers) must be available
-    - **BLOCKING**: \`app\` variable must be properly exported
-    - **WARNING**: Linting issues (can be noted but not blocking)
-    - **INFO**: Tool availability (ruff, mypy, etc.)
-    
-    **DO NOT MARK TASK COMPLETE UNTIL**:
-    - Compilation test passes with exit code 0
-    - All import errors are resolved
-    - Agent structure follows LangGraph patterns correctly
-</langgraph_validation>
+        **FILE STRUCTURE VALIDATION**:
+        - Check agent files exist: Use \`view\` tool to check for \`agent.py\` or \`agent.ts\` at project root
+        - Check config exists: Use \`view\` tool to verify \`langgraph.json\` exists
+        - Validate JSON syntax with shell tool:
+        \`\`\`
+        command: ["python3", "-c", "import json; json.load(open('langgraph.json')); print('Valid JSON')"]
+        \`\`\`
+        - Verify JSON structure with shell tool:
+        \`\`\`
+        command: ["grep", "-q", "graphs", "langgraph.json"]
+        \`\`\`
+        
+        **VALIDATION REQUIREMENTS - MANDATORY SHELL COMMAND EXAMPLES**:
+        
+        **For Python agents (\`agent.py\`)**:
+        
+        1. **Check ruff availability**:
+        \`\`\`
+        command: ["which", "ruff"]
+        \`\`\`
+        (Note if exit code is 1 - tool not available, continue anyway)
+        
+        2. **Check mypy availability**:
+        \`\`\`
+        command: ["which", "mypy"]  
+        \`\`\`
+        (Note if exit code is 1 - tool not available, continue anyway)
+        
+        3. **Run ruff if available**:
+        \`\`\`
+        command: ["ruff", "check", "agent.py"]
+        \`\`\`
+        
+        4. **Run mypy if available**:
+        \`\`\`
+        command: ["mypy", "agent.py", "--ignore-missing-imports"]
+        \`\`\`
+        
+        5. **CRITICAL COMPILATION TEST**:
+        \`\`\`
+        command: ["python3", "-c", "from agent import app; print('Agent compiles successfully')"]
+        \`\`\`
+        
+        **COMPILATION FAILURE DEBUGGING SEQUENCE**:
+        
+        If the critical compilation test fails, run these commands in order:
+        
+        1. **Check basic Python import**:
+        \`\`\`
+        command: ["python3", "-c", "import agent; print('Basic import works')"]
+        \`\`\`
+        
+        2. **Check LangGraph availability**:
+        \`\`\`
+        command: ["python3", "-c", "import langgraph; print('LangGraph available')"]
+        \`\`\`
+        
+        3. **Check syntax compilation**:
+        \`\`\`
+        command: ["python3", "-m", "py_compile", "agent.py"]
+        \`\`\`
+        
+        4. **Check for app variable existence**:
+        \`\`\`
+        command: ["python3", "-c", "import agent; print('app' in dir(agent))"]
+        \`\`\`
+        
+        **For TypeScript agents (\`agent.ts\`)**:
+        
+        1. **Check Node.js compilation**:
+        \`\`\`
+        command: ["node", "-e", "const {app} = require('./agent'); console.log('Agent compiles successfully')"]
+        \`\`\`
+        
+        **ALTERNATIVE TESTING METHOD** (if shell commands keep failing):
+        
+        Create a test file using the \`create\` tool:
+        \`\`\`python
+        # File: test_agent.py
+        try:
+            from agent import app
+            print("SUCCESS: Agent imports and app is available")
+            print(f"App type: {type(app)}")
+        except ImportError as e:
+            print(f"IMPORT ERROR: {e}")
+        except AttributeError as e:
+            print(f"ATTRIBUTE ERROR: {e}")
+        except Exception as e:
+            print(f"OTHER ERROR: {e}")
+        \`\`\`
+        
+        Then run:
+        \`\`\`
+        command: ["python3", "test_agent.py"]
+        \`\`\`
+        
+        **SUCCESS CRITERIA**:
+        - **BLOCKING**: Must successfully run \`["python3", "-c", "from agent import app; print('Agent compiles successfully')"]\` with exit code 0
+        - **BLOCKING**: No import errors or syntax errors
+        - **WARNING**: Linting issues (ruff/mypy warnings are not blocking)
+        
+        **COMMON SHELL COMMAND MISTAKES TO AVOID**:
+        - Wrong: \`python3 -c from agent import app\` (not an array)
+        - Wrong: \`python3 -c "from agent import app"\` (string instead of array)
+        - Wrong: \`python3 -c import agent\` (incomplete command)
+        - Correct: \`["python3", "-c", "from agent import app; print('Success')"]\` (correct array format)
+        
+        **IF SHELL COMMANDS CONTINUE TO FAIL**:
+        1. Create test files using \`create\` tool instead of inline shell commands
+        2. Use \`view\` tool to inspect agent.py structure manually
+        3. Report the specific shell command format issues to the developer
+        
+        **DO NOT MARK TASK COMPLETE UNTIL**:
+        - The critical compilation test passes successfully
+        - OR you have verified agent structure manually and created working test files
+    </langgraph_validation>
 
     You MUST perform the above actions. You should write your findings to the scratchpad, as you do not need to take action on your findings right now.
     Once you've completed your review you'll be given the chance to say whether or not the task has been successfully completed, and if not, you'll be able to provide a list of new actions to take.
