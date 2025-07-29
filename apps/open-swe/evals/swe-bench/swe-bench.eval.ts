@@ -161,24 +161,20 @@ DATASET.forEach(({ inputs }) => {
       let managerRun;
       try {
         managerRun = await withRetry(() =>
-          lgClient.runs.create(
-            threadId,
-            MANAGER_GRAPH_ID,
-            {
-              input: {
-                messages: [
-                  {
-                    role: "user",
-                    content: formattedProblem,
-                  },
-                ],
-              },
-              config,
+          lgClient.runs.wait(threadId, MANAGER_GRAPH_ID, {
+            input: {
+              messages: [
+                {
+                  role: "user",
+                  content: formattedProblem,
+                },
+              ],
             },
-            {
-              signal: AbortSignal.timeout(TIMEOUT_MINUTES * 60 * 1000),
-            }
-          )
+            config: {
+              recursion_limit: 250,
+            },
+            ifNotExists: "create",
+          })
         );
 
         await withRetry(() => lgClient.runs.join(threadId, managerRun.run_id));
@@ -323,4 +319,5 @@ DATASET.forEach(({ inputs }) => {
 export default {
   description: "SWE-bench evaluation suite for Open SWE agent",
 };
+
 
