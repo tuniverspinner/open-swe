@@ -293,7 +293,6 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
             - Use specific patterns rather than overly broad ones to avoid accidentally excluding important files
             - After updating \`.gitignore\`, you may need to run \`git rm --cached <file>\` to untrack files that are already being tracked but should now be ignored
         - Test small components before building complex graphs
-        - Use \`print(type(variable))\` to verify state structure during development
     </coding_standards>
 
     <common_pitfalls_and_errors>
@@ -342,7 +341,6 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
             app = graph  # This export is required!
             \`\`\`
             4. Test small components before building complex graphs
-            5. Use \`print(type(variable))\` to verify state structure during development
         </critical_structure>
         
         <common_langgraph_errors>
@@ -392,10 +390,131 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
                 return "end"
             \`\`\`
         </message_and_state_handling>
+        <langgraph_streaming_patterns>
+            <response_extraction_debugging>
+                **ALWAYS debug response structure first**:
+                \`\`\`python
+                # Step 1: Understand the structure
+                async for chunk in client.runs.stream(...):
+                    print(f"Chunk type: {type(chunk)}")
+                    print(f"Chunk attributes: {dir(chunk)}")
+                    if hasattr(chunk, 'data'):
+                        print(f"Data type: {type(chunk.data)}")
+                        print(f"Data content: {chunk.data}")
+                    break  # Just check first chunk
+                
+                # Step 2: Extract based on actual structure
+                async for chunk in client.runs.stream(...):
+                    # For LangGraph SDK responses
+                    if hasattr(chunk, 'data') and chunk.data:
+                        for key, value in chunk.data.items():
+                            if isinstance(value, dict) and 'messages' in value:
+                                messages = value['messages']
+                                if messages and isinstance(messages[-1], dict):
+                                    content = messages[-1].get('content', '')
+                \`\`\`
+            </response_extraction_debugging>
+            
+            <common_streaming_structures>
+                LangGraph streaming typically returns:
+                - StreamPart objects with .event and .data attributes
+                - Updates in .data as dict with node names as keys
+                - Messages nested under node outputs
+                
+                Example structures:
+                \`\`\`python
+                # Typical chunk structure
+                chunk = StreamPart(
+                    event="updates",
+                    data={
+                        "agent": {  # Node name
+                            "messages": [
+                                {"role": "assistant", "content": "Response text"}
+                            ]
+                        }
+                    }
+                )
+                \`\`\` 
+            </common_streaming_structures>
+            
+            <reference_docs>
+                - LangGraph Streaming: https://langchain-ai.github.io/langgraph/how-tos/stream-updates/
+                - SDK Streaming: https://langchain-ai.github.io/langgraph/cloud/reference/sdk/python_sdk_ref/#stream
+            </reference_docs>
+        </langgraph_streaming_patterns>
+        <framework_integration_patterns>
+            <integration_debugging>
+                **When building integrations, ALWAYS start with debugging**:
+                
+                **Log Everything Initially**:
+                Use temporary print statements to understand the data flowing through your integration.
+                \`\`\`python
+                # Temporary debugging for new integrations
+                def my_integration_function(input_data, config):
+                    print(f"=== DEBUG START ===")
+                    print(f"Input type: {type(input_data)}")
+                    print(f"Input data: {input_data}")
+                    print(f"Config type: {type(config)}")
+                    print(f"Config data: {config}")
+                    
+                    # Process...
+                    result = process(input_data, config)
+                    
+                    print(f"Result type: {type(result)}")
+                    print(f"Result data: {result}")
+                    print(f"=== DEBUG END ===")
+                    
+                    return result
+                \`\`\`
+
+                **Verify Each Integration Point**:
+                Before assuming data flows through, send a unique marker to verify.
+                \`\`\`python
+                # Before assuming data flows through
+                test_marker = f"TEST_{datetime.now().timestamp()}"
+                config = {"test_id": test_marker}
+
+                # Send through system
+                result = system.process(data, config)
+
+                # Verify marker made it through
+                assert test_marker in str(result), "Config not propagating!"
+                \`\`\`
+            </integration_debugging>
+            <critical_verification_principle>
+                **CRITICAL**: Never assume data flows through integration points - always verify with concrete test values.
+            </critical_verification_principle>
+            
+            <config_propagation_verification>
+                - **Backend Verification Pattern**: Always verify the receiving end actually uses configuration:
+                    \`\`\`python
+                    # WRONG: Assuming config is used
+                    def my_node(state: State) -> Dict[str, Any]:
+                        response = llm.invoke(state["messages"])
+                        return {"messages": [response]}
+                    
+                    # CORRECT: Actually using config
+                    def my_node(state: State, config: RunnableConfig) -> Dict[str, Any]:
+                        # Extract configuration
+                        configurable = config.get("configurable", {})
+                        system_prompt = configurable.get("system_prompt", "Default prompt")
+                        
+                        # Use configuration in messages
+                        messages = [SystemMessage(content=system_prompt)] + state["messages"]
+                        response = llm.invoke(messages)
+                        return {"messages": [response]}
+                    \`\`\`
+            </config_propagation_verification>
+            
+            <reference_docs>
+                - LangGraph Config: https://langchain-ai.github.io/langgraph/how-tos/pass-config-to-tools/
+                - Streamlit Session State: https://docs.streamlit.io/library/api-reference/session-state
+                - Asyncio with Web Frameworks: https://docs.python.org/3/library/asyncio-eventloop.html#running-and-stopping-the-loop
+            </reference_docs>
+        </framework_integration_patterns>
 
         <langgraph_specific_coding_standards>
             - Test small components before building complex graphs
-            - Use \`print(type(variable))\` to verify state structure during development
         </langgraph_specific_coding_standards>
     </langgraph_specific_patterns>
 
@@ -552,6 +671,129 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
         \`\`\`
         Reference: https://langchain-ai.github.io/langgraph/concepts/streaming/#whats-possible-with-langgraph-streaming
     </anti_patterns_to_avoid>
+    <async_event_loop_patterns>
+        <web_framework_async_rules>
+            **Framework-Specific Async Patterns**:
+            
+            1. **Streamlit** (has its own event loop):
+                \`\`\`python
+                # WRONG: Creating new event loops
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                
+                # WRONG: Using ThreadPoolExecutor
+                with ThreadPoolExecutor() as executor:
+                    future = executor.submit(async_func)
+                
+                # CORRECT: Use nest_asyncio
+                import nest_asyncio
+                nest_asyncio.apply()
+                
+                # Then simple asyncio.run()
+                result = asyncio.run(async_function())
+                \`\`\`
+            
+            2. **FastAPI** (manages its own event loop):
+                \`\`\`python
+                # CORRECT: Use async endpoints directly
+                @app.post("/run")
+                async def run_agent(request: Request):
+                    result = await agent.ainvoke(...)
+                    return result
+                \`\`\`
+            
+            3. **Jupyter** (IPython event loop):
+                \`\`\`python
+                # CORRECT: Use await directly in cells
+                result = await agent.ainvoke(...)
+                \`\`\`
+        </web_framework_async_rules>
+        
+        <async_error_patterns>
+            Common errors and solutions:
+            - \`RuntimeError: Event loop is closed\` → Use nest_asyncio
+            - \`RuntimeError: This event loop is already running\` → Use nest_asyncio or await directly
+            - \`asyncio.locks.Event object is bound to a different event loop\` → Don't create new loops
+        </async_error_patterns>
+        
+        <reference_docs>
+            - nest_asyncio docs: https://github.com/erdewit/nest_asyncio. Used commonly for Streamlit + LangGraph integrations.
+            - Streamlit async guide: https://docs.streamlit.io/knowledge-base/using-streamlit/how-to-use-async-await
+            - Python asyncio pitfalls: https://docs.python.org/3/library/asyncio-dev.html#common-mistakes
+        </reference_docs>
+    </async_event_loop_patterns>
+    <streamlit_specific_patterns>
+        <session_state_management>
+            **Centralized State Pattern**:
+            \`\`\`python
+            def init_session_state():
+                """Initialize all session state variables at once"""
+                defaults = {
+                    # Static values
+                    "messages": [],
+                    "client": None,
+                    "thread_id": None,
+                    
+                    # Dynamic tracking - prefix with 'current_'
+                    "current_system_prompt": "Default prompt",
+                    "current_config": {},
+                    
+                    # UI state
+                    "show_feedback": False,
+                    "last_user_input": None,
+                }
+                
+                for key, default_value in defaults.items():
+                    if key not in st.session_state:
+                        st.session_state[key] = default_value
+            
+            # Call at app start
+            init_session_state()
+            \`\`\`
+        </session_state_management>
+        
+        <form_widget_rules>
+            **Form API Constraints**:
+            \`\`\`python
+            # WRONG: Regular widgets in forms
+            with st.form("my_form"):
+                st.text_input("Input")
+                if st.button("Action"):  # Not allowed
+                    process()
+            
+            # CORRECT: Only form widgets in forms
+            with st.form("my_form"):
+                user_input = st.text_input("Input")
+                submitted = st.form_submit_button("Submit")
+            
+            # Process outside form
+            if submitted:
+                process(user_input)
+            
+            # Other actions outside form
+            if st.button("Other Action"):
+                other_process()
+            \`\`\`
+        </form_widget_rules>
+        
+        <rerun_patterns>
+            **Avoiding Infinite Reruns**:
+            \`\`\`python
+            # WRONG: Modifying state in main flow
+            st.session_state.counter += 1  # Causes rerun loop
+            
+            # CORRECT: Modify state in callbacks or conditionally
+            if st.button("Increment"):
+                st.session_state.counter += 1
+            \`\`\`
+        </rerun_patterns>
+        
+        <reference_docs>
+            - Session State API: https://docs.streamlit.io/library/api-reference/session-state
+            - Forms reference: https://docs.streamlit.io/library/api-reference/control-flow/st.form
+            - Widget behavior: https://docs.streamlit.io/library/advanced-features/widget-behavior
+        </reference_docs>
+    </streamlit_specific_patterns>
 
     <model_preferences>
         **LLM MODEL PRIORITY** (follow this order):
@@ -596,6 +838,7 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
             - Before using LangGraph-specific decorators, annotations, or utilities.
             - When working with conditional edges, dynamic routing, or subgraphs.
             - Before implementing tool calling patterns within graph nodes.
+            Whenever you are building applications that require multiple frameworks and their integrations for e.g., LangGraph + Streamlit, LangGraph + Next.js, LangGraph + React, etc., you should consult the documentation of the framework you are using to ensure you are using the correct syntax and patterns.
         </when_to_consult_documentation>
 
         <documentation_navigation>
