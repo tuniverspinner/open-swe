@@ -9,7 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ThreadSwitcher } from "./thread-switcher";
 import { ThreadMetadata } from "./types";
 import { useStream } from "@langchain/langgraph-sdk/react";
-import { ManagerGraphState, ManagerGraphUpdate } from "@open-swe/shared/open-swe/manager/types";
+import {
+  ManagerGraphState,
+  ManagerGraphUpdate,
+} from "@open-swe/shared/open-swe/manager/types";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import {
   GraphState,
@@ -213,7 +216,8 @@ export function ThreadView({
       }
     } else if (plannerStream.error) {
       const rawErrorMessage =
-        typeof plannerStream.error === "object" && "message" in plannerStream.error
+        typeof plannerStream.error === "object" &&
+        "message" in plannerStream.error
           ? (plannerStream.error.message as string)
           : "An unknown error occurred in the planner";
       setErrorState({
@@ -221,7 +225,8 @@ export function ThreadView({
       });
     } else if (programmerStream.error) {
       const rawErrorMessage =
-        typeof programmerStream.error === "object" && "message" in programmerStream.error
+        typeof programmerStream.error === "object" &&
+        "message" in programmerStream.error
           ? (programmerStream.error.message as string)
           : "An unknown error occurred in the programmer";
       setErrorState({
@@ -321,7 +326,7 @@ export function ThreadView({
 
       // Store session storage so the stream can be resumed after redirect
       sessionStorage.setItem(`lg:stream:${newThreadId}`, run.run_id);
-      
+
       // Redirect to the new thread page
       router.push(`/chat/${newThreadId}`);
     } catch (error) {
@@ -576,9 +581,3 @@ export function ThreadView({
     </div>
   );
 }
-
-
-
-
-
-
