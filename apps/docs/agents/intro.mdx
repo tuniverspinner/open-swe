@@ -1,0 +1,34 @@
+---
+title: "Introduction"
+description: "Understanding Open SWE's agent architecture"
+---
+
+# Agent Architecture
+
+Open SWE uses a multi-agent system built with LangGraph to handle complex software engineering tasks. Each agent has a specific role and set of capabilities designed to work together seamlessly.
+
+## Agent Overview
+
+<CardGroup cols={2}>
+  <Card title="Manager" icon="route" href="/agents/manager">
+    Entry point that classifies requests and orchestrates agent workflows
+  </Card>
+  <Card title="Planner" icon="map" href="/agents/planner">
+    Creates detailed task plans by analyzing codebases and gathering context
+  </Card>
+  <Card title="Programmer" icon="code" href="/agents/programmer">
+    Executes task plans by making code changes and managing the development workflow
+  </Card>
+  <Card title="Reviewer" icon="magnifying-glass" href="/agents/reviewer">
+    Reviews code changes for quality and correctness before pull request creation
+  </Card>
+</CardGroup>
+
+## How Agents Work Together
+
+1. **Manager** receives and classifies user requests
+2. **Planner** analyzes the request and creates an execution plan
+3. **Programmer** implements the plan through code changes
+4. **Reviewer** validates changes before creating a pull request
+
+Each agent is implemented as a LangGraph StateGraph with specific nodes for different operations and decision points. The agents communicate through shared state and thread management, enabling complex workflows while maintaining clear separation of concerns.
