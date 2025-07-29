@@ -41,7 +41,6 @@ export async function initializeSandbox(
   state: InitializeSandboxState,
   config: GraphConfig,
 ): Promise<Partial<InitializeSandboxState>> {
-  const { githubInstallationToken } = getGitHubTokensFromConfig(config);
   const { sandboxSessionId, targetRepository, branchName } = state;
   const absoluteRepoDir = getRepoAbsolutePath(targetRepository);
   const repoName = `${targetRepository.owner}/${targetRepository.repo}`;
@@ -80,10 +79,12 @@ export async function initializeSandbox(
     }),
   ];
 
-  // Check if we're in local mode
+  // Check if we're in local mode before trying to get GitHub tokens
   if (isLocalMode(config)) {
     return initializeSandboxLocal(state, config, emitStepEvent, createEventsMessage);
   }
+
+  const { githubInstallationToken } = getGitHubTokensFromConfig(config);
 
   if (!sandboxSessionId) {
     emitStepEvent(
@@ -455,7 +456,7 @@ async function initializeSandboxLocal(
     sandboxSessionId: mockSandboxId,
     targetRepository,
     codebaseTree,
-    messages: createEventsMessage(),
+    messages: [...(state.messages || []), ...createEventsMessage()],
     dependenciesInstalled: false,
     customRules: await getCustomRules(null as any, absoluteRepoDir, config),
     branchName: branchName,

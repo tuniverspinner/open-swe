@@ -27,19 +27,51 @@ export class LocalShellExecutor {
     workdir?: string,
     env?: Record<string, string>,
     timeout: number = 30,
+    localMode: boolean = false,
   ): Promise<ExecuteResponse> {
     const cwd = workdir || this.workingDirectory;
     const environment = { ...process.env, ...(env || {}) };
 
-    logger.info("Executing command locally", { command, cwd });
+    logger.info("Executing command locally", { command, cwd, localMode });
 
+    // In local mode, use spawn directly for better reliability
+    if (localMode) {
+      try {
+        const cleanEnv = Object.fromEntries(
+          Object.entries(environment).filter(([_, v]) => v !== undefined),
+        ) as Record<string, string>;
+        const result = await this.executeWithSpawn(
+          command,
+          cwd,
+          cleanEnv,
+          timeout,
+        );
+        return result;
+      } catch (spawnError: any) {
+        logger.error("Spawn execution failed in local mode", {
+          command,
+          error: spawnError.message,
+        });
+
+        return {
+          exitCode: 1,
+          result: spawnError.message,
+          artifacts: {
+            stdout: "",
+            stderr: spawnError.message,
+          },
+        };
+      }
+    }
+
+    // Non-local mode: try exec first, fallback to spawn
     try {
       const { stdout, stderr } = await execAsync(command, {
         cwd,
         env: environment,
         timeout: timeout * 1000, // Convert to milliseconds
         maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-        shell: "/bin/bash",
+        shell: process.env.SHELL || "/bin/bash",
       });
 
       return {
@@ -67,6 +99,11 @@ export class LocalShellExecutor {
           cleanEnv,
           timeout,
         );
+
+        logger.error("Spawn fallback succeeded", {
+          command,
+          result,
+        });
         return result;
       } catch (spawnError: any) {
         logger.error("Spawn fallback also failed", {

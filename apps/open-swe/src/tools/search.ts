@@ -27,8 +27,17 @@ export function createSearchTool(
   const searchTool = tool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
-        const repoRoot = getRepoAbsolutePath(state.targetRepository);
         const command = formatSearchCommand(input);
+        
+        let repoRoot;
+        if (isLocalMode(config)) {
+          // In local mode, use the local working directory
+          repoRoot = getLocalWorkingDirectory();
+        } else {
+          // In sandbox mode, use the sandbox path
+          repoRoot = getRepoAbsolutePath(state.targetRepository);
+        }
+        
         logger.info("Running search command", {
           command: command.join(" "),
           repoRoot,
@@ -37,19 +46,21 @@ export function createSearchTool(
         let response;
 
         if (isLocalMode(config)) {
-          // Local mode: use LocalShellExecutor without wrapScript
+          // Local mode: use LocalShellExecutor
           const executor = getLocalShellExecutor(getLocalWorkingDirectory());
+          
           response = await executor.executeCommand(
             command.join(" "),
             repoRoot,
             DEFAULT_ENV,
             TIMEOUT_SEC,
+            true, // localMode
           );
         } else {
           // Sandbox mode: use existing sandbox logic with wrapScript
           const sandbox = await getSandboxSessionOrThrow(input);
           response = await sandbox.process.executeCommand(
-            wrapScript(command.join(" ")),
+            command.join(" "),
             repoRoot,
             DEFAULT_ENV,
             TIMEOUT_SEC,

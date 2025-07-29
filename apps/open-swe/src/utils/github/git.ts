@@ -17,6 +17,8 @@ import {
 } from "@open-swe/shared/open-swe/tasks";
 import { createPullRequest } from "./api.js";
 import { addTaskPlanToIssue } from "./issue-task.js";
+import { getLocalShellExecutor } from "../local-shell-executor.js";
+import { getLocalWorkingDirectory } from "../local-mode.js";
 
 const logger = createLogger(LogLevel.INFO, "GitHub-Git");
 
@@ -36,12 +38,28 @@ export async function getChangedFilesStatus(
   absoluteRepoDir: string,
   sandbox: Sandbox,
 ): Promise<string[]> {
-  const gitStatusOutput = await sandbox.process.executeCommand(
-    "git status --porcelain",
-    absoluteRepoDir,
-    undefined,
-    TIMEOUT_SEC,
-  );
+  let gitStatusOutput;
+  
+  // Check if we're in local mode (sandbox doesn't have process)
+  if (!sandbox.process) {
+    // Local mode: use LocalShellExecutor
+    const executor = getLocalShellExecutor(getLocalWorkingDirectory());
+    gitStatusOutput = await executor.executeCommand(
+      "git status --porcelain",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+      true, // localMode
+    );
+  } else {
+    // Sandbox mode: use sandbox.process
+    gitStatusOutput = await sandbox.process.executeCommand(
+      "git status --porcelain",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+  }
 
   if (gitStatusOutput.exitCode !== 0) {
     logger.error(`Failed to get changed files status`, {
@@ -61,19 +79,35 @@ export async function stashAndClearChanges(
   sandbox: Sandbox,
 ): Promise<ExecuteResponse | false> {
   try {
-    const gitStashOutput = await sandbox.process.executeCommand(
-      "git add -A && git stash && git reset --hard",
-      absoluteRepoDir,
-      undefined,
-      TIMEOUT_SEC,
-    );
+    let gitStashOutput;
+    
+    // Check if we're in local mode (sandbox doesn't have process)
+    if (!sandbox.process) {
+      // Local mode: use LocalShellExecutor
+      const executor = getLocalShellExecutor(getLocalWorkingDirectory());
+      gitStashOutput = await executor.executeCommand(
+        "git add -A && git stash && git reset --hard",
+        absoluteRepoDir,
+        undefined,
+        TIMEOUT_SEC,
+        true, // localMode
+      );
+    } else {
+      // Sandbox mode: use sandbox.process
+      gitStashOutput = await sandbox.process.executeCommand(
+        "git add -A && git stash && git reset --hard",
+        absoluteRepoDir,
+        undefined,
+        TIMEOUT_SEC,
+      );
+    }
 
     if (gitStashOutput.exitCode !== 0) {
       logger.error(`Failed to stash and clear changes`, {
         gitStashOutput,
       });
     }
-    return gitStashOutput;
+    return gitStashOutput as any; // Type assertion to handle different ExecuteResponse types
   } catch (e) {
     const errorFields = getSandboxErrorFields(e);
     logger.error(`Failed to stash and clear changes`, {

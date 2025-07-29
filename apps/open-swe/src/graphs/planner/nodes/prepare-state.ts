@@ -20,11 +20,21 @@ import {
 } from "../../../utils/github/issue-messages.js";
 import { filterHiddenMessages } from "../../../utils/message/filter-hidden.js";
 import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
+import { isLocalMode } from "../../../utils/local-mode.js";
 
 export async function prepareGraphState(
   state: PlannerGraphState,
   config: GraphConfig,
 ): Promise<Command> {
+  // In local mode, skip GitHub issue fetching since we don't have GitHub issues
+  if (isLocalMode(config)) {
+    // In local mode, just proceed to initialize-sandbox with existing messages
+    return new Command({
+      update: {},
+      goto: "initialize-sandbox",
+    });
+  }
+
   if (!state.githubIssueId) {
     throw new Error("No github issue id provided");
   }

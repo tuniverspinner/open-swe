@@ -6,6 +6,7 @@ import {
 import { getIssue, updateIssue } from "./api.js";
 import { getGitHubTokensFromConfig } from "../github-tokens.js";
 import { createLogger, LogLevel } from "../logger.js";
+import { isLocalMode } from "../local-mode.js";
 
 const logger = createLogger(LogLevel.INFO, "IssueTaskString");
 
@@ -95,6 +96,14 @@ export async function getPlansFromIssue(
   taskPlan: TaskPlan | null;
   proposedPlan: string[] | null;
 }> {
+  // In local mode, return null values since we don't have GitHub issues
+  if (isLocalMode(config)) {
+    return {
+      taskPlan: null,
+      proposedPlan: null,
+    };
+  }
+
   const issue = await getIssue({
     owner: input.targetRepository.owner,
     repo: input.targetRepository.repo,

@@ -90,13 +90,13 @@ export async function getCodebaseTree(
  */
 async function getCodebaseTreeLocal(targetRepository?: TargetRepository): Promise<string> {
   try {
-    const workingDirectory = targetRepository ? 
-      path.join(process.cwd(), targetRepository.repo) : 
-      getLocalWorkingDirectory();
+    // In local mode, always use the current working directory
+    const workingDirectory = getLocalWorkingDirectory();
     
     const executor = getLocalShellExecutor(workingDirectory);
     const command = `git ls-files | tree --fromfile -L 3`;
-    
+    console.log("THIS IS THE COMMAND", command);
+    console.log("THIS IS THE WORKING DIRECTORY", workingDirectory);
     const response = await executor.executeCommand(
       command,
       workingDirectory,

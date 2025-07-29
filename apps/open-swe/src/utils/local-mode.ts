@@ -1,4 +1,5 @@
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
+import path from "path";
 
 /**
  * Checks if the current execution context is in local mode
@@ -10,10 +11,10 @@ export function isLocalMode(config: GraphConfig): boolean {
 
 /**
  * Gets the local working directory for local mode operations
- * Defaults to current working directory if not specified
+ * Defaults to a test folder on the desktop if not specified
  */
 export function getLocalWorkingDirectory(): string {
-  return process.env.OPEN_SWE_PROJECT_PATH || process.cwd();
+  return process.env.OPEN_SWE_PROJECT_PATH || path.join(process.env.HOME || "", "Desktop", "test");
 }
 
 /**
