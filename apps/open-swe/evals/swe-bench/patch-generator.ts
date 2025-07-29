@@ -113,7 +113,7 @@ export async function generatePatchFromBranch(
     });
 
     await cloneRepo(sandbox, targetRepository, {
-      githubInstallationToken: githubToken,
+      githubInstallationToken: githubToken || "",
       stateBranchName: branchName,
     });
 
@@ -369,3 +369,4 @@ export function countPatchChanges(patch: string): {
 
   return { additions, deletions };
 }
+
