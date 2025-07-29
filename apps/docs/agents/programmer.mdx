@@ -1,0 +1,70 @@
+---
+title: "Programmer Agent"
+description: "Implements approved plans through code changes and testing"
+---
+
+# Programmer Agent
+
+The Programmer agent executes approved implementation plans by making code changes, running tests, and handling all aspects of the development process.
+
+## Role & Responsibilities
+
+### Code Implementation
+- Executes approved plans through systematic code changes
+- Applies patches, edits files, and manages dependencies
+- Runs tests and validates implementations
+
+### Task Management
+- Tracks plan progress and marks tasks as completed
+- Handles plan updates and modifications during implementation
+- Manages the overall execution workflow
+
+## Invocation
+
+The Programmer is invoked by the Planner agent via `startProgrammerRun()` after:
+- Plan approval (manual or automatic)
+- Plan acceptance through human interrupt
+
+## Available Tools
+
+During the `generate-action` node, the Programmer has access to:
+
+- **`apply-patch`** - Apply code patches and diffs
+- **`shell`** - Execute commands, run tests, build projects
+- **`grep`** - Search codebase for patterns and references
+- **`text-editor`** - Create, edit, and modify files
+- **`install-dependencies`** - Install required packages and dependencies
+- **`get-url-content`** - Fetch external resources and documentation
+- **`search-document-for`** - Search within fetched documents
+- **`MCP tools`** - Additional tools via Model Context Protocol
+- **`request-human-help`** - Request assistance when stuck
+- **`update-plan`** - Modify the current plan if needed
+- **`mark-task-completed`** - Mark individual tasks as finished
+
+## Key Nodes
+
+- **`initialize`** - Set up sandbox and execution environment
+- **`generate-action`** - Determine next implementation step
+- **`take-action`** - Execute the chosen action using tools
+- **`update-plan`** - Handle plan modifications
+- **`handle-completed-task`** - Process completed tasks
+- **`generate-conclusion`** - Finalize implementation
+- **`open-pr`** - Create pull request automatically
+
+## Code Review Integration
+
+Before concluding, the Programmer invokes the **Reviewer subgraph** to:
+- Review all code changes
+- Provide feedback and suggestions
+- Ensure quality and correctness
+- Loop back for improvements if needed
+
+## Completion Process
+
+1. **Implementation** - Execute plan tasks systematically
+2. **Review** - Invoke Reviewer subgraph for code review
+3. **Refinement** - Address reviewer feedback if needed
+4. **Conclusion** - Generate final summary
+5. **PR Creation** - Automatically create pull request
+
+The Programmer ensures thorough implementation while maintaining code quality through integrated review processes.
