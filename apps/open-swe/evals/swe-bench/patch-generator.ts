@@ -102,7 +102,7 @@ export async function generatePatchFromBranch(
     if (!sandbox) {
       logger.info("Creating new sandbox for patch generation...");
       const daytonaInstance = new Daytona();
-      sandbox = await daytonaInstance.sandbox.create(DEFAULT_SANDBOX_CREATE_PARAMS);
+      sandbox = await daytonaInstance.create(DEFAULT_SANDBOX_CREATE_PARAMS);
       shouldCleanup = !keepSandbox;
     }
 
@@ -355,3 +355,4 @@ export function countPatchChanges(patch: string): { additions: number; deletions
 
   return { additions, deletions };
 }
+
