@@ -472,15 +472,15 @@ async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }>
     const pythonCheck = spawn("python", ["--version"]);
     let output = "";
     
-    pythonCheck.stdout.on("data", (data) => {
+    pythonCheck.stdout.on("data", (data: Buffer) => {
       output += data.toString();
     });
     
-    pythonCheck.stderr.on("data", (data) => {
+    pythonCheck.stderr.on("data", (data: Buffer) => {
       output += data.toString();
     });
     
-    pythonCheck.on("close", (code) => {
+    pythonCheck.on("close", (code: number | null) => {
       if (code === 0) {
         // Parse version from output like "Python 3.9.7"
         const match = output.match(/Python (\d+)\.(\d+)/);
@@ -508,6 +508,7 @@ async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }>
     });
   });
 }
+
 
 
 
