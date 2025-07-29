@@ -1,0 +1,59 @@
+---
+title: "Programmer Agent"
+description: "Code implementation and task execution"
+---
+
+# Programmer Agent
+
+The Programmer agent executes task plans by making code changes, running tests, and managing the development workflow.
+
+## Role
+
+- **Task executor** that implements code changes according to the plan
+- **Code editor** that modifies files and creates new implementations
+- **Workflow manager** that handles testing, reviews, and pull requests
+
+## How It's Invoked
+
+The Programmer agent is invoked by:
+- The Planner agent after a task plan is accepted
+- Direct thread creation when resuming an existing task
+
+## Workflow Steps
+
+Key nodes in the Programmer workflow:
+
+1. **`initialize`** - Sets up the sandbox environment
+2. **`generate-action`** - Main tool-calling node for code changes
+3. **`take-action`** - Executes tool calls and processes results
+4. **`update-plan`** - Modifies the task plan if needed
+5. **`handle-completed-task`** - Processes task completion
+6. **`summarize-history`** - Condenses conversation for context
+7. **`route-to-review-or-conclusion`** - Decides between review or completion
+8. **`reviewer-subgraph`** - Invokes code review process
+9. **`generate-conclusion`** - Summarizes all changes made
+10. **`open-pr`** - Creates the final pull request
+
+## Available Tools
+
+During the `generate-action` node, the Programmer has access to:
+
+- **`grep`** - Search for code patterns
+- **`shell`** - Run commands, tests, and builds
+- **`str_replace_based_edit_tool`** (Anthropic) / **`apply_patch`** (others) - Edit files
+- **`request_human_help`** - Ask for clarification when stuck
+- **`update_plan`** - Modify the task plan
+- **`get_url_content`** - Fetch documentation
+- **`install_dependencies`** - Install project dependencies
+- **`mark_task_completed`** - Mark current task as done
+- **`search_document_for`** - Search within documents
+- **MCP tools** - Any configured Model Context Protocol tools
+
+## Key Characteristics
+
+- **Iterative execution** - Works through tasks one at a time
+- **Self-correction** - Can diagnose and fix errors
+- **Review integration** - Automatically triggers code review before PR
+- **Progress tracking** - Maintains task completion status
+
+The Programmer agent handles the actual implementation work, ensuring code changes are properly tested and reviewed before creating pull requests.
