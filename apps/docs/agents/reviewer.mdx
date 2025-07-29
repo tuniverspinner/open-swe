@@ -5,69 +5,160 @@ description: "Code review and feedback subgraph within the Programmer"
 
 # Reviewer Agent
 
-The Reviewer agent operates as a subgraph within the Programmer agent, providing code review and feedback to ensure quality and correctness before implementation completion.
+The Reviewer agent operates as an **embedded subgraph** within the Programmer agent, providing comprehensive code review and quality assurance feedback. It serves as the final quality gate before implementation completion, ensuring that all code changes meet standards and requirements.
 
-## Role & Responsibilities
+## Core Role & Responsibilities
 
-### Code Review
-- Reviews all code changes made during implementation
-- Analyzes changes for correctness, quality, and adherence to standards
-- Provides specific feedback and improvement suggestions
+### Comprehensive Code Review
+- **Change Analysis**: Reviews all code modifications, additions, and deletions made during implementation
+- **Quality Assessment**: Analyzes code for correctness, maintainability, and adherence to project standards
+- **Pattern Validation**: Ensures implementations follow established project patterns and conventions
+- **Requirement Verification**: Validates that code changes fulfill the original requirements
 
-### Quality Assurance
-- Validates that implementations meet requirements
-- Checks for potential issues, bugs, or improvements
-- Ensures code follows project patterns and conventions
+### Quality Assurance & Testing
+- **Functional Testing**: Runs tests to verify code functionality and correctness
+- **Build Validation**: Checks that changes don't break existing builds or dependencies
+- **Integration Testing**: Ensures new code integrates properly with existing systems
+- **Performance Analysis**: Identifies potential performance issues or improvements
 
-## Invocation
+### Feedback Generation
+- **Specific Recommendations**: Provides actionable feedback with clear improvement suggestions
+- **Issue Identification**: Highlights bugs, security concerns, or architectural problems
+- **Best Practice Guidance**: Suggests improvements aligned with coding best practices
+- **Documentation Review**: Ensures code changes are properly documented
 
-The Reviewer is invoked as an **embedded subgraph** within the Programmer agent:
-- Automatically triggered before the Programmer concludes
-- Runs after implementation tasks are completed
-- Operates within the same execution context as the Programmer
+## Invocation as Embedded Subgraph
+
+The Reviewer operates as an **integrated subgraph** within the Programmer agent workflow:
+
+### Automatic Invocation
+- **Trigger Point**: Automatically invoked before Programmer reaches `generate-conclusion` node
+- **Seamless Integration**: Runs within the same LangGraph thread as Programmer
+- **Context Sharing**: Inherits all implementation context and state from Programmer
+- **No Separate Session**: Operates without requiring independent session management
+
+### Execution Context
+- **Shared State**: Accesses the same GraphState as Programmer agent
+- **Implementation Awareness**: Has full visibility into all code changes and modifications
+- **Plan Context**: Understands the original implementation plan and requirements
+- **Progress Tracking**: Aware of completed tasks and remaining work
 
 ## Available Tools
 
-During the `generate-review-actions` node, the Reviewer has access to:
+During the **`generate-review-actions`** node, the Reviewer has access to a focused toolset:
 
-- **`grep`** - Search codebase for patterns and references
-- **`shell`** - Execute commands, run tests, check builds
-- **`install-dependencies`** - Install packages needed for testing
-- **`scratchpad`** - Take notes during review process
-- **`view`** - Read and examine file contents
+### Code Analysis Tools
+- **`grep`** - Search codebase for patterns, functions, and references to understand impact
+- **`view`** - Read and examine file contents, directory structures, and code organization
 
-## Key Nodes
+### Testing & Validation Tools
+- **`shell`** - Execute commands, run tests, check builds, and validate functionality
+- **`install-dependencies`** - Install packages needed for testing or validation
 
-- **`initialize-state`** - Set up review context and state
-- **`generate-review-actions`** - Determine review actions to take
-- **`take-review-actions`** - Execute review tools and analysis
-- **`final-review`** - Generate final review feedback
+### Documentation & Notes
+- **`scratchpad`** - Take structured notes during review process for feedback generation
+
+## Key Workflow Nodes
+
+The Reviewer operates through four critical nodes:
+
+### `initialize-state`
+- **Purpose**: Set up review context and prepare for code analysis
+- **Actions**: Initialize review state, gather implementation context, prepare analysis environment
+- **Output**: Ready state for comprehensive code review process
+
+### `generate-review-actions`
+- **Purpose**: Determine specific review actions needed based on code changes
+- **Actions**: Analyze changes, identify areas requiring review, select appropriate tools
+- **Output**: Tool calls for code analysis or transition to final review
+
+### `take-review-actions`
+- **Purpose**: Execute review tools and perform comprehensive code analysis
+- **Actions**: Run tests, examine code, search for patterns, validate functionality
+- **Output**: Analysis results and findings for feedback generation
+
+### `final-review`
+- **Purpose**: Generate comprehensive review feedback and make approval decision
+- **Actions**: Synthesize analysis results, create actionable feedback, determine next steps
+- **Output**: Review feedback and decision (approve, request changes, or iteration limit)
 
 ## Feedback Loop Mechanism
 
-### Review Process
-1. **Initialize** - Set up review context with code changes
-2. **Analysis** - Use tools to examine changes and run tests
-3. **Feedback** - Generate specific review comments and suggestions
-4. **Decision** - Determine if changes are acceptable or need revision
+The Reviewer implements a sophisticated feedback loop with iteration control:
 
-### Iteration Limits
-- **`maxReviewCount`** - Default limit of 3 review iterations
-- Prevents infinite feedback loops
-- Ensures timely completion while maintaining quality
+### Review Cycle Process
+
+#### 1. **Initialization Phase**
+- Set up review context with all implementation changes
+- Prepare analysis environment and gather necessary context
+- Initialize review state and iteration tracking
+
+#### 2. **Analysis Phase**
+- **Code Examination**: Use tools to thoroughly examine all code changes
+- **Testing Execution**: Run relevant tests to validate functionality
+- **Pattern Analysis**: Check adherence to project patterns and conventions
+- **Impact Assessment**: Evaluate potential impact on existing systems
+
+#### 3. **Feedback Generation Phase**
+- **Issue Identification**: Document specific problems or concerns found
+- **Improvement Suggestions**: Provide actionable recommendations for enhancement
+- **Quality Assessment**: Evaluate overall code quality and standards compliance
+- **Decision Making**: Determine if changes are acceptable or require revision
+
+#### 4. **Decision Phase**
+- **Approval**: Code meets quality standards, proceed to conclusion
+- **Request Changes**: Specific improvements needed, provide feedback to Programmer
+- **Iteration Limit**: Maximum reviews reached, proceed with current state
+
+### Iteration Control & Limits
+
+#### `maxReviewCount` Configuration
+- **Default Limit**: 3 review iterations to prevent infinite loops
+- **Quality Balance**: Ensures thorough review while maintaining development velocity
+- **Configurable**: Can be adjusted based on project requirements and complexity
+
+#### Iteration Management
+- **Counter Tracking**: Maintains count of review cycles performed
+- **Limit Enforcement**: Automatically proceeds after reaching maximum iterations
+- **Quality Preservation**: Balances thoroughness with practical completion timelines
 
 ### Loop Back to Programmer
-If the review identifies issues:
-- Feedback is provided to the Programmer
-- Programmer addresses the feedback
-- Process repeats until approval or iteration limit
 
-## Integration with Programmer
+When review identifies issues requiring changes:
 
-The Reviewer operates seamlessly within the Programmer workflow:
-- No separate session management required
-- Shares context and state with Programmer
-- Provides feedback that directly influences next actions
-- Ensures quality gates before PR creation
+#### Feedback Delivery
+- **Specific Issues**: Detailed description of problems found
+- **Actionable Recommendations**: Clear guidance on required improvements
+- **Priority Classification**: Categorization of issues by severity and importance
+- **Context Preservation**: Maintains full context for Programmer to address feedback
 
-The Reviewer ensures that all implementations meet quality standards while maintaining efficient development workflows.
+#### Programmer Response
+- **Feedback Processing**: Programmer receives and analyzes review feedback
+- **Implementation Changes**: Makes required modifications based on review
+- **Re-submission**: Updated code is automatically re-reviewed in next iteration
+- **Progress Tracking**: Changes are tracked and validated in subsequent reviews
+
+## Integration Architecture
+
+The Reviewer's embedded architecture provides several key advantages:
+
+### Seamless Workflow Integration
+- **No Session Overhead**: Operates within existing Programmer session
+- **State Continuity**: Maintains full context throughout review process
+- **Efficient Communication**: Direct feedback loop without external coordination
+- **Resource Optimization**: Shares computational resources with Programmer
+
+### Quality Gate Implementation
+- **Mandatory Review**: Ensures all implementations undergo quality review
+- **Standards Enforcement**: Maintains consistent code quality across all changes
+- **Risk Mitigation**: Identifies potential issues before PR creation
+- **Continuous Improvement**: Provides feedback that improves implementation quality
+
+### Developer Experience
+- **Transparent Process**: Review happens automatically without manual intervention
+- **Actionable Feedback**: Provides specific, implementable improvement suggestions
+- **Iterative Refinement**: Supports multiple improvement cycles when needed
+- **Quality Assurance**: Ensures high standards without blocking development velocity
+
+This comprehensive review architecture ensures that all implementations meet quality standards while maintaining efficient development workflows and providing clear, actionable feedback for continuous improvement.
+
