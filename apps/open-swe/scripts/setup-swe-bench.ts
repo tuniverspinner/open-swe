@@ -312,7 +312,7 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
   } = options;
 
   logger.info("Starting SWE-bench setup...");
-  logger.info("=" * 50);
+  logger.info("=".repeat(50));
 
   const steps: {
     name: string;
@@ -455,4 +455,5 @@ Examples:
 setup(options).then((success) => {
   process.exit(success ? 0 : 1);
 });
+
 
