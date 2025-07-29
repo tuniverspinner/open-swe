@@ -368,5 +368,3 @@ export function countPatchChanges(patch: string): {
 
   return { additions, deletions };
 }
-
-
