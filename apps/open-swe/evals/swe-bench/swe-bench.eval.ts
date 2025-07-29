@@ -111,10 +111,10 @@ const DATASET = await loadDataset().then((instances) =>
 );
 
 // Run evaluation for each instance
-DATASET.forEach(({ inputs }) => {
-  ls.test(
-    `SWE-bench: ${inputs.instance_id}`,
-    async () => {
+ls.describe("SWE-bench Evaluation", () => {
+  ls.test.each(DATASET)(
+    "SWE-bench: ${inputs.instance_id}",
+    async ({ inputs }) => {
       const threadId = uuidv4();
       
       const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
@@ -317,6 +317,7 @@ DATASET.forEach(({ inputs }) => {
 export default {
   description: "SWE-bench evaluation suite for Open SWE agent",
 };
+
 
 
 
