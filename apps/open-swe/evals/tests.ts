@@ -151,7 +151,9 @@ export const runLangGraphEvaluation = async (
     logger.info("LangGraph evaluation execution completed", {
       exitCode: execution.exitCode,
       outputLength: execution.result?.length || 0,
-      output: execution.result?.substring(0, 1000) + (execution.result?.length > 1000 ? "..." : ""),
+      output:
+        execution.result?.substring(0, 1000) +
+        (execution.result?.length > 1000 ? "..." : ""),
     });
 
     if (execution.exitCode === 0) {

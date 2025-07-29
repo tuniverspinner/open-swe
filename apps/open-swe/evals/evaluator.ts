@@ -292,7 +292,9 @@ export async function evaluator(inputs: {
       }
     });
 
-    logger.info(`Syncing to latest state of solution branch: ${solutionBranch}`);
+    logger.info(
+      `Syncing to latest state of solution branch: ${solutionBranch}`,
+    );
 
     const updateBranchRes = await sandbox.process.executeCommand(
       `git fetch origin ${solutionBranch} && git checkout -B ${solutionBranch} FETCH_HEAD`,
@@ -300,7 +302,7 @@ export async function evaluator(inputs: {
       envVars,
       TIMEOUT_SEC,
     );
-    
+
     if (updateBranchRes.exitCode !== 0) {
       logger.error("Failed to update solution branch", {
         solutionBranch,

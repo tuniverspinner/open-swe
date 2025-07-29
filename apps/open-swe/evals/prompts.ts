@@ -191,10 +191,7 @@ Your graph should return a State dict with:
 
 Generate clean, working code that follows these requirements exactly.`;
 
-  const userMessageContent = PROMPT_TEMPLATE.replace(
-    "{REPO}",
-    inputs.repo,
-  )
+  const userMessageContent = PROMPT_TEMPLATE.replace("{REPO}", inputs.repo)
     .replace("{USER_REQUEST}", inputs.user_input)
     .replace("{CODEBASE_README}", readmeContents);
 
