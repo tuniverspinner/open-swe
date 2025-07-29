@@ -1,0 +1,41 @@
+---
+title: "Manager Agent"
+description: "Entry point and orchestrator for Open SWE"
+---
+
+# Manager Agent
+
+The Manager agent serves as the entry point for all user interactions in Open SWE. It classifies incoming messages and routes them to the appropriate workflow.
+
+## Role
+
+- **Primary orchestrator** that receives all user requests
+- **Message classifier** that determines the intent and appropriate action
+- **Session manager** that maintains conversation context
+
+## How It's Invoked
+
+The Manager agent is automatically invoked when:
+- A new GitHub issue is created with the Open SWE label
+- A user sends a message through the web interface
+- A follow-up message is received in an existing conversation
+
+## Workflow Steps
+
+The Manager agent follows these key nodes:
+
+1. **`initialize-github-issue`** - Fetches GitHub issue details if applicable
+2. **`classify-message`** - Analyzes the message to determine routing:
+   - Route to Planner for new coding tasks
+   - Create new session for general queries
+   - End conversation for completion messages
+3. **`create-new-session`** - Initializes a new conversation thread
+4. **`start-planner`** - Launches the Planner agent for coding tasks
+
+## Key Characteristics
+
+- **No tool calling** - The Manager focuses purely on orchestration
+- **Stateless classification** - Each message is evaluated independently
+- **Thread management** - Maintains session continuity across agents
+
+The Manager agent ensures requests are properly routed while maintaining a clean separation between conversation management and task execution.
