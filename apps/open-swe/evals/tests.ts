@@ -148,6 +148,12 @@ export const runLangGraphEvaluation = async (
       TIMEOUT_SEC * 3,
     );
 
+    logger.info("LangGraph evaluation execution completed", {
+      exitCode: execution.exitCode,
+      outputLength: execution.result?.length || 0,
+      output: execution.result?.substring(0, 1000) + (execution.result?.length > 1000 ? "..." : ""),
+    });
+
     if (execution.exitCode === 0) {
       const outputLines = execution.result.trim().split("\n");
       const scoreStr = outputLines[0];

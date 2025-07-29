@@ -292,21 +292,27 @@ export async function evaluator(inputs: {
       }
     });
 
-    logger.info(`Checking out agent's solution branch: ${solutionBranch}`);
+    logger.info(`Syncing to latest state of solution branch: ${solutionBranch}`);
 
-    const checkoutBranchRes = await sandbox.process.executeCommand(
-      `git checkout ${solutionBranch}`,
+    const updateBranchRes = await sandbox.process.executeCommand(
+      `git fetch origin ${solutionBranch} && git checkout -B ${solutionBranch} FETCH_HEAD`,
       absoluteRepoDir,
       envVars,
       TIMEOUT_SEC,
     );
-    if (checkoutBranchRes.exitCode !== 0) {
-      logger.error("Failed to checkout solution branch", {
+    
+    if (updateBranchRes.exitCode !== 0) {
+      logger.error("Failed to update solution branch", {
         solutionBranch,
-        checkoutResult: checkoutBranchRes,
+        updateResult: updateBranchRes,
       });
-      throw new Error(`Failed to checkout solution branch: ${solutionBranch}`);
+      throw new Error(`Failed to update solution branch: ${solutionBranch}`);
     }
+
+    logger.info("Git update result:", {
+      exitCode: updateBranchRes.exitCode,
+      result: updateBranchRes.result,
+    });
 
     const envSetupSuccess = await setupEnv(sandbox, absoluteRepoDir, envVars);
     if (!envSetupSuccess) {

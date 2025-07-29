@@ -170,6 +170,8 @@ The evaluator will:
 2. Look for \`app\`, \`compiled_graph\`, or \`graph\` attribute
 3. Call: \`your_graph.invoke({"messages": [HumanMessage(content="user_question")]})\`  
 4. Evaluate the output against criteria (relevance, completeness, accuracy, clarity)
+5. The evaluator will install the dependencies from requirements.txt in your branch. Regardless of whether there's an existing requirements.txt from the branch you checked out,
+you always need a complete requirements.txt file in your branch.
 
 **CRITICAL**: The evaluator provides ONLY the user's question in messages. Any other state fields your graph needs must have default values handled in your code.
 
