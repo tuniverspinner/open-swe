@@ -377,7 +377,7 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
     }
   }
 
-  logger.info("\n" + "=" * 50);
+  logger.info("\n" + "=".repeat(50));
   
   if (allPassed) {
     logger.info("✅ SWE-bench setup completed successfully!");
@@ -436,3 +436,4 @@ Examples:
 setup(options).then((success) => {
   process.exit(success ? 0 : 1);
 });
+
