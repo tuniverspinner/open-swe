@@ -17,10 +17,13 @@ import { formatInputs } from "../prompts.js";
 const logger = createLogger(LogLevel.DEBUG, "SWEBenchEvaluator");
 
 // Environment variables for configuration
-const DATASET_NAME = process.env.SWE_BENCH_DATASET_NAME || "princeton-nlp/SWE-bench_Lite";
+const DATASET_NAME =
+  process.env.SWE_BENCH_DATASET_NAME || "princeton-nlp/SWE-bench_Lite";
 const INSTANCE_IDS = process.env.SWE_BENCH_INSTANCE_IDS?.split(",") || [];
 const MAX_WORKERS = parseInt(process.env.SWE_BENCH_MAX_WORKERS || "1");
-const TIMEOUT_MINUTES = parseInt(process.env.SWE_BENCH_TIMEOUT_MINUTES || "120");
+const TIMEOUT_MINUTES = parseInt(
+  process.env.SWE_BENCH_TIMEOUT_MINUTES || "120",
+);
 const CACHE_LEVEL = process.env.SWE_BENCH_CACHE_LEVEL || "env";
 const CLEANUP = process.env.SWE_BENCH_CLEANUP !== "false"; // Default true
 
@@ -82,15 +85,17 @@ async function loadDataset(): Promise<SWEBenchInput[]> {
   // In a real implementation, this would load from Hugging Face or local files
   // For now, we'll use example instances
   logger.info(`Loading SWE-bench dataset: ${DATASET_NAME}`);
-  
+
   let instances = EXAMPLE_SWE_BENCH_INSTANCES;
-  
+
   // Filter by instance IDs if specified
   if (INSTANCE_IDS.length > 0) {
-    instances = instances.filter((inst) => INSTANCE_IDS.includes(inst.instance_id));
+    instances = instances.filter((inst) =>
+      INSTANCE_IDS.includes(inst.instance_id),
+    );
     logger.info(`Filtered to ${instances.length} instances by ID`);
   }
-  
+
   return instances;
 }
 
@@ -107,7 +112,7 @@ function formatProblemStatement(input: SWEBenchInput): string {
 const DATASET = await loadDataset().then((instances) =>
   instances.map((instance) => ({
     inputs: instance,
-  }))
+  })),
 );
 
 // Run evaluation for each instance
@@ -116,7 +121,7 @@ ls.describe("SWE-bench Evaluation", () => {
     "SWE-bench: ${inputs.instance_id}",
     async ({ inputs }) => {
       const threadId = uuidv4();
-      
+
       const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
       const githubPat = process.env.GITHUB_PAT;
 
@@ -172,7 +177,7 @@ ls.describe("SWE-bench Evaluation", () => {
               recursion_limit: 250,
             },
             ifNotExists: "create",
-          })
+          }),
         );
 
         await withRetry(() => lgClient.runs.join(threadId, managerRun.run_id));
@@ -206,7 +211,7 @@ ls.describe("SWE-bench Evaluation", () => {
       let plannerRun;
       try {
         plannerRun = await withRetry(() =>
-          lgClient.runs.join(plannerSession.threadId, plannerSession.runId)
+          lgClient.runs.join(plannerSession.threadId, plannerSession.runId),
         );
       } catch (error) {
         logger.error("Error joining planner run", {
@@ -241,8 +246,8 @@ ls.describe("SWE-bench Evaluation", () => {
         programmerRun = await withRetry(() =>
           lgClient.runs.join(
             programmerSession.threadId,
-            programmerSession.runId
-          )
+            programmerSession.runId,
+          ),
         );
       } catch (error) {
         logger.error("Error joining programmer run", {
@@ -309,11 +314,6 @@ ls.describe("SWE-bench Evaluation", () => {
         evalResult,
       });
     },
-    TIMEOUT_MINUTES * 60 * 1000 // Convert to milliseconds
+    TIMEOUT_MINUTES * 60 * 1000, // Convert to milliseconds
   );
 });
-
-
-
-
-

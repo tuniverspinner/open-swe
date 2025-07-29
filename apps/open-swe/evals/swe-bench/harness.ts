@@ -26,7 +26,7 @@ const DEFAULT_PATHS = {
  */
 export async function writePredictionsToFile(
   predictions: SWEBenchPrediction[],
-  filePath: string
+  filePath: string,
 ): Promise<void> {
   try {
     // Ensure directory exists
@@ -50,7 +50,7 @@ export async function writePredictionsToFile(
 export async function checkDockerAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
     const dockerCheck = spawn("docker", ["--version"]);
-    
+
     dockerCheck.on("close", (code: number | null) => {
       if (code === 0) {
         logger.info("Docker is available");
@@ -74,7 +74,7 @@ export async function checkDockerAvailable(): Promise<boolean> {
 export async function checkSWEBenchInstalled(): Promise<boolean> {
   return new Promise((resolve) => {
     const pythonCheck = spawn("python", ["-c", "import swebench"]);
-    
+
     pythonCheck.on("close", (code: number | null) => {
       if (code === 0) {
         logger.info("SWE-bench Python package is installed");
@@ -96,7 +96,7 @@ export async function checkSWEBenchInstalled(): Promise<boolean> {
  * Runs the SWE-bench evaluation harness
  */
 export async function runSWEBenchHarness(
-  options: SWEBenchHarnessOptions
+  options: SWEBenchHarnessOptions,
 ): Promise<{ success: boolean; output: string; error?: string }> {
   const {
     dataset_name,
@@ -164,7 +164,10 @@ export async function runSWEBenchHarness(
       const text = data.toString();
       output.push(text);
       // Log important lines
-      if (text.includes("Instances resolved:") || text.includes("Instances unresolved:")) {
+      if (
+        text.includes("Instances resolved:") ||
+        text.includes("Instances unresolved:")
+      ) {
         logger.info(text.trim());
       }
     });
@@ -213,7 +216,7 @@ export async function runSWEBenchHarness(
  * Parses the results.json file from SWE-bench evaluation
  */
 export async function parseResultsFile(
-  resultsPath: string
+  resultsPath: string,
 ): Promise<SWEBenchMetrics | null> {
   try {
     const content = await fs.readFile(resultsPath, "utf-8");
@@ -243,18 +246,21 @@ export async function parseResultsFile(
  * Parses the instance_results.jsonl file from SWE-bench evaluation
  */
 export async function parseInstanceResults(
-  instanceResultsPath: string
+  instanceResultsPath: string,
 ): Promise<SWEBenchResult[]> {
   try {
     const content = await fs.readFile(instanceResultsPath, "utf-8");
-    const lines = content.trim().split("\n").filter((line) => line.length > 0);
-    
+    const lines = content
+      .trim()
+      .split("\n")
+      .filter((line) => line.length > 0);
+
     const results: SWEBenchResult[] = [];
-    
+
     for (const line of lines) {
       try {
         const data = JSON.parse(line);
-        
+
         // Map the raw data to our SWEBenchResult interface
         const result: SWEBenchResult = {
           instance_id: data.instance_id,
@@ -267,16 +273,22 @@ export async function parseInstanceResults(
           error: data.error,
           duration: data.duration,
         };
-        
+
         results.push(result);
       } catch (parseError) {
-        logger.warn("Failed to parse instance result line", { line, error: parseError });
+        logger.warn("Failed to parse instance result line", {
+          line,
+          error: parseError,
+        });
       }
     }
-    
+
     return results;
   } catch (error) {
-    logger.error("Failed to parse instance results file", { error, instanceResultsPath });
+    logger.error("Failed to parse instance results file", {
+      error,
+      instanceResultsPath,
+    });
     return [];
   }
 }
@@ -286,21 +298,21 @@ export async function parseInstanceResults(
  */
 export async function findResultsDirectory(
   runId: string,
-  baseDir: string = DEFAULT_PATHS.RESULTS_DIR
+  baseDir: string = DEFAULT_PATHS.RESULTS_DIR,
 ): Promise<string | null> {
   try {
     // Check if base directory exists
     await fs.access(baseDir);
-    
+
     // Look for directories that might contain our run results
     const entries = await fs.readdir(baseDir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       if (entry.isDirectory()) {
         // Check if this directory contains results for our run
         const potentialPath = path.join(baseDir, entry.name);
         const resultsJsonPath = path.join(potentialPath, "results.json");
-        
+
         try {
           await fs.access(resultsJsonPath);
           // Check if this is our run by looking for run_id in the results
@@ -313,7 +325,7 @@ export async function findResultsDirectory(
         }
       }
     }
-    
+
     // Also check for a direct path with run_id
     const directPath = path.join(baseDir, runId);
     try {
@@ -322,7 +334,7 @@ export async function findResultsDirectory(
     } catch {
       // Not found
     }
-    
+
     return null;
   } catch (error) {
     logger.error("Failed to find results directory", { error, runId, baseDir });
@@ -338,30 +350,33 @@ export async function loadEvaluationReport(
   modelName: string,
   datasetName: string,
   options: SWEBenchHarnessOptions,
-  resultsDir?: string
+  resultsDir?: string,
 ): Promise<SWEBenchEvaluationReport | null> {
   try {
     // Find results directory if not provided
     const actualResultsDir = resultsDir || (await findResultsDirectory(runId));
-    
+
     if (!actualResultsDir) {
       logger.error("Could not find results directory", { runId });
       return null;
     }
-    
+
     // Load metrics from results.json
     const resultsJsonPath = path.join(actualResultsDir, "results.json");
     const metrics = await parseResultsFile(resultsJsonPath);
-    
+
     if (!metrics) {
       logger.error("Could not parse metrics", { resultsJsonPath });
       return null;
     }
-    
+
     // Load instance results from instance_results.jsonl
-    const instanceResultsPath = path.join(actualResultsDir, "instance_results.jsonl");
+    const instanceResultsPath = path.join(
+      actualResultsDir,
+      "instance_results.jsonl",
+    );
     const instanceResults = await parseInstanceResults(instanceResultsPath);
-    
+
     // Create the evaluation report
     const report: SWEBenchEvaluationReport = {
       run_id: runId,
@@ -373,7 +388,7 @@ export async function loadEvaluationReport(
       instance_results: instanceResults,
       config: options,
     };
-    
+
     return report;
   } catch (error) {
     logger.error("Failed to load evaluation report", { error, runId });
@@ -390,25 +405,31 @@ export async function cleanupEvaluation(
     removePredictions?: boolean;
     removeResults?: boolean;
     removeLogs?: boolean;
-  } = {}
+  } = {},
 ): Promise<void> {
   const {
     removePredictions = false,
     removeResults = false,
     removeLogs = false,
   } = options;
-  
+
   try {
     if (removePredictions) {
-      const predictionsPath = path.join(DEFAULT_PATHS.PREDICTIONS_DIR, `${runId}.jsonl`);
+      const predictionsPath = path.join(
+        DEFAULT_PATHS.PREDICTIONS_DIR,
+        `${runId}.jsonl`,
+      );
       try {
         await fs.unlink(predictionsPath);
         logger.info("Removed predictions file", { predictionsPath });
       } catch (error) {
-        logger.warn("Could not remove predictions file", { error, predictionsPath });
+        logger.warn("Could not remove predictions file", {
+          error,
+          predictionsPath,
+        });
       }
     }
-    
+
     if (removeResults) {
       const resultsDir = await findResultsDirectory(runId);
       if (resultsDir) {
@@ -416,9 +437,13 @@ export async function cleanupEvaluation(
         logger.info("Removed results directory", { resultsDir });
       }
     }
-    
+
     if (removeLogs) {
-      const logsDir = path.join(DEFAULT_PATHS.LOGS_DIR, "run_evaluation", runId);
+      const logsDir = path.join(
+        DEFAULT_PATHS.LOGS_DIR,
+        "run_evaluation",
+        runId,
+      );
       try {
         await fs.rm(logsDir, { recursive: true, force: true });
         logger.info("Removed logs directory", { logsDir });
@@ -439,25 +464,29 @@ export async function validateEnvironment(): Promise<{
   errors: string[];
 }> {
   const errors: string[] = [];
-  
+
   // Check Docker
   const dockerAvailable = await checkDockerAvailable();
   if (!dockerAvailable) {
-    errors.push("Docker is not installed or not running. Please install Docker and ensure it's running.");
+    errors.push(
+      "Docker is not installed or not running. Please install Docker and ensure it's running.",
+    );
   }
-  
+
   // Check SWE-bench Python package
   const swebenchInstalled = await checkSWEBenchInstalled();
   if (!swebenchInstalled) {
-    errors.push("SWE-bench Python package is not installed. Please run: pip install swebench");
+    errors.push(
+      "SWE-bench Python package is not installed. Please run: pip install swebench",
+    );
   }
-  
+
   // Check Python version (should be 3.8+)
   const pythonVersion = await checkPythonVersion();
   if (!pythonVersion.valid) {
     errors.push(pythonVersion.error || "Python 3.8+ is required");
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -467,19 +496,22 @@ export async function validateEnvironment(): Promise<{
 /**
  * Checks Python version
  */
-async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }> {
+async function checkPythonVersion(): Promise<{
+  valid: boolean;
+  error?: string;
+}> {
   return new Promise((resolve) => {
     const pythonCheck = spawn("python", ["--version"]);
     let output = "";
-    
+
     pythonCheck.stdout.on("data", (data: Buffer) => {
       output += data.toString();
     });
-    
+
     pythonCheck.stderr.on("data", (data: Buffer) => {
       output += data.toString();
     });
-    
+
     pythonCheck.on("close", (code: number | null) => {
       if (code === 0) {
         // Parse version from output like "Python 3.9.7"
@@ -502,14 +534,9 @@ async function checkPythonVersion(): Promise<{ valid: boolean; error?: string }>
         resolve({ valid: false, error: "Python not found" });
       }
     });
-    
+
     pythonCheck.on("error", () => {
       resolve({ valid: false, error: "Python not found" });
     });
   });
 }
-
-
-
-
-

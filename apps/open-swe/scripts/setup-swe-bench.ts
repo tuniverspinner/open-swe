@@ -24,7 +24,7 @@ interface SetupOptions {
  */
 async function execCommand(
   command: string,
-  args: string[]
+  args: string[],
 ): Promise<{ success: boolean; output: string; error?: string }> {
   return new Promise((resolve) => {
     const output: string[] = [];
@@ -76,7 +76,7 @@ async function execCommand(
  */
 async function checkPython(): Promise<boolean> {
   logger.info("Checking Python installation...");
-  
+
   const result = await execCommand("python", ["--version"]);
   if (!result.success) {
     logger.error("Python is not installed or not in PATH");
@@ -106,7 +106,7 @@ async function checkPython(): Promise<boolean> {
  */
 async function checkPip(): Promise<boolean> {
   logger.info("Checking pip installation...");
-  
+
   const result = await execCommand("python", ["-m", "pip", "--version"]);
   if (result.success) {
     logger.info("pip is installed - OK");
@@ -122,7 +122,7 @@ async function checkPip(): Promise<boolean> {
  */
 async function installSWEBench(): Promise<boolean> {
   logger.info("Installing SWE-bench Python package...");
-  
+
   // First, upgrade pip
   logger.info("Upgrading pip...");
   const upgradePipResult = await execCommand("python", [
@@ -148,13 +148,13 @@ async function installSWEBench(): Promise<boolean> {
 
   if (installResult.success) {
     logger.info("SWE-bench package installed successfully");
-    
+
     // Verify installation
     const verifyResult = await execCommand("python", [
       "-c",
       "import swebench; print(f'SWE-bench version: {swebench.__version__}')",
     ]);
-    
+
     if (verifyResult.success) {
       logger.info(verifyResult.output.trim());
       return true;
@@ -185,7 +185,7 @@ async function checkDocker(): Promise<boolean> {
   // Check if Docker daemon is running
   logger.info("Checking Docker daemon...");
   const infoResult = await execCommand("docker", ["info", "--format", "json"]);
-  
+
   if (!infoResult.success) {
     logger.error("Docker daemon is not running");
     return false;
@@ -193,15 +193,15 @@ async function checkDocker(): Promise<boolean> {
 
   try {
     const dockerInfo = JSON.parse(infoResult.output);
-    
+
     // Check memory
     const memoryGB = dockerInfo.MemTotal / (1024 * 1024 * 1024);
     logger.info(`Docker memory: ${memoryGB.toFixed(1)} GB`);
-    
+
     if (memoryGB < 16) {
       logger.warn(
         `Docker has only ${memoryGB.toFixed(1)} GB memory. ` +
-        `SWE-bench recommends 16+ GB for optimal performance.`
+          `SWE-bench recommends 16+ GB for optimal performance.`,
       );
     }
 
@@ -211,8 +211,12 @@ async function checkDocker(): Promise<boolean> {
 
     // Run hello-world test
     logger.info("Testing Docker with hello-world container...");
-    const helloResult = await execCommand("docker", ["run", "--rm", "hello-world"]);
-    
+    const helloResult = await execCommand("docker", [
+      "run",
+      "--rm",
+      "hello-world",
+    ]);
+
     if (helloResult.success) {
       logger.info("Docker is working correctly");
       return true;
@@ -231,7 +235,7 @@ async function checkDocker(): Promise<boolean> {
  */
 async function downloadDataset(datasetName: string): Promise<boolean> {
   logger.info(`Downloading SWE-bench dataset: ${datasetName}...`);
-  
+
   // Use Python to download via Hugging Face datasets
   const downloadScript = `
 import datasets
@@ -254,7 +258,7 @@ except Exception as e:
 `;
 
   const result = await execCommand("python", ["-c", downloadScript]);
-  
+
   if (result.success) {
     logger.info("Dataset downloaded successfully");
     return true;
@@ -310,7 +314,11 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
   logger.info("Starting SWE-bench setup...");
   logger.info("=" * 50);
 
-  const steps: { name: string; check: () => Promise<boolean>; required: boolean }[] = [
+  const steps: {
+    name: string;
+    check: () => Promise<boolean>;
+    required: boolean;
+  }[] = [
     {
       name: "Python Check",
       check: checkPython,
@@ -323,18 +331,24 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
     },
     {
       name: "SWE-bench Installation",
-      check: skipPythonInstall ? async () => {
-        logger.info("Skipping SWE-bench installation (--skip-python-install)");
-        return true;
-      } : installSWEBench,
+      check: skipPythonInstall
+        ? async () => {
+            logger.info(
+              "Skipping SWE-bench installation (--skip-python-install)",
+            );
+            return true;
+          }
+        : installSWEBench,
       required: !skipPythonInstall,
     },
     {
       name: "Docker Check",
-      check: skipDockerCheck ? async () => {
-        logger.info("Skipping Docker check (--skip-docker-check)");
-        return true;
-      } : checkDocker,
+      check: skipDockerCheck
+        ? async () => {
+            logger.info("Skipping Docker check (--skip-docker-check)");
+            return true;
+          }
+        : checkDocker,
       required: !skipDockerCheck,
     },
     {
@@ -342,17 +356,21 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
       check: shouldDownloadDataset
         ? () => downloadDataset(datasetName)
         : async () => {
-            logger.info("Skipping dataset download (use --download-dataset to enable)");
+            logger.info(
+              "Skipping dataset download (use --download-dataset to enable)",
+            );
             return true;
           },
       required: false,
     },
     {
       name: "Directory Creation",
-      check: createDirs ? createDirectories : async () => {
-        logger.info("Skipping directory creation (--no-create-dirs)");
-        return true;
-      },
+      check: createDirs
+        ? createDirectories
+        : async () => {
+            logger.info("Skipping directory creation (--no-create-dirs)");
+            return true;
+          },
       required: false,
     },
   ];
@@ -362,9 +380,9 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
   for (const step of steps) {
     logger.info(`\n${step.name}:`);
     logger.info("-" * 30);
-    
+
     const success = await step.check();
-    
+
     if (!success && step.required) {
       logger.error(`❌ ${step.name} failed (required)`);
       allPassed = false;
@@ -377,7 +395,7 @@ async function setup(options: SetupOptions = {}): Promise<boolean> {
   }
 
   logger.info("\n" + "=".repeat(50));
-  
+
   if (allPassed) {
     logger.info("✅ SWE-bench setup completed successfully!");
     logger.info("\nNext steps:");
@@ -397,7 +415,9 @@ const options: SetupOptions = {
   skipPythonInstall: args.includes("--skip-python-install"),
   skipDockerCheck: args.includes("--skip-docker-check"),
   downloadDataset: args.includes("--download-dataset"),
-  datasetName: args.find(arg => arg.startsWith("--dataset="))?.split("=")[1] || "princeton-nlp/SWE-bench_Lite",
+  datasetName:
+    args.find((arg) => arg.startsWith("--dataset="))?.split("=")[1] ||
+    "princeton-nlp/SWE-bench_Lite",
   createDirs: !args.includes("--no-create-dirs"),
 };
 
@@ -435,5 +455,3 @@ Examples:
 setup(options).then((success) => {
   process.exit(success ? 0 : 1);
 });
-
-

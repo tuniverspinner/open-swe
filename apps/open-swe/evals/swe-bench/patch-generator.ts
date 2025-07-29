@@ -82,7 +82,7 @@ export interface PatchGeneratorResult {
  * This patch can be used as the model_patch in SWE-bench predictions
  */
 export async function generatePatchFromBranch(
-  options: PatchGeneratorOptions
+  options: PatchGeneratorOptions,
 ): Promise<PatchGeneratorResult> {
   const {
     branchName,
@@ -127,10 +127,13 @@ export async function generatePatchFromBranch(
         "git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'",
         absoluteRepoDir,
         undefined,
-        TIMEOUT_SEC
+        TIMEOUT_SEC,
       );
 
-      if (defaultBranchResult.exitCode === 0 && defaultBranchResult.result.trim()) {
+      if (
+        defaultBranchResult.exitCode === 0 &&
+        defaultBranchResult.result.trim()
+      ) {
         actualBaseBranch = defaultBranchResult.result.trim();
         logger.info(`Detected default branch: ${actualBaseBranch}`);
       } else {
@@ -141,7 +144,7 @@ export async function generatePatchFromBranch(
             `git rev-parse --verify origin/${branch}`,
             absoluteRepoDir,
             undefined,
-            TIMEOUT_SEC
+            TIMEOUT_SEC,
           );
           if (checkResult.exitCode === 0) {
             actualBaseBranch = branch;
@@ -162,7 +165,7 @@ export async function generatePatchFromBranch(
       `git fetch origin ${actualBaseBranch}:${actualBaseBranch}`,
       absoluteRepoDir,
       undefined,
-      TIMEOUT_SEC
+      TIMEOUT_SEC,
     );
 
     if (fetchResult.exitCode !== 0) {
@@ -179,7 +182,7 @@ export async function generatePatchFromBranch(
 
     // Build the git diff command
     let diffCommand = `git diff origin/${actualBaseBranch}...${branchName}`;
-    
+
     // Add exclusions for test files if requested
     if (excludeTests) {
       // Common test file patterns to exclude
@@ -202,7 +205,7 @@ export async function generatePatchFromBranch(
       diffCommand,
       absoluteRepoDir,
       undefined,
-      TIMEOUT_SEC * 2 // Give more time for large diffs
+      TIMEOUT_SEC * 2, // Give more time for large diffs
     );
 
     if (diffResult.exitCode !== 0) {
@@ -232,15 +235,16 @@ export async function generatePatchFromBranch(
       filesCommand,
       absoluteRepoDir,
       undefined,
-      TIMEOUT_SEC
+      TIMEOUT_SEC,
     );
 
-    const modifiedFiles = filesResult.exitCode === 0
-      ? filesResult.result
-          .split("\n")
-          .map((f) => f.trim())
-          .filter((f) => f.length > 0)
-      : [];
+    const modifiedFiles =
+      filesResult.exitCode === 0
+        ? filesResult.result
+            .split("\n")
+            .map((f) => f.trim())
+            .filter((f) => f.length > 0)
+        : [];
 
     logger.info(`Generated patch with ${modifiedFiles.length} modified files`, {
       files: modifiedFiles.slice(0, 5), // Log first 5 files
@@ -286,8 +290,12 @@ export function validatePatch(patch: string): boolean {
   // Check for basic git diff format
   const lines = patch.split("\n");
   const hasDiffHeader = lines.some((line) => line.startsWith("diff --git"));
-  const hasFileHeaders = lines.some((line) => line.startsWith("---") || line.startsWith("+++"));
-  const hasHunkHeaders = lines.some((line) => line.match(/^@@\s+-\d+,?\d*\s+\+\d+,?\d*\s+@@/));
+  const hasFileHeaders = lines.some(
+    (line) => line.startsWith("---") || line.startsWith("+++"),
+  );
+  const hasHunkHeaders = lines.some((line) =>
+    line.match(/^@@\s+-\d+,?\d*\s+\+\d+,?\d*\s+@@/),
+  );
 
   return hasDiffHeader && hasFileHeaders && hasHunkHeaders;
 }
@@ -314,7 +322,10 @@ export function extractFilesFromPatch(patch: string): string[] {
 /**
  * Filters a patch to only include changes to specific files
  */
-export function filterPatchByFiles(patch: string, includeFiles: string[]): string {
+export function filterPatchByFiles(
+  patch: string,
+  includeFiles: string[],
+): string {
   const lines = patch.split("\n");
   const filteredLines: string[] = [];
   let currentFile: string | null = null;
@@ -340,7 +351,10 @@ export function filterPatchByFiles(patch: string, includeFiles: string[]): strin
 /**
  * Counts the number of additions and deletions in a patch
  */
-export function countPatchChanges(patch: string): { additions: number; deletions: number } {
+export function countPatchChanges(patch: string): {
+  additions: number;
+  deletions: number;
+} {
   const lines = patch.split("\n");
   let additions = 0;
   let deletions = 0;
@@ -355,5 +369,3 @@ export function countPatchChanges(patch: string): { additions: number; deletions
 
   return { additions, deletions };
 }
-
-

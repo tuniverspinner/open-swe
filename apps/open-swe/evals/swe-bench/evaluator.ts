@@ -70,7 +70,7 @@ export interface SWEBenchEvaluatorInput {
  * Integrates with the existing evaluation pipeline and returns SimpleEvaluationResult
  */
 export async function sweBenchEvaluator(
-  input: SWEBenchEvaluatorInput
+  input: SWEBenchEvaluatorInput,
 ): Promise<SimpleEvaluationResult[]> {
   const {
     sweBenchInput,
@@ -90,7 +90,9 @@ export async function sweBenchEvaluator(
     logger.info("Validating environment for SWE-bench evaluation...");
     const envValidation = await validateEnvironment();
     if (!envValidation.valid) {
-      logger.error("Environment validation failed", { errors: envValidation.errors });
+      logger.error("Environment validation failed", {
+        errors: envValidation.errors,
+      });
       results.push({
         key: "environment_validation",
         score: 0,
@@ -140,13 +142,14 @@ export async function sweBenchEvaluator(
     // Write prediction to JSONL file
     const predictionsDir = path.join(baseDir, "predictions");
     const predictionsPath = path.join(predictionsDir, `${runId}.jsonl`);
-    
+
     logger.info("Writing prediction to file...", { predictionsPath });
     await writePredictionsToFile([prediction], predictionsPath);
 
     // Prepare harness options
     const fullHarnessOptions: SWEBenchHarnessOptions = {
-      dataset_name: harnessOptions.dataset_name || "princeton-nlp/SWE-bench_Lite",
+      dataset_name:
+        harnessOptions.dataset_name || "princeton-nlp/SWE-bench_Lite",
       predictions_path: predictionsPath,
       run_id: runId,
       max_workers: harnessOptions.max_workers || 1, // Single instance evaluation
@@ -186,7 +189,7 @@ export async function sweBenchEvaluator(
       runId,
       modelName,
       fullHarnessOptions.dataset_name,
-      fullHarnessOptions
+      fullHarnessOptions,
     );
 
     if (!report) {
@@ -201,7 +204,7 @@ export async function sweBenchEvaluator(
 
     // Convert SWE-bench results to SimpleEvaluationResult format
     const instanceResult = report.instance_results.find(
-      (r) => r.instance_id === sweBenchInput.instance_id
+      (r) => r.instance_id === sweBenchInput.instance_id,
     );
 
     if (!instanceResult) {
@@ -235,12 +238,18 @@ export async function sweBenchEvaluator(
     });
 
     // Test metrics
-    if (instanceResult.fail_to_pass.length > 0 || sweBenchInput.FAIL_TO_PASS?.length) {
+    if (
+      instanceResult.fail_to_pass.length > 0 ||
+      sweBenchInput.FAIL_TO_PASS?.length
+    ) {
       const expectedFailToPass = sweBenchInput.FAIL_TO_PASS?.length || 0;
       const actualFailToPass = instanceResult.fail_to_pass.length;
-      const failToPassScore = expectedFailToPass > 0
-        ? actualFailToPass / expectedFailToPass
-        : actualFailToPass > 0 ? 1 : 0;
+      const failToPassScore =
+        expectedFailToPass > 0
+          ? actualFailToPass / expectedFailToPass
+          : actualFailToPass > 0
+            ? 1
+            : 0;
 
       results.push({
         key: "fail_to_pass",
@@ -249,12 +258,14 @@ export async function sweBenchEvaluator(
       });
     }
 
-    if (instanceResult.pass_to_pass.length > 0 || sweBenchInput.PASS_TO_PASS?.length) {
+    if (
+      instanceResult.pass_to_pass.length > 0 ||
+      sweBenchInput.PASS_TO_PASS?.length
+    ) {
       const expectedPassToPass = sweBenchInput.PASS_TO_PASS?.length || 0;
       const actualPassToPass = instanceResult.pass_to_pass.length;
-      const passToPassScore = expectedPassToPass > 0
-        ? actualPassToPass / expectedPassToPass
-        : 1; // If no expected, score 1 if all actual pass
+      const passToPassScore =
+        expectedPassToPass > 0 ? actualPassToPass / expectedPassToPass : 1; // If no expected, score 1 if all actual pass
 
       results.push({
         key: "pass_to_pass",
@@ -295,7 +306,6 @@ export async function sweBenchEvaluator(
       pass_to_pass: instanceResult.pass_to_pass.length,
       pass_to_fail: instanceResult.pass_to_fail?.length || 0,
     });
-
   } catch (error) {
     logger.error("SWE-bench evaluation failed with error", { error });
     results.push({
@@ -326,17 +336,17 @@ export async function sweBenchBatchEvaluator(
   options: {
     maxConcurrency?: number;
     aggregateResults?: boolean;
-  } = {}
+  } = {},
 ): Promise<SimpleEvaluationResult[]> {
   const { maxConcurrency = 1, aggregateResults = true } = options;
-  
+
   const allResults: SimpleEvaluationResult[] = [];
-  
+
   // Process in batches to respect maxConcurrency
   for (let i = 0; i < inputs.length; i += maxConcurrency) {
     const batch = inputs.slice(i, i + maxConcurrency);
     const batchPromises = batch.map((input) => sweBenchEvaluator(input));
-    
+
     try {
       const batchResults = await Promise.all(batchPromises);
       allResults.push(...batchResults.flat());
@@ -344,21 +354,21 @@ export async function sweBenchBatchEvaluator(
       logger.error("Batch evaluation failed", { error, batchIndex: i });
     }
   }
-  
+
   if (aggregateResults) {
     // Add aggregate metrics
     const totalInstances = inputs.length;
     const resolvedInstances = allResults.filter(
-      (r) => r.key === "resolved" && r.score === 1
+      (r) => r.key === "resolved" && r.score === 1,
     ).length;
-    
+
     allResults.push({
       key: "aggregate_resolution_rate",
       score: totalInstances > 0 ? resolvedInstances / totalInstances : 0,
       comment: `Resolved ${resolvedInstances} out of ${totalInstances} instances`,
     });
   }
-  
+
   return allResults;
 }
 
@@ -369,7 +379,7 @@ export function createSWEBenchInput(
   instanceId: string,
   repo: string,
   problemStatement: string,
-  additionalFields?: Partial<SWEBenchInput>
+  additionalFields?: Partial<SWEBenchInput>,
 ): SWEBenchInput {
   return {
     instance_id: instanceId,
@@ -382,7 +392,10 @@ export function createSWEBenchInput(
 /**
  * Helper to extract instance ID from repo and issue number
  */
-export function formatInstanceId(owner: string, repo: string, issueNumber: number): string {
+export function formatInstanceId(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+): string {
   return `${owner}__${repo}-${issueNumber}`;
 }
-

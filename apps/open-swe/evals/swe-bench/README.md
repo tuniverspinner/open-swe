@@ -5,6 +5,7 @@ This directory contains the SWE-bench evaluation system for the Open SWE agent. 
 ## Overview
 
 The SWE-bench evaluation system allows you to:
+
 - Evaluate the Open SWE agent's ability to fix real GitHub issues
 - Generate patches from the agent's branch changes
 - Run the official SWE-bench harness to verify fixes
@@ -24,12 +25,14 @@ The SWE-bench evaluation system allows you to:
 ### Environment Setup
 
 1. **Install Python dependencies**:
+
    ```bash
    # The setup script will handle this, or manually:
    pip install swebench
    ```
 
 2. **Verify Docker installation**:
+
    ```bash
    docker --version
    docker run hello-world
@@ -53,6 +56,7 @@ yarn setup:swe-bench --download-dataset --dataset=princeton-nlp/SWE-bench_Lite
 ```
 
 Setup script options:
+
 - `--skip-python-install`: Skip installing the swebench Python package
 - `--skip-docker-check`: Skip Docker verification
 - `--download-dataset`: Download the SWE-bench dataset
@@ -73,15 +77,15 @@ SWE_BENCH_INSTANCE_IDS="sympy__sympy-20590,django__django-13658" yarn eval:swe-b
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GITHUB_PAT` | GitHub Personal Access Token for API access | Required |
-| `SWE_BENCH_DATASET_NAME` | Dataset to evaluate against | `princeton-nlp/SWE-bench_Lite` |
-| `SWE_BENCH_INSTANCE_IDS` | Comma-separated list of specific instances | All instances |
-| `SWE_BENCH_MAX_WORKERS` | Number of parallel Docker workers | `1` |
-| `SWE_BENCH_TIMEOUT_MINUTES` | Timeout per instance in minutes | `120` |
-| `SWE_BENCH_CACHE_LEVEL` | Docker cache level (none/base/env/instance) | `env` |
-| `SWE_BENCH_CLEANUP` | Clean up artifacts after evaluation | `true` |
+| Variable                    | Description                                 | Default                        |
+| --------------------------- | ------------------------------------------- | ------------------------------ |
+| `GITHUB_PAT`                | GitHub Personal Access Token for API access | Required                       |
+| `SWE_BENCH_DATASET_NAME`    | Dataset to evaluate against                 | `princeton-nlp/SWE-bench_Lite` |
+| `SWE_BENCH_INSTANCE_IDS`    | Comma-separated list of specific instances  | All instances                  |
+| `SWE_BENCH_MAX_WORKERS`     | Number of parallel Docker workers           | `1`                            |
+| `SWE_BENCH_TIMEOUT_MINUTES` | Timeout per instance in minutes             | `120`                          |
+| `SWE_BENCH_CACHE_LEVEL`     | Docker cache level (none/base/env/instance) | `env`                          |
+| `SWE_BENCH_CLEANUP`         | Clean up artifacts after evaluation         | `true`                         |
 
 ### Example Configuration
 
@@ -111,6 +115,7 @@ yarn eval:swe-bench
 ### Evaluation Metrics
 
 Each instance evaluation returns:
+
 - `resolved`: Whether the issue was successfully fixed (0 or 1)
 - `patch_applied`: Whether the patch applied cleanly
 - `fail_to_pass`: Ratio of failing tests that now pass
@@ -122,6 +127,7 @@ Each instance evaluation returns:
 ### Result Files
 
 Results are stored in:
+
 - `./swe-bench-evals/predictions/`: JSONL prediction files
 - `./evaluation_results/`: Detailed evaluation reports
 - `./logs/run_evaluation/`: Execution logs
@@ -131,6 +137,7 @@ Results are stored in:
 ### Common Issues
 
 1. **Docker not running**:
+
    ```bash
    # Start Docker daemon
    sudo systemctl start docker  # Linux
@@ -138,28 +145,31 @@ Results are stored in:
    ```
 
 2. **Insufficient Docker resources**:
+
    ```bash
    # Check Docker memory
    docker info | grep Memory
-   
+
    # Increase Docker memory in Docker Desktop settings
    ```
 
 3. **Python/pip not found**:
+
    ```bash
    # Install Python 3.8+
    # Ubuntu/Debian:
    sudo apt-get install python3 python3-pip
-   
+
    # macOS:
    brew install python@3.8
    ```
 
 4. **SWE-bench package issues**:
+
    ```bash
    # Reinstall with specific version
    pip install --upgrade swebench
-   
+
    # Or from source
    pip install git+https://github.com/princeton-nlp/SWE-bench.git
    ```
@@ -172,6 +182,7 @@ Results are stored in:
 ### Debug Mode
 
 Enable detailed logging:
+
 ```bash
 # Set log level
 export LOG_LEVEL=DEBUG
@@ -179,12 +190,14 @@ yarn eval:swe-bench
 ```
 
 Check logs in:
+
 - `./logs/run_evaluation/<run_id>/`: Harness execution logs
 - Agent execution traces in LangSmith (if configured)
 
 ### Docker Cleanup
 
 After evaluations, clean up Docker resources:
+
 ```bash
 # Remove SWE-bench containers
 docker ps -a | grep swebench | awk '{print $1}' | xargs docker rm
@@ -209,6 +222,7 @@ To evaluate on custom instances:
 ### Batch Evaluation
 
 For large-scale evaluations:
+
 ```bash
 # Increase workers and timeout
 export SWE_BENCH_MAX_WORKERS=16
@@ -223,6 +237,7 @@ yarn eval:swe-bench
 ### Integration with CI/CD
 
 Example GitHub Actions workflow:
+
 ```yaml
 - name: Setup SWE-bench
   run: yarn setup:swe-bench --skip-docker-check
