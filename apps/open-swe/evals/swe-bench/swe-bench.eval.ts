@@ -147,15 +147,6 @@ ls.describe("SWE-bench Evaluation", () => {
       // Format the problem for the agent
       const formattedProblem = formatProblemStatement(inputs);
 
-      // Prepare configuration for the agent
-      const config = {
-        configurable: {
-          thread_id: threadId,
-          model: "anthropic:claude-3-5-sonnet-20241022",
-          [GITHUB_PAT]: encryptedGitHubToken,
-        },
-      };
-
       // Run the manager graph
       logger.info("Running manager graph...", {
         thread_id: threadId,
@@ -317,3 +308,4 @@ ls.describe("SWE-bench Evaluation", () => {
     TIMEOUT_MINUTES * 60 * 1000, // Convert to milliseconds
   );
 });
+
