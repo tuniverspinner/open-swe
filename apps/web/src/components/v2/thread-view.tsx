@@ -281,6 +281,55 @@ export function ThreadView({
     stream.stop();
   };
 
+  const handleRerun = async () => {
+    // Extract the necessary values from the current thread
+    const messages = stream.values?.messages;
+    const targetRepository = stream.values?.targetRepository;
+    const autoAcceptPlan = stream.values?.autoAcceptPlan;
+
+    if (!messages || !targetRepository) {
+      console.error("Missing required values for rerun");
+      return;
+    }
+
+    setIsRerunning(true);
+
+    try {
+      const newThreadId = uuidv4();
+      const runInput: ManagerGraphUpdate = {
+        messages,
+        targetRepository,
+        autoAcceptPlan,
+      };
+
+      const run = await stream.client.runs.create(
+        newThreadId,
+        MANAGER_GRAPH_ID,
+        {
+          input: runInput,
+          config: {
+            recursion_limit: 400,
+            configurable: {
+              ...getConfig(DEFAULT_CONFIG_KEY),
+            },
+          },
+          ifNotExists: "create",
+          streamResumable: true,
+          streamMode: ["values", "messages-tuple", "custom"],
+        },
+      );
+
+      // Store session storage so the stream can be resumed after redirect
+      sessionStorage.setItem(`lg:stream:${newThreadId}`, run.run_id);
+      
+      // Redirect to the new thread page
+      router.push(`/chat/${newThreadId}`);
+    } catch (error) {
+      console.error("Failed to rerun task:", error);
+      setIsRerunning(false);
+    }
+  };
+
   const handleSendMessage = () => {
     if (chatInput.trim()) {
       const newHumanMessage = new HumanMessage({
@@ -520,6 +569,7 @@ export function ThreadView({
     </div>
   );
 }
+
 
 
 
