@@ -147,9 +147,7 @@ DATASET.forEach(({ inputs }) => {
         configurable: {
           thread_id: threadId,
           model: "anthropic:claude-3-5-sonnet-20241022",
-          [GITHUB_PAT]: process.env.GITHUB_PAT
-            ? await encryptSecret(process.env.GITHUB_PAT)
-            : undefined,
+          [GITHUB_PAT]: encryptedGitHubToken,
         },
       };
 
@@ -319,5 +317,6 @@ DATASET.forEach(({ inputs }) => {
 export default {
   description: "SWE-bench evaluation suite for Open SWE agent",
 };
+
 
 
