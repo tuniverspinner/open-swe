@@ -106,7 +106,7 @@ async function formatProblemStatement(input: SWEBenchInput): Promise<string> {
     repo: input.repo,
     branch: "main", // SWE-bench typically uses main branch
   });
-  return formatted.messages[0].content as string;
+  return formatted.messages?.[0]?.content as string || input.problem_statement;
 }
 
 // Main dataset for evaluation
@@ -309,6 +309,7 @@ ls.describe("SWE-bench Evaluation", () => {
     TIMEOUT_MINUTES * 60 * 1000, // Convert to milliseconds
   );
 });
+
 
 
 
