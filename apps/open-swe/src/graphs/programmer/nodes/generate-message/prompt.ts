@@ -285,6 +285,13 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
             - Ensure package manager files are updated to include the new dependency.
         - If a command you run fails (e.g. a test, build, lint, etc.), and you make changes to fix the issue, ensure you always re-run the command after making the changes to ensure the fix was successful.
         - IMPORTANT: You are NEVER allowed to create backup files. All changes in the codebase are tracked by git, so never create file copies or backups.
+        - **Git Ignore Management**: When you create or modify files that should not be committed to git (such as build artifacts, cache files, environment files, logs, temporary files, etc.), ensure proper gitignore handling:
+            - Check if a \`.gitignore\` file exists in the repository root
+            - If it exists, add appropriate patterns to exclude the files/directories that shouldn't be committed
+            - If it doesn't exist, create a \`.gitignore\` file with appropriate patterns
+            - Common patterns to consider: \`node_modules/\`, \`dist/\`, \`build/\`, \`.env*\`, \`*.log\`, \`.DS_Store\`, \`__pycache__/\`, \`*.pyc\`, \`.cache/\`, \`coverage/\`, \`.turbo/\`
+            - Use specific patterns rather than overly broad ones to avoid accidentally excluding important files
+            - After updating \`.gitignore\`, you may need to run \`git rm --cached <file>\` to untrack files that are already being tracked but should now be ignored
         - Test small components before building complex graphs
         - Use \`print(type(variable))\` to verify state structure during development
     </coding_standards>
@@ -668,9 +675,7 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
 </custom_rules>
 `;
 
-
-
-export const STATIC_SYSTEM_INSTRUCTIONS = STATIC_ANTHROPIC_SYSTEM_INSTRUCTIONS
+export const STATIC_SYSTEM_INSTRUCTIONS = STATIC_ANTHROPIC_SYSTEM_INSTRUCTIONS;
 
 export const DEPENDENCIES_INSTALLED_PROMPT = `Dependencies have already been installed.`;
 export const DEPENDENCIES_NOT_INSTALLED_PROMPT = `Dependencies have not been installed.`;
