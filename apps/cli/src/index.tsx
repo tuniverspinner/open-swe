@@ -13,7 +13,7 @@ import {
   OPEN_SWE_STREAM_MODE,
 } from "@open-swe/shared/constants";
 import { Client, StreamMode } from "@langchain/langgraph-sdk";
-import { submitFeedback } from "./utils.js";
+import { submitFeedback, submitShellCommandFeedback } from "./utils.js";
 import { StreamingService } from "./streaming.js";
 
 const GITHUB_LOGIN_URL =
@@ -213,6 +213,8 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<string[]>([]);
 
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
+  const [shellCommandFeedback, setShellCommandFeedback] = useState<string | null>(null);
+  const [interruptType, setInterruptType] = useState<"plan" | "shell" | null>(null);
   const [streamingPhase, setStreamingPhase] = useState<
     "streaming" | "awaitingFeedback" | "done"
   >("streaming");
@@ -448,6 +450,35 @@ const App: React.FC = () => {
     );
   };
 
+  const ShellCommandFeedbackInput: React.FC = () => {
+    const [input, setInput] = useState("");
+
+    useInput((inputChar: string, key: { [key: string]: any }) => {
+      if (streamingPhase !== "awaitingFeedback") return;
+
+      if (key.return && input.trim()) {
+        setShellCommandFeedback(input.trim());
+        setInput("");
+      } else if (key.backspace || key.delete) {
+        setInput((prev) => prev.slice(0, -1));
+      } else if (inputChar && inputChar.length === 1) {
+        setInput((prev) => prev + inputChar);
+      }
+    });
+
+    if (streamingPhase !== "awaitingFeedback") {
+      return null;
+    }
+
+    return (
+      <Box flexDirection="row" alignItems="center" gap={2}>
+        <Text>Shell command approval: </Text>
+        <Text>{input}</Text>
+        <Text dimColor>(Type 'yes' to approve, 'no' to deny, Enter to confirm)</Text>
+      </Box>
+    );
+  };
+
   // Add this where we handle planner feedback
   useEffect(() => {
     if (
@@ -467,9 +498,31 @@ const App: React.FC = () => {
           setPlannerFeedback: () => setPlannerFeedback(null),
           setStreamingPhase,
         });
+        setInterruptType(null);
       })();
     }
   }, [streamingPhase, plannerFeedback, selectedRepo, plannerThreadId]);
+
+  // Handle shell command feedback
+  useEffect(() => {
+    if (
+      streamingPhase === "awaitingFeedback" &&
+      shellCommandFeedback &&
+      threadId
+    ) {
+      (async () => {
+        await submitShellCommandFeedback({
+          shellCommandFeedback,
+          threadId,
+          selectedRepo,
+          setLogs,
+          setShellCommandFeedback: () => setShellCommandFeedback(null),
+          setStreamingPhase,
+        });
+        setInterruptType(null);
+      })();
+    }
+  }, [streamingPhase, shellCommandFeedback, selectedRepo, threadId]);
 
   // Add debug logging for streaming phase changes
   useEffect(() => {
@@ -671,7 +724,11 @@ const App: React.FC = () => {
         >
           <Box>
             {streamingPhase === "awaitingFeedback" ? (
-              <PlannerFeedbackInput />
+              interruptType === "shell" ? (
+                <ShellCommandFeedbackInput />
+              ) : (
+                <PlannerFeedbackInput />
+              )
             ) : !hasStartedChat ? (
               <CustomInput
                 onSubmit={(value) => {
@@ -685,6 +742,7 @@ const App: React.FC = () => {
                     setLoadingLogs,
                     setClient,
                     setThreadId,
+                    setInterruptType,
                   });
 
                   streamingService.startNewSession(value, selectedRepo);

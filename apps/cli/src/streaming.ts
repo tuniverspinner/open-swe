@@ -26,6 +26,7 @@ interface StreamingCallbacks {
   setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
   setClient: (client: Client) => void; // eslint-disable-line no-unused-vars
   setThreadId: (id: string) => void; // eslint-disable-line no-unused-vars
+  setInterruptType: (type: "plan" | "shell" | null) => void; // eslint-disable-line no-unused-vars
 }
 
 export class StreamingService {
@@ -39,7 +40,7 @@ export class StreamingService {
     client: Client,
     programmerThreadId: string,
     programmerRunId: string,
-  ) {
+  ): Promise<{ needsFeedback: boolean }> {
     for await (const programmerChunk of client.runs.joinStream(
       programmerThreadId,
       programmerRunId,
@@ -53,7 +54,30 @@ export class StreamingService {
           this.callbacks.setLogs((prev) => [...prev, ...formatted]);
         }
       }
+
+      // Detect HumanInterrupt in programmer stream (for shell command approval)
+      const interruptArr =
+        programmerChunk.data && Array.isArray(programmerChunk.data["__interrupt__"])
+          ? programmerChunk.data["__interrupt__"]
+          : undefined;
+      const firstInterruptValue =
+        interruptArr && interruptArr[0] && interruptArr[0].value
+          ? interruptArr[0].value
+          : undefined;
+
+      if (isAgentInboxInterruptSchema(firstInterruptValue)) {
+        // Check if it's a shell command interrupt
+        const interrupt = Array.isArray(firstInterruptValue) ? firstInterruptValue[0] : firstInterruptValue;
+        if (interrupt.action_request?.action === "Approve Shell Command") {
+          this.callbacks.setInterruptType("shell");
+        } else {
+          this.callbacks.setInterruptType("plan");
+        }
+        return { needsFeedback: true };
+      }
     }
+
+    return { needsFeedback: false };
   }
 
   private async handlePlannerStream(
@@ -89,11 +113,15 @@ export class StreamingService {
         typeof subChunk.data.programmerSession.runId === "string"
       ) {
         programmerStreamed = true;
-        await this.handleProgrammerStream(
+        const programmerResult = await this.handleProgrammerStream(
           client,
           subChunk.data.programmerSession.threadId,
           subChunk.data.programmerSession.runId,
         );
+        
+        if (programmerResult.needsFeedback) {
+          return { needsFeedback: true };
+        }
       }
 
       // Detect HumanInterrupt in planner stream
@@ -107,6 +135,13 @@ export class StreamingService {
           : undefined;
 
       if (isAgentInboxInterruptSchema(firstInterruptValue)) {
+        // Check if it's a shell command interrupt
+        const interrupt = Array.isArray(firstInterruptValue) ? firstInterruptValue[0] : firstInterruptValue;
+        if (interrupt.action_request?.action === "Approve Shell Command") {
+          this.callbacks.setInterruptType("shell");
+        } else {
+          this.callbacks.setInterruptType("plan");
+        }
         return { needsFeedback: true };
       }
     }

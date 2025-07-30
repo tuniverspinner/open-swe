@@ -16,6 +16,7 @@ import {
   summarizeHistory,
   handleCompletedTask,
 } from "./nodes/index.js";
+import { handleShellCommandResponse } from "./nodes/handle-shell-command-response.js";
 import { BaseMessage, isAIMessage } from "@langchain/core/messages";
 import { initializeSandbox } from "../shared/initialize-sandbox.js";
 import { graph as reviewerGraph } from "../reviewer/index.js";
@@ -51,9 +52,15 @@ function routeGeneratedAction(
   | "request-help"
   | "generate-action"
   | "handle-completed-task"
+  | "handle-shell-command-response"
   | Send {
   const { internalMessages } = state;
   const lastMessage = internalMessages[internalMessages.length - 1];
+
+  // Check if there's a pending shell command that was approved
+  if ((state as any).pendingShellCommand && (state as any).shellCommandInterrupt) {
+    return "handle-shell-command-response";
+  }
 
   // If the message is an AI message, and it has tool calls, we should take action.
   if (isAIMessage(lastMessage) && lastMessage.tool_calls?.length) {
@@ -126,6 +133,8 @@ function routeToReviewOrConclusion(
   });
 }
 
+
+
 const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
   .addNode("initialize", initializeSandbox)
   .addNode("generate-action", generateAction)
@@ -151,6 +160,9 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
   .addNode("open-pr", openPullRequest)
   .addNode("diagnose-error", diagnoseError)
   .addNode("summarize-history", summarizeHistory)
+  .addNode("handle-shell-command-response", handleShellCommandResponse, {
+    ends: ["generate-action"],
+  })
   .addEdge(START, "initialize")
   .addEdge("initialize", "generate-action")
   .addConditionalEdges("generate-action", routeGeneratedAction, [
@@ -160,6 +172,7 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
     "update-plan",
     "generate-action",
     "handle-completed-task",
+    "handle-shell-command-response",
   ])
   .addEdge("update-plan", "generate-action")
   .addEdge("diagnose-error", "generate-action")
@@ -168,6 +181,7 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
     "generate-action",
   ])
   .addEdge("summarize-history", "generate-action")
+  .addEdge("handle-shell-command-response", "generate-action")
   .addEdge("generate-conclusion", "open-pr")
   .addEdge("open-pr", END);
 

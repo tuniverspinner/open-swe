@@ -7,6 +7,7 @@ import { encryptSecret } from "@open-swe/shared/crypto";
 import {
   OPEN_SWE_STREAM_MODE,
   PLANNER_GRAPH_ID,
+  PROGRAMMER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import {
   getAccessToken,
@@ -149,5 +150,112 @@ export async function submitFeedback({
   } finally {
     // Clear feedback state
     setPlannerFeedback();
+  }
+}
+
+export async function submitShellCommandFeedback({
+  shellCommandFeedback,
+  threadId,
+  selectedRepo,
+  setLogs,
+  setShellCommandFeedback,
+  setStreamingPhase,
+}: {
+  shellCommandFeedback: string;
+  threadId: string;
+  selectedRepo: any;
+  setLogs: (updater: (prev: string[]) => string[]) => void;
+  setShellCommandFeedback: () => void;
+  setStreamingPhase: (phase: "streaming" | "awaitingFeedback" | "done") => void;
+}) {
+  try {
+    setStreamingPhase("streaming");
+
+    const isLocalMode = process.env.OPEN_SWE_LOCAL_MODE === "true";
+    let client: Client;
+
+    if (isLocalMode) {
+      client = new Client({
+        apiUrl: LANGGRAPH_URL,
+        defaultHeaders: {
+          "x-local-mode": "true",
+        },
+      });
+    } else {
+      const userAccessToken = getAccessToken();
+      const installationAccessToken = await getInstallationAccessToken();
+      const encryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+
+      if (!userAccessToken || !installationAccessToken || !encryptionKey) {
+        setLogs((prev) => [
+          ...prev,
+          "Missing access tokens for shell command feedback submission",
+        ]);
+        return;
+      }
+
+      const encryptedUserToken = encryptSecret(userAccessToken, encryptionKey);
+      const encryptedInstallationToken = encryptSecret(
+        installationAccessToken,
+        encryptionKey,
+      );
+      const [owner] = selectedRepo?.full_name.split("/") || [];
+
+      const installationId = getInstallationId();
+      client = new Client({
+        apiUrl: LANGGRAPH_URL,
+        defaultHeaders: {
+          "x-github-access-token": encryptedUserToken,
+          "x-github-installation-token": encryptedInstallationToken,
+          "x-github-installation-name": owner,
+          "x-github-installation-id": installationId,
+        },
+      });
+    }
+
+    const response = shellCommandFeedback.toLowerCase().trim();
+    const action = response === "yes" || response === "y" ? "accept" : "ignore";
+
+    const formatted = formatDisplayLog(`Shell command feedback: ${action}`);
+    if (formatted.length > 0) {
+      setLogs((prev) => [...prev, ...formatted]);
+    }
+
+    // Resume the programmer stream with the shell command feedback
+    const stream = await client.runs.stream(threadId, PROGRAMMER_GRAPH_ID, {
+      command: {
+        resume: [
+          {
+            type: action,
+            args: null,
+          },
+        ],
+      },
+      streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
+      ...(isLocalMode && {
+        config: {
+          configurable: {
+            "x-local-mode": "true",
+          },
+        },
+      }),
+    });
+
+    // Process the stream response
+    for await (const chunk of stream) {
+      const formatted = formatDisplayLog(chunk);
+      if (formatted.length > 0) {
+        setLogs((prev) => [...prev, ...formatted]);
+      }
+    }
+
+    setStreamingPhase("done");
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    setLogs((prev) => [...prev, `Error submitting shell command feedback: ${errorMessage}`]);
+    setStreamingPhase("done");
+  } finally {
+    setShellCommandFeedback();
   }
 }

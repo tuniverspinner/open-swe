@@ -4,6 +4,7 @@ export const DAYTONA_IMAGE_NAME = "daytonaio/langchain-open-swe:0.1.0";
 export const DAYTONA_SNAPSHOT_NAME = "open-swe-vcpu2-mem4-disk5";
 export const PLAN_INTERRUPT_DELIMITER = ":::";
 export const PLAN_INTERRUPT_ACTION_TITLE = "Approve/Edit Plan";
+export const SHELL_COMMAND_INTERRUPT_ACTION_TITLE = "Approve Shell Command";
 
 // Prefix the access token with `x-` so that it's included in requests to the LangGraph server.
 export const GITHUB_TOKEN_COOKIE = "x-github-access-token";

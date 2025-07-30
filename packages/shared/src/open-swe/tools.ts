@@ -514,7 +514,7 @@ export function createReviewStartedToolFields() {
 
 export function createTextEditorToolFields(
   targetRepository: TargetRepository,
-  config: GraphConfig,
+  config?: GraphConfig,
 ) {
   const repoRoot = isLocalMode(config)
     ? getLocalWorkingDirectory()

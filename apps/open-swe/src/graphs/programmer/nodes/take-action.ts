@@ -43,6 +43,7 @@ import { getGitHubTokensFromConfig } from "../../../utils/github-tokens.js";
 import { processToolCallContent } from "../../../utils/tool-output-processing.js";
 import { getActiveTask } from "@open-swe/shared/open-swe/tasks";
 import { createPullRequestToolCallMessage } from "../../../utils/message/create-pr-message.js";
+import { interruptShellCommand } from "./interrupt-shell-command.js";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
 
@@ -110,6 +111,46 @@ export async function takeAction(
         status: "error",
       });
       return { toolMessage, stateUpdates: undefined };
+    }
+
+    // Check if this is a shell command in local mode that needs approval
+    if (toolCall.name === "shell" && isLocalMode(config)) {
+      const command = Array.isArray(toolCall.args.command) 
+        ? toolCall.args.command.join(" ") 
+        : String(toolCall.args.command || "");
+      const workdir = toolCall.args.workdir || getLocalWorkingDirectory();
+      
+      logger.info("Shell command detected in local mode, requesting user approval", {
+        command,
+        workdir,
+      });
+      
+      // Store the shell command info in state for later execution after approval
+      const shellCommandInfo = {
+        command: toolCall.args.command,
+        workdir: toolCall.args.workdir,
+        timeout: toolCall.args.timeout,
+        toolCallId: toolCall.id,
+      };
+      
+      // Emit interrupt for shell command approval
+      const interruptResponse = await interruptShellCommand(state, config, command, workdir);
+      
+      // Return a special result indicating we need to wait for user approval
+      return {
+        toolMessage: new ToolMessage({
+          id: uuidv4(),
+          tool_call_id: toolCall.id ?? "",
+          content: `Shell command pending approval: ${command}`,
+          name: toolCall.name,
+          status: "success",
+        }),
+        stateUpdates: {
+          documentCache: {},
+          pendingShellCommand: shellCommandInfo,
+          shellCommandInterrupt: interruptResponse,
+        },
+      };
     }
 
     let result = "";

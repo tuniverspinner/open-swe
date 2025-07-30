@@ -290,6 +290,36 @@ export const GraphAnnotation = MessagesZodState.extend({
     },
   }),
 
+  /**
+   * Pending shell command waiting for user approval
+   */
+  pendingShellCommand: withLangGraph(z.custom<{
+    command: string[] | string;
+    workdir?: string;
+    timeout?: number;
+    toolCallId?: string;
+  }>().optional(), {
+    reducer: {
+      schema: z.custom<{
+        command: string[] | string;
+        workdir?: string;
+        timeout?: number;
+        toolCallId?: string;
+      }>().optional(),
+      fn: (_state, update) => update,
+    },
+  }),
+
+  /**
+   * Shell command interrupt response from user
+   */
+  shellCommandInterrupt: withLangGraph(z.custom<any>().optional(), {
+    reducer: {
+      schema: z.custom<any>().optional(),
+      fn: (_state, update) => update,
+    },
+  }),
+
   // ---NOT USED---
   ui: z
     .custom<UIMessage[]>()
