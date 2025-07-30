@@ -24,6 +24,10 @@ import {
 } from "../../../utils/github/git.js";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxWithErrorHandling } from "../../../utils/sandbox.js";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "../../../utils/local-mode.js";
 import { Command } from "@langchain/langgraph";
 import { shouldDiagnoseError } from "../../../utils/tool-message-error.js";
 import { filterHiddenMessages } from "../../../utils/message/filter-hidden.js";
@@ -151,7 +155,9 @@ export async function takeReviewerActions(
   });
 
   const toolCallResults = await Promise.all(toolCallResultsPromise);
-  const repoPath = getRepoAbsolutePath(state.targetRepository);
+  const repoPath = isLocalMode(config)
+    ? getLocalWorkingDirectory()
+    : getRepoAbsolutePath(state.targetRepository);
   const changedFiles = await getChangedFilesStatus(repoPath, sandbox);
 
   let branchName: string | undefined = state.branchName;

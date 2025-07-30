@@ -278,13 +278,15 @@ export async function interruptProposedPlan(
       isLocalMode: isLocalMode(config),
     });
 
-    // Post comment to GitHub issue about auto-accepting the plan
-    await postGitHubIssueComment({
-      githubIssueId: state.githubIssueId,
-      targetRepository: state.targetRepository,
-      commentBody: `### 🤖 Plan Generated\n\nI've generated a plan for this issue and will proceed to implement it since auto-accept is enabled.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${proposedPlan.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step)}`).join("\n")}\n\nProceeding to implementation...`,
-      config,
-    });
+    // Post comment to GitHub issue about auto-accepting the plan (only if not in local mode)
+    if (!isLocalMode(config) && state.githubIssueId) {
+      await postGitHubIssueComment({
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+        commentBody: `### 🤖 Plan Generated\n\nI've generated a plan for this issue and will proceed to implement it since auto-accept is enabled.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${proposedPlan.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step)}`).join("\n")}\n\nProceeding to implementation...`,
+        config,
+      });
+    }
 
     planItems = proposedPlan.map((p, index) => ({
       index,
@@ -387,13 +389,15 @@ export async function interruptProposedPlan(
       { existingTaskPlan: state.taskPlan },
     );
 
-    // Update the comment to notify the user that the plan was accepted
-    await postGitHubIssueComment({
-      githubIssueId: state.githubIssueId,
-      targetRepository: state.targetRepository,
-      commentBody: `### ✅ Plan Accepted ✅\n\nThe proposed plan was accepted.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${planItems.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step.plan)}`).join("\n")}\n\nProceeding to implementation...`,
-      config,
-    });
+    // Update the comment to notify the user that the plan was accepted (only if not in local mode)
+    if (!isLocalMode(config) && state.githubIssueId) {
+      await postGitHubIssueComment({
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+        commentBody: `### ✅ Plan Accepted ✅\n\nThe proposed plan was accepted.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${planItems.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step.plan)}`).join("\n")}\n\nProceeding to implementation...`,
+        config,
+      });
+    }
   } else if (humanResponse.type === "edit") {
     const editedPlan = (humanResponse.args as ActionRequest).args.plan
       .split(PLAN_INTERRUPT_DELIMITER)
@@ -412,12 +416,15 @@ export async function interruptProposedPlan(
       { existingTaskPlan: state.taskPlan },
     );
 
-    await postGitHubIssueComment({
-      githubIssueId: state.githubIssueId,
-      targetRepository: state.targetRepository,
-      commentBody: `### ✅ Plan Edited & Submitted ✅\n\nThe proposed plan was edited and submitted.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${planItems.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step.plan)}`).join("\n")}\n\nProceeding to implementation...`,
-      config,
-    });
+    // Update the comment to notify the user that the plan was edited (only if not in local mode)
+    if (!isLocalMode(config) && state.githubIssueId) {
+      await postGitHubIssueComment({
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+        commentBody: `### ✅ Plan Edited & Submitted ✅\n\nThe proposed plan was edited and submitted.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${planItems.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step.plan)}`).join("\n")}\n\nProceeding to implementation...`,
+        config,
+      });
+    }
   } else {
     throw new Error("Unknown interrupt type." + humanResponse.type);
   }
