@@ -14,7 +14,10 @@ export function isLocalMode(config: GraphConfig): boolean {
  * Defaults to a test folder on the desktop if not specified
  */
 export function getLocalWorkingDirectory(): string {
-  return process.env.OPEN_SWE_PROJECT_PATH || path.join(process.env.HOME || "", "Desktop", "test");
+  return (
+    process.env.OPEN_SWE_PROJECT_PATH ||
+    path.join(process.env.HOME || "", "Desktop", "test")
+  );
 }
 
 /**
@@ -23,4 +26,4 @@ export function getLocalWorkingDirectory(): string {
  */
 export function isLocalModeFromEnv(): boolean {
   return process.env.OPEN_SWE_LOCAL_MODE === "true";
-} 
+}

@@ -103,7 +103,7 @@ export async function getSandboxWithErrorHandling(
       id: sandboxSessionId || "local-mock-sandbox",
       state: "started",
     } as Sandbox;
-    
+
     return {
       sandbox: mockSandbox,
       codebaseTree: null,

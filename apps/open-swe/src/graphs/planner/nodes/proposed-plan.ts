@@ -171,7 +171,7 @@ async function startProgrammerRun(input: {
   newMessages?: BaseMessage[];
 }) {
   const { runInput, state, config, newMessages } = input;
-  
+
   // Use appropriate headers based on mode
   let langGraphClient;
   if (isLocalMode(config)) {

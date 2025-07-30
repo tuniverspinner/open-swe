@@ -4,22 +4,18 @@ import { render, Box, Text, useInput } from "ink";
 import {
   startAuthServer,
   getAccessToken,
-  getInstallationAccessToken,
   getInstallationId,
 } from "./auth-server.js";
 import open from "open";
 import { v4 as uuidv4 } from "uuid";
-import { encryptSecret } from "@open-swe/shared/crypto";
 import {
   MANAGER_GRAPH_ID,
   OPEN_SWE_STREAM_MODE,
 } from "@open-swe/shared/constants";
 import { Client, StreamMode } from "@langchain/langgraph-sdk";
-import { formatDisplayLog } from "./logger.js";
 import { submitFeedback } from "./utils.js";
 import { StreamingService } from "./streaming.js";
 
-const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 const GITHUB_LOGIN_URL =
   process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
@@ -197,22 +193,6 @@ const RepoSearchSelect: React.FC<{
     </Box>
   );
 };
-
-function isAgentInboxInterruptSchema(value: unknown): boolean {
-  const valueAsObject = Array.isArray(value) ? value[0] : value;
-  return (
-    valueAsObject &&
-    typeof valueAsObject === "object" &&
-    "action_request" in valueAsObject &&
-    typeof valueAsObject.action_request === "object" &&
-    "config" in valueAsObject &&
-    typeof valueAsObject.config === "object" &&
-    "allow_respond" in valueAsObject.config &&
-    "allow_accept" in valueAsObject.config &&
-    "allow_edit" in valueAsObject.config &&
-    "allow_ignore" in valueAsObject.config
-  );
-}
 
 const App: React.FC = () => {
   const [authPrompt, setAuthPrompt] = useState<null | boolean>(null);
@@ -572,6 +552,9 @@ const App: React.FC = () => {
 
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
+        {/* Local mode indicator */}
+        {modeIndicator}
+
         {/* Auto-scrolling logs area - strict boundary container */}
         <Box
           height={availableLogHeight}
@@ -670,7 +653,7 @@ const App: React.FC = () => {
         {/* Plan feedback below the input bar */}
         {streamingPhase === "awaitingFeedback" && (
           <Box flexDirection="column" paddingX={2} marginTop={1}>
-            <PlanFeedbackSelect />
+            <PlannerFeedbackInput />
           </Box>
         )}
       </Box>

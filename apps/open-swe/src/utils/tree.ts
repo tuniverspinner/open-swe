@@ -1,5 +1,9 @@
 import { getCurrentTaskInput } from "@langchain/langgraph";
-import { GraphState, TargetRepository, GraphConfig } from "@open-swe/shared/open-swe/types";
+import {
+  GraphState,
+  TargetRepository,
+  GraphConfig,
+} from "@open-swe/shared/open-swe/types";
 import { daytonaClient } from "./sandbox.js";
 import { createLogger, LogLevel } from "./logger.js";
 import path from "node:path";
@@ -92,11 +96,10 @@ async function getCodebaseTreeLocal(): Promise<string> {
   try {
     // In local mode, always use the current working directory
     const workingDirectory = getLocalWorkingDirectory();
-    
+
     const executor = getLocalShellExecutor(workingDirectory);
     const command = `git ls-files | tree --fromfile -L 3`;
-    console.log("THIS IS THE COMMAND", command);
-    console.log("THIS IS THE WORKING DIRECTORY", workingDirectory);
+
     const response = await executor.executeCommand(
       command,
       workingDirectory,

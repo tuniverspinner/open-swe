@@ -37,7 +37,7 @@ export async function startPlanner(
 
   try {
     let langGraphClient;
-    
+
     if (isLocalMode(config)) {
       // In local mode, create client with local mode headers
       langGraphClient = createLangGraphClient({
@@ -62,7 +62,7 @@ export async function startPlanner(
       autoAcceptPlan: state.autoAcceptPlan,
       ...(followupMessage && { messages: [followupMessage] }),
     };
-    
+
     const run = await langGraphClient.runs.create(
       plannerThreadId,
       PLANNER_GRAPH_ID,

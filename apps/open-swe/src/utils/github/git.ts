@@ -123,7 +123,7 @@ export async function getChangedFilesStatus(
   sandbox: Sandbox,
 ): Promise<string[]> {
   let gitStatusOutput;
-  
+
   // Check if we're in local mode (sandbox doesn't have process)
   if (!sandbox.process) {
     // Local mode: use LocalShellExecutor
@@ -161,7 +161,7 @@ export async function stashAndClearChanges(
 ): Promise<ExecuteResponse | false> {
   try {
     let gitStashOutput;
-    
+
     // Check if we're in local mode (sandbox doesn't have process)
     if (!sandbox.process) {
       // Local mode: use LocalShellExecutor

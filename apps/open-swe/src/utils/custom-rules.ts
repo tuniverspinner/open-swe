@@ -168,33 +168,36 @@ export async function getCustomRules(
 /**
  * Local version of getCustomRules using Node.js fs
  */
-async function getCustomRulesLocal(rootDir: string): Promise<CustomRules | undefined> {
+async function getCustomRulesLocal(
+  rootDir: string,
+): Promise<CustomRules | undefined> {
   try {
     const workingDirectory = rootDir || getLocalWorkingDirectory();
-    
+
     // Try to read AGENTS.md first
     try {
       const agentsMdPath = join(workingDirectory, "AGENTS.md");
-      const agentsMdContent = await fs.readFile(agentsMdPath, 'utf-8');
+      const agentsMdContent = await fs.readFile(agentsMdPath, "utf-8");
       if (agentsMdContent && agentsMdContent.length > 0) {
         return parseCustomRulesFromString(agentsMdContent);
       }
     } catch (error) {
-      // File doesn't exist, continue to next file
+      logger.error("Failed to read AGENTS.md", { error });
     }
 
     // Try to read AGENT.md, CLAUDE.md, CURSOR.md
     const filesToTry = ["AGENT.md", "CLAUDE.md", "CURSOR.md"];
-    
+
     for (const fileName of filesToTry) {
       try {
         const filePath = join(workingDirectory, fileName);
-        const content = await fs.readFile(filePath, 'utf-8');
+        const content = await fs.readFile(filePath, "utf-8");
         if (content && content.length > 0) {
           return parseCustomRulesFromString(content);
         }
       } catch (error) {
         // File doesn't exist, continue to next file
+        logger.error(`Failed to read ${fileName}`, { error });
       }
     }
   } catch (error) {

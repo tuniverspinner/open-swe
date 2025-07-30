@@ -5,7 +5,10 @@ import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxSessionOrThrow } from "../utils/get-sandbox-id.js";
 import { createViewToolFields } from "@open-swe/shared/open-swe/tools";
 import { handleViewCommand } from "./handlers.js";
-import { isLocalMode, getLocalWorkingDirectory } from "../../utils/local-mode.js";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "../../utils/local-mode.js";
 import { getLocalShellExecutor } from "../../utils/local-shell-executor.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 
@@ -37,7 +40,7 @@ export function createViewTool(
           // Local mode: use LocalShellExecutor for file viewing
           const executor = getLocalShellExecutor(getLocalWorkingDirectory());
           const filePath = `${workDir}/${path}`;
-          
+
           // Use cat command to view file content
           const response = await executor.executeCommand(
             `cat "${filePath}"`,
@@ -46,11 +49,11 @@ export function createViewTool(
             TIMEOUT_SEC,
             true, // localMode
           );
-          
+
           if (response.exitCode !== 0) {
             throw new Error(`Failed to read file: ${response.result}`);
           }
-          
+
           result = response.result;
         } else {
           // Sandbox mode: use existing handler

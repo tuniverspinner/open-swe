@@ -34,9 +34,7 @@ import { getDefaultHeaders } from "../../../../utils/default-headers.js";
 import { BASE_CLASSIFICATION_SCHEMA } from "./schemas.js";
 import { getPlansFromIssue } from "../../../../utils/github/issue-task.js";
 import { HumanResponse } from "@langchain/langgraph/prebuilt";
-import {
-  PLANNER_GRAPH_ID,
-} from "@open-swe/shared/constants";
+import { PLANNER_GRAPH_ID } from "@open-swe/shared/constants";
 import { createLogger, LogLevel } from "../../../../utils/logger.js";
 import { createClassificationPromptAndToolSchema } from "./utils.js";
 import { RequestSource } from "../../../../constants.js";
@@ -64,16 +62,14 @@ export async function classifyMessage(
   let plannerThread: any = undefined;
   let programmerThread: any = undefined;
   let langGraphClient: any = undefined;
-  
+
   if (!isLocalMode(config)) {
     langGraphClient = createLangGraphClient({
       defaultHeaders: getDefaultHeaders(config),
     });
 
     plannerThread = state.plannerSession?.threadId
-      ? await langGraphClient.threads.get(
-          state.plannerSession.threadId,
-        )
+      ? await langGraphClient.threads.get(state.plannerSession.threadId)
       : undefined;
     const plannerThreadValues = plannerThread?.values;
     programmerThread = plannerThreadValues?.programmerSession?.threadId
@@ -261,7 +257,9 @@ export async function classifyMessage(
 
       if (plannerStatus === "interrupted") {
         if (!state.plannerSession?.threadId) {
-          throw new Error("No planner session found. Unable to resume planner.");
+          throw new Error(
+            "No planner session found. Unable to resume planner.",
+          );
         }
         // We need to resume the planner session via a 'response' so that it can re-plan
         const plannerResume: HumanResponse = {

@@ -81,7 +81,12 @@ export async function initializeSandbox(
 
   // Check if we're in local mode before trying to get GitHub tokens
   if (isLocalMode(config)) {
-    return initializeSandboxLocal(state, config, emitStepEvent, createEventsMessage);
+    return initializeSandboxLocal(
+      state,
+      config,
+      emitStepEvent,
+      createEventsMessage,
+    );
   }
 
   const { githubInstallationToken } = getGitHubTokensFromConfig(config);
@@ -436,7 +441,7 @@ async function initializeSandboxLocal(
     },
   };
   emitStepEvent(baseGenerateCodebaseTreeAction, "pending");
-  
+
   let codebaseTree = undefined;
   try {
     codebaseTree = await getCodebaseTree(undefined, targetRepository, config);

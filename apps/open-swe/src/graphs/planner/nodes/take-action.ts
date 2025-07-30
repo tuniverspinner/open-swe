@@ -34,7 +34,10 @@ import { Command } from "@langchain/langgraph";
 import { filterHiddenMessages } from "../../../utils/message/filter-hidden.js";
 import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
 import { processToolCallContent } from "../../../utils/tool-output-processing.js";
-import { isLocalMode, getLocalWorkingDirectory } from "../../../utils/local-mode.js";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "../../../utils/local-mode.js";
 import { createViewTool } from "../../../tools/builtin-tools/view.js";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
@@ -199,8 +202,8 @@ export async function takeActions(
       { documentCache: {} } as { documentCache: Record<string, string> },
     );
 
-  const repoPath = isLocalMode(config) 
-    ? getLocalWorkingDirectory() 
+  const repoPath = isLocalMode(config)
+    ? getLocalWorkingDirectory()
     : getRepoAbsolutePath(state.targetRepository);
   const changedFiles = await getChangedFilesStatus(repoPath, sandbox);
   if (changedFiles?.length > 0) {

@@ -38,7 +38,10 @@ import { getGitHubTokensFromConfig } from "../../../utils/github-tokens.js";
 import { processToolCallContent } from "../../../utils/tool-output-processing.js";
 import { getActiveTask } from "@open-swe/shared/open-swe/tasks";
 import { createPullRequestToolCallMessage } from "../../../utils/message/create-pr-message.js";
-import { isLocalMode, getLocalWorkingDirectory } from "../../../utils/local-mode.js";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "../../../utils/local-mode.js";
 import { getLocalShellExecutor } from "../../../utils/local-shell-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
@@ -205,13 +208,10 @@ export async function takeAction(
 
   // Always check if there are changed files after running a tool.
   // If there are, commit them.
-  const repoPath = isLocalMode(config) 
-    ? getLocalWorkingDirectory() 
+  const repoPath = isLocalMode(config)
+    ? getLocalWorkingDirectory()
     : getRepoAbsolutePath(state.targetRepository);
-  const changedFiles = await getChangedFilesStatus(
-    repoPath,
-    sandbox,
-  );
+  const changedFiles = await getChangedFilesStatus(repoPath, sandbox);
 
   let branchName: string | undefined = state.branchName;
   let pullRequestNumber: number | undefined;
@@ -220,25 +220,25 @@ export async function takeAction(
     logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
       changedFiles,
     });
-    
+
     if (!isLocalMode(config)) {
-    const { githubInstallationToken } = getGitHubTokensFromConfig(config);
-    const result = await checkoutBranchAndCommit(
-      config,
-      state.targetRepository,
-      sandbox,
-      {
-        branchName,
-        githubInstallationToken,
-        taskPlan: state.taskPlan,
-        githubIssueId: state.githubIssueId,
-      },
-    );
-    branchName = result.branchName;
-    pullRequestNumber = result.updatedTaskPlan
-      ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
-      : undefined;
-    updatedTaskPlan = result.updatedTaskPlan;
+      const { githubInstallationToken } = getGitHubTokensFromConfig(config);
+      const result = await checkoutBranchAndCommit(
+        config,
+        state.targetRepository,
+        sandbox,
+        {
+          branchName,
+          githubInstallationToken,
+          taskPlan: state.taskPlan,
+          githubIssueId: state.githubIssueId,
+        },
+      );
+      branchName = result.branchName;
+      pullRequestNumber = result.updatedTaskPlan
+        ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
+        : undefined;
+      updatedTaskPlan = result.updatedTaskPlan;
     } else {
       logger.info("Skipping GitHub commit operations in local mode");
       const executor = getLocalShellExecutor(getLocalWorkingDirectory());
@@ -249,7 +249,7 @@ export async function takeAction(
         30, // timeout in seconds
         true, // localMode
       );
-      
+
       if (commitResult.exitCode !== 0) {
         logger.error("Failed to commit changes in local mode", {
           exitCode: commitResult.exitCode,

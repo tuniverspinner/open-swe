@@ -7,7 +7,10 @@ import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
 import { isLocalMode, getLocalWorkingDirectory } from "../utils/local-mode.js";
 import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
-import { createGrepToolFields, formatGrepCommand } from "@open-swe/shared/open-swe/tools";
+import {
+  createGrepToolFields,
+  formatGrepCommand,
+} from "@open-swe/shared/open-swe/tools";
 
 const logger = createLogger(LogLevel.INFO, "GrepTool");
 
@@ -24,7 +27,7 @@ export function createGrepTool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
         const command = formatGrepCommand(input as any);
-        
+
         let repoRoot;
         if (isLocalMode(config)) {
           // In local mode, use the local working directory
@@ -33,7 +36,7 @@ export function createGrepTool(
           // In sandbox mode, use the sandbox path
           repoRoot = getRepoAbsolutePath(state.targetRepository);
         }
-        
+
         logger.info("Running grep search command", {
           command: command.join(" "),
           repoRoot,
@@ -44,7 +47,7 @@ export function createGrepTool(
         if (isLocalMode(config)) {
           // Local mode: use LocalShellExecutor
           const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-          
+
           response = await executor.executeCommand(
             command.join(" "),
             repoRoot,

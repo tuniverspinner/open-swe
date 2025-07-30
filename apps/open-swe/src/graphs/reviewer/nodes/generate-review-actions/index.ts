@@ -120,7 +120,10 @@ ${messages.map(getMessageString).join("\n")}
   ];
 }
 
-function createToolsAndPrompt(state: ReviewerGraphState, config: GraphConfig): {
+function createToolsAndPrompt(
+  state: ReviewerGraphState,
+  config: GraphConfig,
+): {
   providerTools: Record<Provider, BindToolsInput[]>;
   providerMessages: Record<Provider, BaseMessageLike[]>;
 } {
@@ -205,7 +208,10 @@ export async function generateReviewActions(
   } as any;
   const isAnthropicModel = modelName.includes("claude-");
 
-  const { providerTools, providerMessages } = createToolsAndPrompt(state, config);
+  const { providerTools, providerMessages } = createToolsAndPrompt(
+    state,
+    config,
+  );
 
   const model = await loadModel(config, Task.REVIEWER, {
     providerTools,

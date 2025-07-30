@@ -12,28 +12,35 @@ const logger = createLogger(LogLevel.INFO, "ReadWriteUtil");
 /**
  * Local version of readFile using Node.js fs
  */
-async function readFileLocal(filePath: string, workDir?: string): Promise<{
+async function readFileLocal(
+  filePath: string,
+  workDir?: string,
+): Promise<{
   success: boolean;
   output: string;
 }> {
   try {
     const workingDirectory = workDir || getLocalWorkingDirectory();
-    const fullPath = isAbsolute(filePath) ? filePath : join(workingDirectory, filePath);
-    const content = await fs.readFile(fullPath, 'utf-8');
+    const fullPath = isAbsolute(filePath)
+      ? filePath
+      : join(workingDirectory, filePath);
+    const content = await fs.readFile(fullPath, "utf-8");
     return {
       success: true,
       output: content,
     };
   } catch (error: any) {
-    if (error.code === 'ENOENT') {
+    if (error.code === "ENOENT") {
       // File doesn't exist, create it
       try {
         const workingDirectory = workDir || getLocalWorkingDirectory();
-        const fullPath = isAbsolute(filePath) ? filePath : join(workingDirectory, filePath);
-        await fs.writeFile(fullPath, '', 'utf-8');
+        const fullPath = isAbsolute(filePath)
+          ? filePath
+          : join(workingDirectory, filePath);
+        await fs.writeFile(fullPath, "", "utf-8");
         return {
           success: true,
-          output: '',
+          output: "",
         };
       } catch (createError: any) {
         return {
@@ -52,14 +59,20 @@ async function readFileLocal(filePath: string, workDir?: string): Promise<{
 /**
  * Local version of writeFile using Node.js fs
  */
-async function writeFileLocal(filePath: string, content: string, workDir?: string): Promise<{
+async function writeFileLocal(
+  filePath: string,
+  content: string,
+  workDir?: string,
+): Promise<{
   success: boolean;
   output: string;
 }> {
   try {
     const workingDirectory = workDir || getLocalWorkingDirectory();
-    const fullPath = isAbsolute(filePath) ? filePath : join(workingDirectory, filePath);
-    await fs.writeFile(fullPath, content, 'utf-8');
+    const fullPath = isAbsolute(filePath)
+      ? filePath
+      : join(workingDirectory, filePath);
+    await fs.writeFile(fullPath, content, "utf-8");
     return {
       success: true,
       output: `Successfully wrote file '${filePath}' to local filesystem.`,
@@ -75,7 +88,10 @@ async function writeFileLocal(filePath: string, content: string, workDir?: strin
 /**
  * Local version of handleCreateFile using Node.js fs
  */
-async function handleCreateFileLocal(filePath: string, workDir?: string): Promise<{
+async function handleCreateFileLocal(
+  filePath: string,
+  workDir?: string,
+): Promise<{
   exitCode: number;
   error?: string;
   stdout: string;
@@ -83,18 +99,20 @@ async function handleCreateFileLocal(filePath: string, workDir?: string): Promis
 }> {
   try {
     const workingDirectory = workDir || getLocalWorkingDirectory();
-    const fullPath = isAbsolute(filePath) ? filePath : join(workingDirectory, filePath);
-    await fs.writeFile(fullPath, '', 'utf-8');
+    const fullPath = isAbsolute(filePath)
+      ? filePath
+      : join(workingDirectory, filePath);
+    await fs.writeFile(fullPath, "", "utf-8");
     return {
       exitCode: 0,
       stdout: `Created file '${filePath}'`,
-      stderr: '',
+      stderr: "",
     };
   } catch (error: any) {
     return {
       exitCode: 1,
       error: error.message,
-      stdout: '',
+      stdout: "",
       stderr: error.message,
     };
   }
@@ -138,7 +156,7 @@ async function readFileFunc(inputs: {
   output: string;
 }> {
   const { sandbox, filePath, workDir, config } = inputs;
-  
+
   // Check if we're in local mode
   if (config && isLocalMode(config)) {
     return readFileLocal(filePath, workDir);
@@ -177,7 +195,7 @@ async function readFileFunc(inputs: {
       if (createOutput.exitCode !== 0) {
         return {
           success: false,
-          output: `FAILED TO EXECUTE READ COMMAND for ${config && isLocalMode(config) ? 'local' : 'sandbox'} '${filePath}'. Error: ${(e as Error).message || String(e)}`,
+          output: `FAILED TO EXECUTE READ COMMAND for ${config && isLocalMode(config) ? "local" : "sandbox"} '${filePath}'. Error: ${(e as Error).message || String(e)}`,
         };
       } else {
         // If the file was created successfully, try reading it again.
@@ -233,7 +251,7 @@ async function writeFileFunc(inputs: {
   output: string;
 }> {
   const { sandbox, filePath, content, workDir, config } = inputs;
-  
+
   // Check if we're in local mode
   if (config && isLocalMode(config)) {
     return writeFileLocal(filePath, content, workDir);
