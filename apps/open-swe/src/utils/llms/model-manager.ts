@@ -148,12 +148,21 @@ export class ModelManager {
         if (!apiKeys) {
           throw new Error("API keys not found in config");
         }
-        apiKey = decryptSecret(
-          providerToApiKey(provider, apiKeys),
-          secretsEncryptionKey,
-        );
+        const providerApiKey = providerToApiKey(provider, apiKeys);
+        if (!providerApiKey) {
+          throw new Error(
+            "No API key found for provider: " +
+              provider +
+              ". Please add one in the settings page.",
+          );
+        }
+        apiKey = decryptSecret(providerApiKey, secretsEncryptionKey);
         if (!apiKey) {
-          throw new Error("No API key found for provider: " + provider);
+          throw new Error(
+            "No API key found for provider: " +
+              provider +
+              ". Please add one in the settings page.",
+          );
         }
       }
     }
@@ -331,7 +340,7 @@ export class ModelManager {
       },
       openai: {
         [Task.PLANNER]: "o3",
-        [Task.PROGRAMMER]: "gpt-4o",
+        [Task.PROGRAMMER]: "gpt-4.1",
         [Task.REVIEWER]: "o3",
         [Task.ROUTER]: "gpt-4o-mini",
         [Task.SUMMARIZER]: "gpt-4.1-mini",

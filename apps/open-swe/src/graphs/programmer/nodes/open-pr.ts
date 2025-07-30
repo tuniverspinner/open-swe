@@ -10,6 +10,7 @@ import {
 import {
   checkoutBranchAndCommit,
   getChangedFilesStatus,
+  pushEmptyCommit,
 } from "../../../utils/github/git.js";
 import {
   createPullRequest,
@@ -56,6 +57,8 @@ Here are all of the tasks you completed:
 {USER_REQUEST_PROMPT}
 
 {CUSTOM_RULES}
+
+You should not include any mention of an issue to close, unless explicitly requested by the user. The body will automatically include a mention of the issue to close.
 
 With all of this in mind, please use the \`open_pr\` tool to open a pull request.`;
 
@@ -165,6 +168,12 @@ export async function openPullRequest(
     throw new Error(
       "Failed to generate a tool call when opening a pull request.",
     );
+  }
+
+  if (process.env.SKIP_CI_UNTIL_LAST_COMMIT === "true") {
+    await pushEmptyCommit(state.targetRepository, sandbox, {
+      githubInstallationToken,
+    });
   }
 
   const { title, body } = toolCall.args as z.infer<typeof openPrTool.schema>;
