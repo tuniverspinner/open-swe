@@ -512,6 +512,143 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
                 - Asyncio with Web Frameworks: https://docs.python.org/3/library/asyncio-eventloop.html#running-and-stopping-the-loop
             </reference_docs>
         </framework_integration_patterns>
+        <tool_and_api_preferences>
+            **DEFAULT BEHAVIOR**: Always use real APIs and tools unless the user explicitly asks for mocks or states they don't have API keys.
+            
+            <preferred_tools_hierarchy>
+                **Web Search**:
+                1. Tavily (primary choice)
+                    \`\`\`python
+                    from langchain_tavily import TavilySearch
+                    search_tool = TavilySearch(max_results=5)
+                    \`\`\`
+                2. SerpAPI (fallback)
+                    \`\`\`python
+                    from langchain_community.utilities import SerpAPIWrapper
+                    search = SerpAPIWrapper()
+                    search.run("Who are the winners of the 2025 Oscars?")
+                    \`\`\`
+                
+                **Web Scraping/Content Reading**:
+                1. FirecrawlAPI (for web pages, news articles)
+                    \`\`\`python
+                    from langchain_community.document_loaders.firecrawl import FireCrawlLoader
+                    loader = FireCrawlLoader(
+                        api_key="YOUR_API_KEY", url="https://sf.eater.com/maps/best-restaurants-san-francisco-38", mode="scrape"
+                    )
+                    docs = loader.load()
+                    \`\`\`
+                2. AsyncHtmlLoader (fallback)
+                    \`\`\`python
+                    from langchain_community.document_loaders import AsyncHtmlLoader
+                    
+                    urls = ["https://www.espn.com", "https://lilianweng.github.io/posts/2023-06-23-agent/"]
+                    loader = AsyncHtmlLoader(urls)
+                    # If you need to use the proxy to make web requests, for example using http_proxy/https_proxy environmental variables,
+                    # please set trust_env=True explicitly here as follows:
+                    # loader = AsyncHtmlLoader(urls, trust_env=True)
+                    # Otherwise, loader.load() may get stuck because aiohttp session does not recognize the proxy by default
+                    docs = loader.load()
+                    docs[0].page_content[1000:2000] 
+                    \`\`\`
+                
+                **Document Processing**:
+                1. PyPDF for PDFs
+                    \`\`\`python
+                    from langchain_community.document_loaders import PyPDFLoader
+                    loader = PyPDFLoader("path/to/document.pdf")
+                    docs = loader.load()
+                    docs[0]
+                    \`\`\`
+                2. Unstructured for complex documents
+                    \`\`\`python
+                    from langchain_unstructured import UnstructuredLoader
+                    file_paths = [
+                        "./example_data/layout-parser-paper.pdf",
+                        "./example_data/state_of_the_union.txt",
+                    ]
+
+
+                    loader = UnstructuredLoader(file_paths)
+                    docs = loader.load()
+                    \`\`\`
+                
+                **Vector Databases**:
+                1. Pinecone (cloud-based, preferred)
+                    \`\`\`python
+                    from pinecone import Pinecone
+                    pc = Pinecone(api_key=pinecone_api_key)
+                    from pinecone import ServerlessSpec
+
+                    index_name = "langchain-test-index"  # change if desired
+
+                    if not pc.has_index(index_name):
+                        pc.create_index(
+                            name=index_name,
+                            dimension=1536,
+                            metric="cosine",
+                            spec=ServerlessSpec(cloud="aws", region="us-east-1"),
+                        )
+
+                    index = pc.Index(index_name)
+
+                    from langchain_openai import OpenAIEmbeddings
+
+                    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+
+                    from langchain_pinecone import PineconeVectorStore
+
+                    vector_store = PineconeVectorStore(index=index, embedding=embeddings)
+                    \`\`\`
+                2. Chroma (local alternative)
+                    \`\`\`python
+                    from langchain_openai import OpenAIEmbeddings
+                    embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+                    from langchain_chroma import Chroma
+                    vector_store = Chroma(
+                        collection_name="example_collection",
+                        embedding_function=embeddings,
+                    )
+                    \`\`\`
+                
+                **Weather Data**:
+                1. OpenWeatherMap
+                    \`\`\`python
+                    from langchain_community.utilities import OpenWeatherMapAPIWrapper
+                    weather = OpenWeatherMapAPIWrapper()
+                    weather_data = weather.run("London,GB")
+                    print(weather_data)
+                    # Output:
+                    In London,GB, the current weather is as follows:
+                    Detailed status: overcast clouds
+                    Wind speed: 4.12 m/s, direction: 10°
+                    Humidity: 51%
+                    Temperature: 
+                    - Current: 12.82°C
+                    - High: 13.98°C
+                    - Low: 12.01°C
+                    - Feels like: 11.49°C
+                    Rain: {}
+                    Heat index: None
+                    Cloud cover: 100%
+                    \`\`\`
+                
+                **MCP Integrations**:
+                - Python: Use langchain-mcp-adapters package
+                - JavaScript: Use @langchain/mcp-adapters package
+            </preferred_tools_hierarchy>    
+            <reference_docs>
+                - Tavily Integration: https://python.langchain.com/docs/integrations/tools/tavily_search
+                - Tool Providers: https://python.langchain.com/docs/integrations/providers/
+                - Available Tools: https://python.langchain.com/docs/integrations/tools/
+                - Document Loaders: https://python.langchain.com/docs/integrations/document_loaders/
+                - Vector Stores: https://python.langchain.com/docs/integrations/vectorstores/
+                - MCP Python: https://github.com/langchain-ai/langchain-mcp-adapters
+                - MCP JavaScript: https://www.npmjs.com/package/@langchain/mcp-adapters
+                - Check latest syntax at: https://python.langchain.com/docs/integrations/tools/
+                - Always verify imports against: https://python.langchain.com/docs/integrations/providers/
+            </reference_docs>
+        </tool_and_api_preferences>s
 
         <langgraph_specific_coding_standards>
             - Test small components before building complex graphs
