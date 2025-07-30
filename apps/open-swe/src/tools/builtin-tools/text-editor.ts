@@ -110,13 +110,9 @@ export function createTextEditorTool(
               if (!file_text) {
                 throw new Error("create command requires file_text parameter");
               }
-              // Create file with content using proper escaping
-              const escapedFileText = file_text
-                .replace(/\\/g, "\\\\")
-                .replace(/'/g, "'\"'\"'");
-
+              // Create file with content using a more robust approach
               const createResponse = await executor.executeCommand(
-                `echo '${escapedFileText}' > "${filePath}"`,
+                `cat > "${filePath}" << 'EOF'\n${file_text}\nEOF`,
                 workDir,
                 {},
                 TIMEOUT_SEC,
