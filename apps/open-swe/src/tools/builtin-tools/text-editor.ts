@@ -125,7 +125,7 @@ export function createTextEditorTool(
               }
               // Insert line at specific position
               const insertResponse = await executor.executeCommand(
-                `sed -i '${insert_line}i\\${new_str.replace(/\//g, "\\/")}' "${filePath}"`,
+                `sed -i '${insert_line}i\\${new_str.replace(/\\/g, "\\\\").replace(/\//g, "\\/")}' "${filePath}"`,
                 workDir,
                 {},
                 TIMEOUT_SEC,
