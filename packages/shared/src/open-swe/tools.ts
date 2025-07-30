@@ -2,6 +2,10 @@ import { z } from "zod";
 import { TargetRepository, GraphConfig } from "./types.js";
 import { getRepoAbsolutePath } from "../git.js";
 import { TIMEOUT_SEC } from "../constants.js";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "./local-mode.js";
 
 export function createApplyPatchToolFields(targetRepository: TargetRepository) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
@@ -57,8 +61,13 @@ export function createSessionPlanToolFields() {
   };
 }
 
-export function createShellToolFields(targetRepository: TargetRepository) {
-  const repoRoot = getRepoAbsolutePath(targetRepository);
+export function createShellToolFields(
+  targetRepository: TargetRepository,
+  config?: GraphConfig,
+) {
+  const repoRoot = isLocalMode(config || {})
+    ? getLocalWorkingDirectory()
+    : getRepoAbsolutePath(targetRepository);
   const shellToolSchema = z.object({
     command: z
       .array(z.string())
@@ -106,8 +115,13 @@ export function createUpdatePlanToolFields() {
   };
 }
 
-export function createGrepToolFields(targetRepository: TargetRepository) {
-  const repoRoot = getRepoAbsolutePath(targetRepository);
+export function createGrepToolFields(
+  targetRepository: TargetRepository,
+  config?: GraphConfig,
+) {
+  const repoRoot = isLocalMode(config || {})
+    ? getLocalWorkingDirectory()
+    : getRepoAbsolutePath(targetRepository);
   const searchSchema = z.object({
     query: z
       .string()
@@ -299,8 +313,11 @@ export function createMarkTaskCompletedToolFields() {
 
 export function createInstallDependenciesToolFields(
   targetRepository: TargetRepository,
+  config?: GraphConfig,
 ) {
-  const repoRoot = getRepoAbsolutePath(targetRepository);
+  const repoRoot = isLocalMode(config || {})
+    ? getLocalWorkingDirectory()
+    : getRepoAbsolutePath(targetRepository);
 
   const installDependenciesToolSchema = z.object({
     command: z
@@ -495,8 +512,13 @@ export function createReviewStartedToolFields() {
   };
 }
 
-export function createTextEditorToolFields(targetRepository: TargetRepository) {
-  const repoRoot = getRepoAbsolutePath(targetRepository);
+export function createTextEditorToolFields(
+  targetRepository: TargetRepository,
+  config: GraphConfig,
+) {
+  const repoRoot = isLocalMode(config)
+    ? getLocalWorkingDirectory()
+    : getRepoAbsolutePath(targetRepository);
   const textEditorToolSchema = z.object({
     command: z
       .enum(["view", "str_replace", "create", "insert"])
@@ -550,16 +572,8 @@ export function createViewToolFields(
   targetRepository: TargetRepository,
   config?: GraphConfig,
 ) {
-  // Local mode utility function (duplicated here since shared package doesn't have access to local-mode)
-  function isLocalMode(config?: GraphConfig): boolean {
-    return (config?.configurable as any)?.["x-local-mode"] === "true";
-  }
 
-  function getLocalWorkingDirectory(): string {
-    return process.cwd();
-  }
-
-  const repoRoot = isLocalMode(config)
+  const repoRoot = isLocalMode(config || {})
     ? getLocalWorkingDirectory()
     : getRepoAbsolutePath(targetRepository);
   const viewSchema = z.object({

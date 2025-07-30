@@ -104,7 +104,7 @@ export function createGrepTool(
         }
       }
     },
-    createGrepToolFields(state.targetRepository),
+    createGrepToolFields(state.targetRepository, config),
   );
 
   return grepTool;

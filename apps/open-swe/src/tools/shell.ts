@@ -85,7 +85,7 @@ export function createShellTool(
         }
       }
     },
-    createShellToolFields(state.targetRepository),
+    createShellToolFields(state.targetRepository, config),
   );
 
   return shellTool;

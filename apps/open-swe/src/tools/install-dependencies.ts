@@ -84,7 +84,7 @@ export function createInstallDependenciesTool(
         }
       }
     },
-    createInstallDependenciesToolFields(state.targetRepository),
+    createInstallDependenciesToolFields(state.targetRepository, config),
   );
 
   return installDependenciesTool;
