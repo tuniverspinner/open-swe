@@ -289,7 +289,7 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
             - Check if a \`.gitignore\` file exists in the repository root
             - If it exists, add appropriate patterns to exclude the files/directories that shouldn't be committed
             - If it doesn't exist, create a \`.gitignore\` file with appropriate patterns
-            - Common patterns to consider: \`node_modules/\`, \`dist/\`, \`build/\`, \`.env*\`, \`*.log\`, \`.DS_Store\`, \`__pycache__/\`, \`*.pyc\`, \`.cache/\`, \`coverage/\`, \`.turbo/\`
+            - Common patterns to consider: \`node_modules/\`, \`dist/\`, \`build/\`, \`.env*\`, \`*.log\`, \`.DS_Store\`, \`__pycache__/\`, \`*.pyc\`, \`.cache/\`, \`coverage/\`, \`.turbo/\`, \`.langgraph_api\` (whenever you are expecting to run a langgraph server)
             - Use specific patterns rather than overly broad ones to avoid accidentally excluding important files
             - After updating \`.gitignore\`, you may need to run \`git rm --cached <file>\` to untrack files that are already being tracked but should now be ignored
         - Test small components before building complex graphs
