@@ -81,9 +81,18 @@ export function createTextEditorTool(
                   "str_replace command requires both old_str and new_str parameters",
                 );
               }
-              // Use sed command for string replacement
+              // Use sed command for string replacement with proper escaping
+              const escapedOldStr = old_str
+                .replace(/\\/g, "\\\\")
+                .replace(/\//g, "\\/")
+                .replace(/'/g, "'\"'\"'");
+              const escapedNewStr = new_str
+                .replace(/\\/g, "\\\\")
+                .replace(/\//g, "\\/")
+                .replace(/'/g, "'\"'\"'");
+
               const sedResponse = await executor.executeCommand(
-                `sed -i 's/${old_str.replace(/\//g, "\\/")}/${new_str.replace(/\//g, "\\/")}/g' "${filePath}"`,
+                `sed -i 's/${escapedOldStr}/${escapedNewStr}/g' "${filePath}"`,
                 workDir,
                 {},
                 TIMEOUT_SEC,
@@ -101,9 +110,13 @@ export function createTextEditorTool(
               if (!file_text) {
                 throw new Error("create command requires file_text parameter");
               }
-              // Create file with content
+              // Create file with content using proper escaping
+              const escapedFileText = file_text
+                .replace(/\\/g, "\\\\")
+                .replace(/'/g, "'\"'\"'");
+
               const createResponse = await executor.executeCommand(
-                `echo '${file_text.replace(/'/g, "'\"'\"'")}' > "${filePath}"`,
+                `echo '${escapedFileText}' > "${filePath}"`,
                 workDir,
                 {},
                 TIMEOUT_SEC,
@@ -123,9 +136,14 @@ export function createTextEditorTool(
                   "insert command requires both insert_line and new_str parameters",
                 );
               }
-              // Insert line at specific position
+              // Insert line at specific position with proper escaping
+              const escapedNewStr = new_str
+                .replace(/\\/g, "\\\\")
+                .replace(/\//g, "\\/")
+                .replace(/'/g, "'\"'\"'");
+
               const insertResponse = await executor.executeCommand(
-                `sed -i '${insert_line}i\\${new_str.replace(/\\/g, "\\\\").replace(/\//g, "\\/")}' "${filePath}"`,
+                `sed -i '${insert_line}i\\${escapedNewStr}' "${filePath}"`,
                 workDir,
                 {},
                 TIMEOUT_SEC,
