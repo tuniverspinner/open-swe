@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import * as crypto from "crypto";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getGitHubTokensFromConfig } from "../../utils/github-tokens.js";
 import {
@@ -455,7 +456,7 @@ async function initializeSandboxLocal(
   }
 
   // Create a mock sandbox ID for consistency
-  const mockSandboxId = `local-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+  const mockSandboxId = `local-${Date.now()}-${crypto.randomBytes(16).toString('hex')}`;
 
   return {
     sandboxSessionId: mockSandboxId,
