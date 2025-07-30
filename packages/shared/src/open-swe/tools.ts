@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { TargetRepository } from "./types.js";
+import { TargetRepository, GraphConfig } from "./types.js";
 import { getRepoAbsolutePath } from "../git.js";
 import { TIMEOUT_SEC } from "../constants.js";
 
@@ -546,8 +546,22 @@ export function createTextEditorToolFields(targetRepository: TargetRepository) {
   };
 }
 
-export function createViewToolFields(targetRepository: TargetRepository) {
-  const repoRoot = getRepoAbsolutePath(targetRepository);
+export function createViewToolFields(
+  targetRepository: TargetRepository,
+  config?: GraphConfig,
+) {
+  // Local mode utility function (duplicated here since shared package doesn't have access to local-mode)
+  function isLocalMode(config?: GraphConfig): boolean {
+    return (config?.configurable as any)?.["x-local-mode"] === "true";
+  }
+
+  function getLocalWorkingDirectory(): string {
+    return process.cwd();
+  }
+
+  const repoRoot = isLocalMode(config)
+    ? getLocalWorkingDirectory()
+    : getRepoAbsolutePath(targetRepository);
   const viewSchema = z.object({
     command: z.enum(["view"]).describe("The command to execute: view"),
     path: z

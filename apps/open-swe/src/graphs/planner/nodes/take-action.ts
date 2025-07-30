@@ -5,6 +5,10 @@ import {
   ToolMessage,
 } from "@langchain/core/messages";
 import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "../../../utils/local-mode.js";
+import {
   createGetURLContentTool,
   createShellTool,
   createSearchDocumentForTool,
@@ -49,11 +53,11 @@ export async function takeActions(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
-  const viewTool = createViewTool(state);
-  const shellTool = createShellTool(state);
-  const searchTool = createGrepTool(state);
+  const viewTool = createViewTool(state, config);
+  const shellTool = createShellTool(state, config);
+  const searchTool = createGrepTool(state, config);
   const scratchpadTool = createScratchpadTool("");
-  const getURLContentTool = createGetURLContentTool(state);
+  const getURLContentTool = createGetURLContentTool(state, config);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
   const mcpTools = await getMcpTools(config);
 
@@ -198,7 +202,9 @@ export async function takeActions(
       { documentCache: {} } as { documentCache: Record<string, string> },
     );
 
-  const repoPath = getRepoAbsolutePath(state.targetRepository);
+  const repoPath = isLocalMode(config)
+    ? getLocalWorkingDirectory()
+    : getRepoAbsolutePath(state.targetRepository);
   const changedFiles = await getChangedFilesStatus(repoPath, sandbox);
   if (changedFiles?.length > 0) {
     logger.warn(
@@ -207,7 +213,7 @@ export async function takeActions(
         changedFiles,
       },
     );
-    await stashAndClearChanges(repoPath, sandbox);
+    await stashAndClearChanges(repoPath, sandbox, config);
 
     // Rewrite the tool call contents to include a changed files warning.
     toolCallResults = toolCallResults.map(
