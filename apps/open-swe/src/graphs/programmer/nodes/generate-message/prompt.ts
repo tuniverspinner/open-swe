@@ -303,6 +303,27 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
             - Missing test dependencies or fixtures.
             - Not using NO_COLOR or --no-colors flags.
         </testing_pitfalls>
+        <interactive_agent_testing>
+            - **Test the full loop**:
+                \`\`\`python
+                # Don't just test agent creation
+                # Test the actual interaction loop
+                
+                # Create test script
+                messages = []
+                config = {"configurable": {"thread_id": "test-1"}}
+                
+                # First interaction
+                result = await app.ainvoke({"messages": messages}, config)
+                state = await app.aget_state(config)
+                assert "wait_for_input" in state.next  # Verify it's waiting
+                
+                # Provide input
+                messages.append(HumanMessage(content="Test input"))
+                result = await app.ainvoke({"messages": messages}, config)
+                # Verify it processed input and moved forward
+                \`\`\`
+        </interactive_agent_testing>
         
         <file_editing_pitfalls>
             - Editing files without reading current content.
@@ -442,6 +463,92 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
                 - SDK Streaming: https://langchain-ai.github.io/langgraph/cloud/reference/sdk/python_sdk_ref/#stream
             </reference_docs>
         </langgraph_streaming_patterns>
+        <human_in_the_loop_patterns>
+            **CRITICAL**: Human-in-the-loop requires special handling in LangGraph
+            Human in the loop is used for applications that require human input.
+            
+            <interrupt_patterns>
+                **Understanding interrupt()**:
+                - \`interrupt()\` PAUSES graph execution - it does NOT return values
+                - It requires a value parameter (even if empty): \`interrupt({})\`
+                - Graph must have explicit wait states to handle interrupts
+                
+                **Correct interrupt usage**:
+                \`\`\`python
+                from langgraph.prebuilt import interrupt
+                
+                # CORRECT: Interrupt with value
+                def wait_for_input_node(state):
+                    # Pause execution and wait for human input
+                    return interrupt({"message": "Please provide your input"})
+                
+                # WRONG: Expecting return value
+                user_input = interrupt()  # This won't work!
+                \`\`\`
+            </interrupt_patterns>
+            
+            <wait_state_implementation>
+                **For human-in-the-loop, you MUST**:
+                1. Create explicit wait node
+                2. Add conditional routing to wait node
+                3. Loop back from wait node to continue
+                
+                \`\`\`python
+                # 1. Create wait node
+                def wait_for_input(state):
+                    return interrupt({})
+                
+                # 2. Add conditional routing
+                def should_wait_for_input(state):
+                    last_message = state["messages"][-1]
+                    # If no tool calls, we're asking a question
+                    if not hasattr(last_message, "tool_calls") or not last_message.tool_calls:
+                        return "wait_for_input"
+                    return "tools"
+                
+                # 3. Build graph with loop
+                graph_builder.add_node("wait_for_input", wait_for_input)
+                graph_builder.add_conditional_edges(
+                    "agent",
+                    should_wait_for_input,
+                    {
+                        "tools": "tools",
+                        "wait_for_input": "wait_for_input"
+                    }
+                )
+                graph_builder.add_edge("wait_for_input", "agent")  # Loop back
+                \`\`\`
+            </wait_state_implementation>
+            
+            <execution_pattern>
+                **Client-side execution for human-in-the-loop**:
+                \`\`\`python
+                # example.py pattern
+                config = {"configurable": {"thread_id": "form-1"}}
+                
+                while True:
+                    # Stream agent response
+                    async for chunk in app.astream({"messages": messages}, config):
+                        # Process output
+                        
+                    # Check state to see if waiting
+                    state = await app.aget_state(config)
+                    
+                    if "wait_for_input" in state.next:
+                        # Agent is waiting for input
+                        user_input = input("Your response: ")
+                        messages.append(HumanMessage(content=user_input))
+                        # Continue loop with new message
+                    else:
+                        # Conversation complete
+                        break
+                \`\`\`
+            </execution_pattern>
+            <reference_docs>
+                - LangGraph Human in the Loop Python: https://langchain-ai.github.io/langgraph/tutorials/get-started/4-human-in-the-loop/#1-add-the-human_assistance-tool
+                - LangGraph Human in the Loop JavaScript: https://langchain-ai.github.io/langgraphjs/concepts/human_in_the_loop/#interrupt
+            </reference_docs>
+        </human_in_the_loop_patterns>
         <framework_integration_patterns>
             <integration_debugging>
                 **When building integrations, ALWAYS start with debugging**:
@@ -680,7 +787,7 @@ You are a terminal-based agentic coding assistant built by LangChain. You wrap L
         \`\`\`python
         # Don't do this by default!
         from langgraph.checkpoint.memory import MemorySaver
-        graph = create_react_agent(model, tools, checkpointer=MemorySaver())
+        graph = create_react_agent(model, tools, checkpointer=MemorySaver()) // the checkpointer is not needed for deployment and we shouldn't include it unelss user asks.
         \`\`\`
     </deployment_first_principles>
 
