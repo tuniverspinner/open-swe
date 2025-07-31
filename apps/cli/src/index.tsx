@@ -29,7 +29,7 @@ program
   .version("0.0.0")
   .option(
     "--local",
-    "Work directly on local codebase without GitHub authentication"
+    "Work directly on local codebase without GitHub authentication",
   )
   .helpOption("-h, --help", "Display help for command")
   .parse();
@@ -439,7 +439,6 @@ const App: React.FC = () => {
       plannerFeedback &&
       plannerThreadId
     ) {
-
       (async () => {
         await submitFeedback({
           plannerFeedback,

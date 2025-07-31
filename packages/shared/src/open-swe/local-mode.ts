@@ -1,4 +1,3 @@
-import { LOCAL_MODE_HEADER } from "@open-swe/shared/constants";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import path from "path";
 
@@ -7,7 +6,7 @@ import path from "path";
  * (working on local files instead of sandbox/Daytona)
  */
 export function isLocalMode(config: GraphConfig): boolean {
-  return (config.configurable as any)?.[LOCAL_MODE_HEADER] === "true";
+  return (config.configurable as any)?.["x-local-mode"] === "true";
 }
 
 /**

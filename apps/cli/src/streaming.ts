@@ -8,6 +8,7 @@ import {
   GITHUB_INSTALLATION_NAME,
   GITHUB_INSTALLATION_ID,
   OPEN_SWE_STREAM_MODE,
+  LOCAL_MODE_HEADER,
 } from "@open-swe/shared/constants";
 import {
   getAccessToken,
@@ -190,7 +191,7 @@ export class StreamingService {
         };
 
         headers = {
-          "x-local-mode": "true",
+          [LOCAL_MODE_HEADER]: "true",
         };
       } else {
         // Normal mode: require GitHub authentication

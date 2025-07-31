@@ -242,7 +242,7 @@ async function readFileLocal(
       } catch (createError: any) {
         return {
           success: false,
-          output: `FAILED TO CREATE FILE '${filePath}'. Error: ${createError.message}`,
+          output: `FAILED TO AUTOMATICALLY CREATE FILE '${filePath}' AFTER READING FILE ERRORED WITH CODE: ${error.code}. Error: ${createError.message}`,
         };
       }
     }

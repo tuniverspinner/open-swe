@@ -36,6 +36,7 @@ import { HumanResponse } from "@langchain/langgraph/prebuilt";
 import {
   OPEN_SWE_STREAM_MODE,
   PLANNER_GRAPH_ID,
+  LOCAL_MODE_HEADER,
 } from "@open-swe/shared/constants";
 import { createLogger, LogLevel } from "../../../../utils/logger.js";
 import { createClassificationPromptAndToolSchema } from "./utils.js";
@@ -43,7 +44,7 @@ import { RequestSource } from "../../../../constants.js";
 import { StreamMode } from "@langchain/langgraph-sdk";
 
 function isLocalMode(config: GraphConfig): boolean {
-  return (config.configurable as any)?.["x-local-mode"] === "true";
+  return (config.configurable as any)?.[LOCAL_MODE_HEADER] === "true";
 }
 
 const logger = createLogger(LogLevel.INFO, "ClassifyMessage");

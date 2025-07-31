@@ -1,9 +1,9 @@
-import { SANDBOX_ROOT_DIR } from "./constants.js";
+import { SANDBOX_ROOT_DIR, LOCAL_MODE_HEADER } from "./constants.js";
 import { TargetRepository, GraphConfig } from "./open-swe/types.js";
 
 // Local mode utility function (duplicated here since shared package doesn't have access to local-mode)
 function isLocalMode(config?: GraphConfig): boolean {
-  return (config?.configurable as any)?.["x-local-mode"] === "true";
+  return (config?.configurable as any)?.[LOCAL_MODE_HEADER] === "true";
 }
 
 function getLocalWorkingDirectory(): string {
