@@ -439,8 +439,6 @@ const App: React.FC = () => {
       plannerFeedback &&
       plannerThreadId
     ) {
-      // Don't immediately switch to streaming mode - let the feedback submission complete naturally
-      // setStreamingPhase("streaming"); // REMOVED: This was causing the input to disappear
 
       (async () => {
         await submitFeedback({
@@ -454,16 +452,6 @@ const App: React.FC = () => {
       })();
     }
   }, [streamingPhase, plannerFeedback, selectedRepo, plannerThreadId]);
-
-  // Add debug logging for streaming phase changes
-  useEffect(() => {
-    // Removed debug logging
-  }, [streamingPhase]);
-
-  // Add debug logging for planner feedback changes
-  useEffect(() => {
-    // Removed debug logging
-  }, [plannerFeedback]);
 
   // Loading repos after login
   if (isLoggedIn && loadingRepos) {
