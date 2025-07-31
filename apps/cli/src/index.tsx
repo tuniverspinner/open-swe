@@ -252,7 +252,6 @@ const App: React.FC = () => {
           config: { recursion_limit: 400 },
           ifNotExists: "create",
           streamResumable: true,
-          multitaskStrategy: "enqueue",
           streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
         });
 

@@ -78,7 +78,6 @@ export async function startPlanner(
           },
         },
         ifNotExists: "create",
-        multitaskStrategy: "enqueue",
         streamResumable: true,
         streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
       },
