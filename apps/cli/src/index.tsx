@@ -423,10 +423,10 @@ const App: React.FC = () => {
     return (
       <Box flexDirection="row" alignItems="center" gap={2}>
         <Text>Plan feedback: </Text>
-        <Text color="white">
+        <Text color={selectedOption === "approve" ? "black" : "white"} bold={selectedOption === "approve"}>
           {selectedOption === "approve" ? "▶ " : "  "}Approve
         </Text>
-        <Text color="white">
+        <Text color={selectedOption === "deny" ? "black" : "white"} bold={selectedOption === "deny"}>
           {selectedOption === "deny" ? "▶ " : "  "}Deny
         </Text>
         <Text dimColor>(Use ←/→ to select, Enter to confirm)</Text>
@@ -630,14 +630,8 @@ const App: React.FC = () => {
 ##       ##     ## ## ## ## ##   #### ##       ######### ##     ##  ##  ## ## ## 
 ##       ######### ##  #### ##    ##  ##       ##     ## #########  ##  ##  #### 
 ##       ##     ## ##   ### ##    ##  ##    ## ##     ## ##     ##  ##  ##   ### 
-######## ##     ## ##    ##  ######    ######  ##     ## ##     ## #### ##    ## 
+######## ##     ## ##    ##  ######    ######  ##     ## ##     ## #### ##    ## OPEN SWE CLI
 `}
-              </Text>
-            </Box>
-            <Box marginTop={2} marginBottom={1}>
-              <Text dimColor>
-                Describe your coding problem. It'll run in the sandbox and a PR
-                will be created.
               </Text>
             </Box>
           </Box>
