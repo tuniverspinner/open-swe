@@ -121,12 +121,12 @@ export function ManagerChat({
                       key={message.id}
                       className="group bg-muted flex items-start gap-3 rounded-lg p-3"
                     >
-                      <div className="flex-shrink-0 mt-0.5">
+                      <div className="mt-0.5 flex-shrink-0">
                         {message.type === "human" ? (
                           githubUser?.avatar_url ? (
-                            <div className="bg-muted flex h-6 w-6 items-center justify-center rounded-full overflow-hidden">
-                              <img 
-                                src={githubUser.avatar_url} 
+                            <div className="bg-muted flex h-6 w-6 items-center justify-center overflow-hidden rounded-full">
+                              <img
+                                src={githubUser.avatar_url}
                                 alt={githubUser.login}
                                 className="h-full w-full object-cover"
                               />
@@ -145,7 +145,9 @@ export function ManagerChat({
                       <div className="relative min-w-0 flex-1 space-y-1 overflow-x-hidden">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-muted-foreground text-xs font-medium">
-                            {message.type === "human" ? (githubUser?.login || "You") : "OpenSWE"}
+                            {message.type === "human"
+                              ? githubUser?.login || "You"
+                              : "OpenSWE"}
                           </span>
                           <div className="opacity-0 transition-opacity group-hover:opacity-100">
                             <MessageCopyButton content={messageContentString} />

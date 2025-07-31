@@ -27,7 +27,7 @@ export default function ThreadPage({
   const router = useRouter();
   const { thread_id } = use(params);
   const [hasLoadedOnce, setHasLoadedOnce] = React.useState(false);
-  
+
   const stream = useStream<ManagerGraphState>({
     apiUrl: process.env.NEXT_PUBLIC_API_URL ?? "",
     assistantId: MANAGER_GRAPH_ID,
@@ -42,7 +42,8 @@ export default function ThreadPage({
     disableOrgFiltering: true,
     refreshInterval: THREAD_INITIAL_LOADING_SWR_CONFIG.refreshInterval,
     revalidateOnFocus: THREAD_INITIAL_LOADING_SWR_CONFIG.revalidateOnFocus,
-    revalidateOnReconnect: THREAD_INITIAL_LOADING_SWR_CONFIG.revalidateOnReconnect,
+    revalidateOnReconnect:
+      THREAD_INITIAL_LOADING_SWR_CONFIG.revalidateOnReconnect,
     errorRetryCount: THREAD_INITIAL_LOADING_SWR_CONFIG.errorRetryCount,
     errorRetryInterval: THREAD_INITIAL_LOADING_SWR_CONFIG.errorRetryInterval,
     dedupingInterval: THREAD_INITIAL_LOADING_SWR_CONFIG.dedupingInterval,

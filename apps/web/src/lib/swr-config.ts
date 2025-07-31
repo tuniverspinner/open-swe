@@ -26,8 +26,6 @@ export const THREAD_INITIAL_LOADING_SWR_CONFIG = {
   dedupingInterval: 100,
 } as const;
 
-
-
 /**
  * SWR configuration for thread status polling
  * Uses same intervals but with focus revalidation for real-time updates
