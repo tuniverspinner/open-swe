@@ -346,7 +346,7 @@ export function ThreadView({
               }
             >
               <div className="flex flex-shrink-0 items-center gap-3">
-                <TabsList className="bg-muted/70 dark:bg-gray-800">
+                <TabsList className="bg-muted/70">
                   <TabsTrigger value="planner">Planner</TabsTrigger>
                   <TabsTrigger value="programmer">Programmer</TabsTrigger>
                 </TabsList>
@@ -390,7 +390,7 @@ export function ThreadView({
                 value="planner"
                 className="mb-2"
               >
-                <Card className="border-border bg-card relative h-full p-0 dark:bg-gray-950">
+                <Card className="border-border bg-card relative h-full p-0">
                   <CardContent className="h-full p-0">
                     <StickToBottom
                       className="absolute inset-0 h-full"
@@ -409,6 +409,7 @@ export function ThreadView({
                                     setCustomPlannerNodeEvents
                                   }
                                   stream={plannerStream}
+                                  threadId={plannerSession.threadId}
                                 />
                               </div>
                             ) : (
@@ -435,7 +436,7 @@ export function ThreadView({
                 value="programmer"
                 className="mb-2"
               >
-                <Card className="border-border bg-card relative h-full p-0 dark:bg-gray-950">
+                <Card className="border-border bg-card relative h-full p-0">
                   <CardContent className="h-full p-0">
                     <StickToBottom
                       className="absolute inset-0 h-full"
@@ -454,6 +455,40 @@ export function ThreadView({
                                     setCustomProgrammerNodeEvents
                                   }
                                   stream={programmerStream}
+                                  threadId={programmerSession.threadId}
+                                  modifyRunId={async (runId) => {
+                                    setProgrammerSession((prev) => {
+                                      if (!prev) {
+                                        return {
+                                          threadId: programmerSession.threadId,
+                                          runId,
+                                        };
+                                      }
+                                      return {
+                                        ...prev,
+                                        runId,
+                                      };
+                                    });
+                                    if (plannerSession?.threadId) {
+                                      try {
+                                        // Attempt to update the planner session with the new run ID of the programmer.
+                                        await programmerStream.client.threads.updateState(
+                                          plannerSession?.threadId,
+                                          {
+                                            values: {
+                                              programmerSession: {
+                                                threadId:
+                                                  programmerSession.threadId,
+                                                runId,
+                                              },
+                                            },
+                                          },
+                                        );
+                                      } catch {
+                                        // no-op
+                                      }
+                                    }
+                                  }}
                                 />
                               </div>
                             ) : (
