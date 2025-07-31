@@ -5,7 +5,7 @@ description: "Introduction to the four-agent system architecture"
 
 # Agents Overview
 
-Open SWE uses a sophisticated four-agent system to handle complex software engineering tasks from initial request to final implementation. This architecture mirrors how experienced development teams work together, with each agent specializing in a specific aspect of the software development lifecycle.
+Open SWE uses a sophisticated four-agent system to handle complex coding tasks from initial request to final implementation. This architecture mirrors how experienced development teams work together, with each agent specializing in a specific aspect of the software development lifecycle.
 
 ## The Four-Agent System
 
@@ -34,11 +34,11 @@ Open SWE uses a sophisticated four-agent system to handle complex software engin
 The agents collaborate in a structured workflow that ensures thorough analysis, careful implementation, and quality assurance:
 
 ```
-User Request → Manager → Planner → Programmer → Reviewer → Pull Request
-                ↑         ↑         ↑         ↓
-            Routes to   Generates   Implements  Provides
-            appropriate    plan      changes    feedback
-             agent
+User Request   →   Manager   →   Planner   →   Programmer   →   Reviewer   →   Pull Request
+                    ↑               ↑              ↑                 ↑      ↓
+                    Routes to       Generates      Implements        Provides
+                    appropriate       plan           changes         feedback
+                    agent
 ```
 
 ### Detailed Flow
@@ -56,7 +56,5 @@ User Request → Manager → Planner → Programmer → Reviewer → Pull Reques
 - **Separation of Concerns**: Each agent focuses on its specialized domain
 - **Quality Assurance**: Built-in review process ensures code quality
 - **Scalability**: Complex tasks are systematically broken down and executed
-- **Transparency**: Clear workflow with human oversight at critical decision points
-- **Consistency**: Standardized approach to software engineering tasks
 
-This architecture enables Open SWE to handle sophisticated software engineering requests while maintaining high quality standards and providing clear visibility into the development process.
+This architecture enables Open SWE to handle sophisticated coding requests while maintaining high quality standards.
