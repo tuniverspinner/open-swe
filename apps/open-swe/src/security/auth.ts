@@ -5,7 +5,6 @@ import {
   verifyGithubUserId,
 } from "@open-swe/shared/github/verify-user";
 import {
-  API_KEY_REQUIRED_MESSAGE,
   GITHUB_INSTALLATION_ID,
   GITHUB_INSTALLATION_NAME,
   GITHUB_INSTALLATION_TOKEN_COOKIE,
@@ -18,8 +17,6 @@ import { verifyGitHubWebhookOrThrow } from "./github.js";
 import { createWithOwnerMetadata, createOwnerFilter } from "./utils.js";
 import { LANGGRAPH_USER_PERMISSIONS } from "../constants.js";
 import { getGitHubPatFromRequest } from "../utils/github-pat.js";
-import { isAllowedUser } from "@open-swe/shared/github/allowed-users";
-import { validate } from "uuid";
 
 // TODO: Export from LangGraph SDK
 export interface BaseAuthReturn {
@@ -33,58 +30,6 @@ interface AuthenticateReturn extends BaseAuthReturn {
   metadata: {
     installation_name: string;
   };
-}
-
-function apiKeysInRequestBody(
-  bodyStr: string | Record<string, unknown>,
-): boolean {
-  try {
-    const body = typeof bodyStr === "string" ? JSON.parse(bodyStr) : bodyStr;
-    if (
-      body.config?.configurable &&
-      ("anthropicApiKey" in body.config.configurable.apiKeys ||
-        "openaiApiKey" in body.config.configurable.apiKeys ||
-        "googleApiKey" in body.config.configurable.apiKeys)
-    ) {
-      return true;
-    }
-    return false;
-  } catch {
-    // no-op
-    return false;
-  }
-}
-
-function isRunReq(reqUrl: string): boolean {
-  try {
-    const url = new URL(reqUrl);
-    const pathnameParts = url.pathname.split("/");
-    const isCreateAndWait = !!(
-      pathnameParts[1] === "threads" &&
-      validate(pathnameParts[2]) &&
-      pathnameParts[3] === "runs" &&
-      pathnameParts[4] === "wait" &&
-      pathnameParts.length === 5
-    );
-    const isCreateBackground = !!(
-      pathnameParts[1] === "threads" &&
-      validate(pathnameParts[2]) &&
-      pathnameParts[3] === "runs" &&
-      pathnameParts.length === 4
-    );
-    const isCreateStream = !!(
-      pathnameParts[1] === "threads" &&
-      validate(pathnameParts[2]) &&
-      pathnameParts[3] === "runs" &&
-      pathnameParts[4] === "stream" &&
-      pathnameParts.length === 5
-    );
-
-    return !!isCreateAndWait || !!isCreateBackground || !!isCreateStream;
-  } catch {
-    // no-op
-    return false;
-  }
 }
 
 export const auth = new Auth()
@@ -197,18 +142,6 @@ export const auth = new Auth()
       throw new HTTPException(401, {
         message: "User not found",
       });
-    }
-
-    const reqCopy = request.clone();
-    const reqBody = await reqCopy.text();
-    if (!isAllowedUser(user.login)) {
-      if (isRunReq(request.url)) {
-        if (!apiKeysInRequestBody(reqBody)) {
-          throw new HTTPException(401, {
-            message: API_KEY_REQUIRED_MESSAGE,
-          });
-        }
-      }
     }
 
     return {
