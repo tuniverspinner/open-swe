@@ -122,7 +122,6 @@ async function startProgrammerRun(input: {
         recursion_limit: 400,
         configurable: {
           ...getCustomConfigurableFields(config),
-          ...(isLocalMode(config) && { "x-local-mode": "true" }),
         },
       },
       ifNotExists: "create",
@@ -230,7 +229,7 @@ export async function interruptProposedPlan(
     });
   }
 
-  if (!isLocalMode(config) && state.githubIssueId) {
+  if (!isLocalMode(config)) {
     await addProposedPlanToIssue(
       {
         githubIssueId: state.githubIssueId,

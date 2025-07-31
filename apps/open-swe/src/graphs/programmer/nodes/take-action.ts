@@ -56,7 +56,7 @@ export async function takeAction(
   const searchTool = createGrepTool(state, config);
   const textEditorTool = createTextEditorTool(state, config);
   const installDependenciesTool = createInstallDependenciesTool(state, config);
-  const getURLContentTool = createGetURLContentTool(state, config);
+  const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
   const mcpTools = await getMcpTools(config);
 
