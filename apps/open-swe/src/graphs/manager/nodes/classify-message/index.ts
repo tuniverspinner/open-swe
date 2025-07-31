@@ -42,7 +42,6 @@ import { createClassificationPromptAndToolSchema } from "./utils.js";
 import { RequestSource } from "../../../../constants.js";
 import { StreamMode } from "@langchain/langgraph-sdk";
 
-// Add local mode utility function
 function isLocalMode(config: GraphConfig): boolean {
   return (config.configurable as any)?.["x-local-mode"] === "true";
 }
