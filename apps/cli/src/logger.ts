@@ -23,33 +23,33 @@ function formatToolCallArgs(tool: any): string {
 
   if (!tool.args) return toolName;
 
-    switch (toolName.toLowerCase()) {
+  switch (toolName.toLowerCase()) {
     case "shell": {
       if (Array.isArray(tool.args.command)) {
         return `${toolName}: ${tool.args.command.join(" ")}`;
       }
       return `${toolName}: ${tool.args.command || ""}`;
     }
-    
+
     case "grep":
     case "grep_search": {
       const query = tool.args.query || "";
       const path = tool.args.path || "";
       return `${toolName}: "${query}" in ${path}`;
     }
-    
+
     case "view": {
       return `${toolName}: ${tool.args.path || ""}`;
     }
-    
+
     case "search_documents_for": {
       return `${toolName}: "${tool.args.query || ""}"`;
     }
-    
+
     case "get_url_content": {
       return `${toolName}: ${tool.args.url || ""}`;
     }
-    
+
     case "session_plan": {
       const title = tool.args.title || "";
       const planSteps = tool.args.plan || [];
@@ -58,33 +58,33 @@ function formatToolCallArgs(tool: any): string {
       }
       return `${toolName}: ${planSteps.length} plan steps`;
     }
-    
+
     case "apply_patch": {
       return `${toolName}: ${tool.args.file_path || ""}`;
     }
-    
+
     case "install_dependencies": {
       const deps = tool.args.dependencies || [];
       return `${toolName}: ${deps.length} dependencies`;
     }
-    
+
     case "create_text_editor": {
       return `${toolName}: ${tool.args.file_path || ""}`;
     }
-    
+
     case "scratchpad": {
       const content = tool.args.content || "";
       const contentMaxLength = 50;
-      return content.length > contentMaxLength 
+      return content.length > contentMaxLength
         ? `${toolName}: ${content.slice(0, contentMaxLength)}...`
         : `${toolName}: ${content}`;
     }
-    
+
     case "command_safety_evaluator": {
       const command = tool.args.command || "";
       return `${toolName}: evaluating "${command}"`;
     }
-    
+
     case "respond_and_route": {
       const response = tool.args.response || "";
       const route = tool.args.route || "";
@@ -98,7 +98,7 @@ function formatToolCallArgs(tool: any): string {
       return `${toolName}: routing decision`;
     }
   }
-  return '';
+  return "";
 }
 
 /**
