@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import * as React from "react";
 import { use, useMemo } from "react";
 import { threadsToMetadata } from "@/lib/thread-utils";
+import { THREAD_LOADING_SWR_CONFIG } from "@/lib/swr-config";
 
 interface ThreadPageProps {
   thread_id: string;
@@ -36,6 +37,13 @@ export default function ThreadPage({
   const { threads, isLoading: threadsLoading } = useThreadsSWR({
     assistantId: MANAGER_GRAPH_ID,
     disableOrgFiltering: true,
+    // Use aggressive loading configuration
+    refreshInterval: THREAD_LOADING_SWR_CONFIG.refreshInterval,
+    revalidateOnFocus: THREAD_LOADING_SWR_CONFIG.revalidateOnFocus,
+    revalidateOnReconnect: THREAD_LOADING_SWR_CONFIG.revalidateOnReconnect,
+    errorRetryCount: THREAD_LOADING_SWR_CONFIG.errorRetryCount,
+    errorRetryInterval: THREAD_LOADING_SWR_CONFIG.errorRetryInterval,
+    dedupingInterval: THREAD_LOADING_SWR_CONFIG.dedupingInterval,
   });
 
   const threadsMetadata = useMemo(() => threadsToMetadata(threads), [threads]);

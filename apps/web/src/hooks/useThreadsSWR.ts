@@ -25,6 +25,9 @@ interface UseThreadsSWROptions {
   revalidateOnReconnect?: boolean;
   currentInstallation?: Installation | null;
   disableOrgFiltering?: boolean;
+  errorRetryCount?: number;
+  errorRetryInterval?: number;
+  dedupingInterval?: number;
 }
 
 /**
@@ -45,6 +48,9 @@ export function useThreadsSWR<
     revalidateOnReconnect = THREAD_SWR_CONFIG.revalidateOnReconnect,
     currentInstallation,
     disableOrgFiltering,
+    errorRetryCount = THREAD_SWR_CONFIG.errorRetryCount,
+    errorRetryInterval = THREAD_SWR_CONFIG.errorRetryInterval,
+    dedupingInterval = THREAD_SWR_CONFIG.dedupingInterval,
   } = options;
 
   const apiUrl: string | undefined = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -76,9 +82,9 @@ export function useThreadsSWR<
       refreshInterval,
       revalidateOnFocus,
       revalidateOnReconnect,
-      errorRetryCount: THREAD_SWR_CONFIG.errorRetryCount,
-      errorRetryInterval: THREAD_SWR_CONFIG.errorRetryInterval,
-      dedupingInterval: THREAD_SWR_CONFIG.dedupingInterval,
+      errorRetryCount,
+      errorRetryInterval,
+      dedupingInterval,
     },
   );
 
