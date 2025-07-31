@@ -36,6 +36,7 @@ import { createScratchpadTool } from "../../../tools/scratchpad.js";
 import { getActiveTask } from "@open-swe/shared/open-swe/tasks";
 import { createPullRequestToolCallMessage } from "../../../utils/message/create-pr-message.js";
 import { createViewTool } from "../../../tools/builtin-tools/view.js";
+import { filterUnsafeCommands } from "../../../utils/command-evaluation.js";
 
 const logger = createLogger(LogLevel.INFO, "TakeReviewAction");
 
@@ -69,6 +70,40 @@ export async function takeReviewerActions(
   const toolCalls = lastMessage.tool_calls;
   if (!toolCalls?.length) {
     throw new Error("No tool calls found.");
+  }
+
+  // Filter out unsafe commands
+  const { filteredToolCalls, wasFiltered } = await filterUnsafeCommands(
+    toolCalls,
+    config,
+  );
+
+  if (wasFiltered) {
+    // If all tool calls were filtered out, we need to handle this differently
+    if (filteredToolCalls.length === 0) {
+      // Remove the last message entirely since it has no valid tool calls
+      const modifiedMessages = state.reviewerMessages.slice(0, -1);
+      return new Command({
+        goto: "take-review-action",
+        update: { reviewerMessages: modifiedMessages },
+      });
+    }
+
+    // Create a modified message with only safe tool calls
+    const modifiedMessage = {
+      ...lastMessage,
+      tool_calls: filteredToolCalls,
+    };
+
+    // Replace the last message in state
+    const modifiedMessages = [
+      ...state.reviewerMessages.slice(0, -1),
+      modifiedMessage,
+    ];
+    return new Command({
+      goto: "take-review-action",
+      update: { reviewerMessages: modifiedMessages },
+    });
   }
 
   const { sandbox, codebaseTree, dependenciesInstalled } =

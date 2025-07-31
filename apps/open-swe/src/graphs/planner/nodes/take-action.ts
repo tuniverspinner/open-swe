@@ -39,6 +39,7 @@ import { filterHiddenMessages } from "../../../utils/message/filter-hidden.js";
 import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
 import { processToolCallContent } from "../../../utils/tool-output-processing.js";
 import { createViewTool } from "../../../tools/builtin-tools/view.js";
+import { filterUnsafeCommands } from "../../../utils/command-evaluation.js";
 
 const logger = createLogger(LogLevel.INFO, "TakeAction");
 
@@ -51,6 +52,37 @@ export async function takeActions(
 
   if (!isAIMessage(lastMessage) || !lastMessage.tool_calls?.length) {
     throw new Error("Last message is not an AI message with tool calls.");
+  }
+
+  // Filter out unsafe commands
+  const { filteredToolCalls, wasFiltered } = await filterUnsafeCommands(
+    lastMessage.tool_calls,
+    config,
+  );
+
+  if (wasFiltered) {
+    // If all tool calls were filtered out, we need to handle this differently
+    if (filteredToolCalls.length === 0) {
+      // Remove the last message entirely since it has no valid tool calls
+      const modifiedMessages = messages.slice(0, -1);
+      return new Command({
+        goto: "take-plan-actions",
+        update: { messages: modifiedMessages },
+      });
+    }
+
+    // Create a modified message with only safe tool calls
+    const modifiedMessage = {
+      ...lastMessage,
+      tool_calls: filteredToolCalls,
+    };
+
+    // Replace the last message in state
+    const modifiedMessages = [...messages.slice(0, -1), modifiedMessage];
+    return new Command({
+      goto: "take-plan-actions",
+      update: { messages: modifiedMessages },
+    });
   }
 
   const viewTool = createViewTool(state, config);
