@@ -97,47 +97,8 @@ function formatToolCallArgs(tool: any): string {
       }
       return `${toolName}: routing decision`;
     }
-    
-    default: {
-      // For other tools, try to show the most relevant argument
-      if (typeof tool.args === "string") {
-        return `${toolName}: ${tool.args}`;
-      }
-
-      // Try to find the most meaningful field to display
-      const meaningfulFields = [
-        "title",
-        "query",
-        "path",
-        "file_path",
-        "url",
-        "command",
-        "content",
-        "plan",
-      ];
-      for (const field of meaningfulFields) {
-        if (tool.args[field]) {
-          const value = tool.args[field];
-          if (Array.isArray(value)) {
-            return `${toolName}: ${field} (${value.length} items)`;
-          }
-          if (typeof value === "string") {
-            const fieldMaxLength = 80;
-            return value.length > fieldMaxLength
-              ? `${toolName}: ${field} "${value.slice(0, fieldMaxLength)}..."`
-              : `${toolName}: ${field} "${value}"`;
-          }
-        }
-      }
-
-            // Fallback to JSON with truncation
-      const argsStr = JSON.stringify(tool.args);
-      const jsonMaxLength = 100;
-      return argsStr.length > jsonMaxLength 
-        ? `${toolName}: ${argsStr.slice(0, jsonMaxLength)}...`
-        : `${toolName}: ${argsStr}`;
-    }
   }
+  return '';
 }
 
 /**
