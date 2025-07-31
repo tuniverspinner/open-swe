@@ -215,7 +215,7 @@ const App: React.FC = () => {
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
   const [streamingPhase, setStreamingPhase] = useState<
     "streaming" | "awaitingFeedback" | "done"
-  >("streaming");
+  >("awaitingFeedback");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
   const [hasStartedChat, setHasStartedChat] = useState(false);
@@ -423,26 +423,12 @@ const App: React.FC = () => {
     return (
       <Box flexDirection="row" alignItems="center" gap={2}>
         <Text>Plan feedback: </Text>
-        <Box
-          borderStyle="round"
-          borderColor={selectedOption === "approve" ? "green" : "white"}
-          paddingX={2}
-          paddingY={0}
-        >
-          <Text color={selectedOption === "approve" ? "green" : "white"}>
-            {selectedOption === "approve" ? "▶ " : "  "}Approve
-          </Text>
-        </Box>
-        <Box
-          borderStyle="round"
-          borderColor={selectedOption === "deny" ? "red" : "white"}
-          paddingX={2}
-          paddingY={0}
-        >
-          <Text color={selectedOption === "deny" ? "red" : "white"}>
-            {selectedOption === "deny" ? "▶ " : "  "}Deny
-          </Text>
-        </Box>
+        <Text color="white">
+          {selectedOption === "approve" ? "▶ " : "  "}Approve
+        </Text>
+        <Text color="white">
+          {selectedOption === "deny" ? "▶ " : "  "}Deny
+        </Text>
         <Text dimColor>(Use ←/→ to select, Enter to confirm)</Text>
       </Box>
     );
