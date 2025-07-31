@@ -278,9 +278,9 @@ ls.describe(DATASET_NAME, () => {
           branchName: branchName,
         });
       } else {
-        // Skip agent run - evaluate main branch directly
+        // Skip agent run - evaluate branch directly
         branchName = inputs.branch || "main";
-        logger.info("Skipping agent run. Evaluating main branch directly:", {
+        logger.info("Skipping agent run. Evaluating branch:", {
           branchName: branchName,
         });
       }

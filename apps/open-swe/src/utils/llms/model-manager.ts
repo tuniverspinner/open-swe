@@ -148,12 +148,21 @@ export class ModelManager {
         if (!apiKeys) {
           throw new Error("API keys not found in config");
         }
-        apiKey = decryptSecret(
-          providerToApiKey(provider, apiKeys),
-          secretsEncryptionKey,
-        );
+        const providerApiKey = providerToApiKey(provider, apiKeys);
+        if (!providerApiKey) {
+          throw new Error(
+            "No API key found for provider: " +
+              provider +
+              ". Please add one in the settings page.",
+          );
+        }
+        apiKey = decryptSecret(providerApiKey, secretsEncryptionKey);
         if (!apiKey) {
-          throw new Error("No API key found for provider: " + provider);
+          throw new Error(
+            "No API key found for provider: " +
+              provider +
+              ". Please add one in the settings page.",
+          );
         }
       }
     }
@@ -233,6 +242,14 @@ export class ModelManager {
   }
 
   /**
+   * Get the model name for a task from GraphConfig
+   */
+  public getModelNameForTask(config: GraphConfig, task: Task): string {
+    const baseConfig = this.getBaseConfigForTask(config, task);
+    return baseConfig.modelName;
+  }
+
+  /**
    * Get base configuration for a task from GraphConfig
    */
   private getBaseConfigForTask(
@@ -240,7 +257,19 @@ export class ModelManager {
     task: Task,
   ): ModelLoadConfig {
     const taskMap = {
+      [Task.PLANNER]: {
+        modelName:
+          config.configurable?.[`${task}ModelName`] ??
+          TASK_TO_CONFIG_DEFAULTS_MAP[task].modelName,
+        temperature: config.configurable?.[`${task}Temperature`] ?? 0,
+      },
       [Task.PROGRAMMER]: {
+        modelName:
+          config.configurable?.[`${task}ModelName`] ??
+          TASK_TO_CONFIG_DEFAULTS_MAP[task].modelName,
+        temperature: config.configurable?.[`${task}Temperature`] ?? 0,
+      },
+      [Task.REVIEWER]: {
         modelName:
           config.configurable?.[`${task}ModelName`] ??
           TASK_TO_CONFIG_DEFAULTS_MAP[task].modelName,
@@ -296,17 +325,23 @@ export class ModelManager {
   ): ModelLoadConfig | null {
     const defaultModels: Record<Provider, Record<Task, string>> = {
       anthropic: {
+        [Task.PLANNER]: "claude-sonnet-4-0",
         [Task.PROGRAMMER]: "claude-sonnet-4-0",
+        [Task.REVIEWER]: "claude-sonnet-4-0",
         [Task.ROUTER]: "claude-3-5-haiku-latest",
         [Task.SUMMARIZER]: "claude-sonnet-4-0",
       },
       "google-genai": {
+        [Task.PLANNER]: "gemini-2.5-flash",
         [Task.PROGRAMMER]: "gemini-2.5-pro",
+        [Task.REVIEWER]: "gemini-2.5-flash",
         [Task.ROUTER]: "gemini-2.5-flash",
         [Task.SUMMARIZER]: "gemini-2.5-pro",
       },
       openai: {
-        [Task.PROGRAMMER]: "gpt-4o",
+        [Task.PLANNER]: "o3",
+        [Task.PROGRAMMER]: "gpt-4.1",
+        [Task.REVIEWER]: "o3",
         [Task.ROUTER]: "gpt-4o-mini",
         [Task.SUMMARIZER]: "gpt-4.1-mini",
       },
