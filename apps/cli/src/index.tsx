@@ -1,18 +1,23 @@
 #!/usr/bin/env node
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { render, Box, Text, useInput } from "ink";
+
+// Handle graceful exit on Ctrl+C and Ctrl+K
+process.on('SIGINT', () => {
+  console.log('\n👋 Goodbye!');
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  console.log('\n👋 Goodbye!');
+  process.exit(0);
+});
 import {
   startAuthServer,
   getAccessToken,
   getInstallationId,
 } from "./auth-server.js";
 import open from "open";
-import { v4 as uuidv4 } from "uuid";
-import {
-  MANAGER_GRAPH_ID,
-  OPEN_SWE_STREAM_MODE,
-} from "@open-swe/shared/constants";
-import { Client, StreamMode } from "@langchain/langgraph-sdk";
 import { submitFeedback } from "./utils.js";
 import { StreamingService } from "./streaming.js";
 
@@ -84,6 +89,13 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
     if (isSubmitted) return;
+    
+    // Handle Ctrl+K for exit
+    if (key.ctrl && inputChar.toLowerCase() === 'k') {
+      console.log('\n👋 Goodbye!');
+      process.exit(0);
+    }
+    
     if (key.return) {
       if (input.trim()) {
         // Only submit if there's actual content
@@ -149,6 +161,13 @@ const RepoSearchSelect: React.FC<{
 
   useInput((input: string, key: { [key: string]: any }) => {
     if (isMessage) return;
+    
+    // Handle Ctrl+K for exit
+    if (key.ctrl && input.toLowerCase() === 'k') {
+      console.log('\n👋 Goodbye!');
+      process.exit(0);
+    }
+    
     if (key.return) {
       if (shown.length > 0) {
         setIsMessage(true);
@@ -216,53 +235,12 @@ const App: React.FC = () => {
   const [streamingPhase, setStreamingPhase] = useState<
     "streaming" | "awaitingFeedback" | "done"
   >("streaming");
-  const [threadId, setThreadId] = useState<string | null>(null);
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
   const [hasStartedChat, setHasStartedChat] = useState(false);
-  const [client, setClient] = useState<Client | null>(null);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
 
-  const sendInterruptMessage = useCallback(
-    async (message: string) => {
-      if (!client || !threadId || !selectedRepo) {
-        return;
-      }
 
-      setLogs((prev) => [...prev, `📤 Interrupt Response: "${message}"`]);
-
-      try {
-        const [owner, repoName] = selectedRepo.full_name.split("/");
-        const interruptInput = {
-          messages: [
-            {
-              id: uuidv4(),
-              type: "human",
-              content: [{ type: "text", text: message }],
-            },
-          ],
-          targetRepository: {
-            owner,
-            repo: repoName,
-            branch: selectedRepo.default_branch || "main",
-          },
-        };
-        await client.runs.create(threadId, MANAGER_GRAPH_ID, {
-          input: interruptInput,
-          config: { recursion_limit: 400 },
-          ifNotExists: "create",
-          streamResumable: true,
-          streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
-        });
-
-        // Just submit the interrupt - existing planner session will pick it up automatically
-        setLogs((prev) => [...prev, `✅ Interrupt sent to existing session`]);
-      } catch (err: any) {
-        setLogs((prev) => [...prev, `Error sending interrupt: ${err.message}`]);
-      }
-    },
-    [client, threadId, selectedRepo, setLogs],
-  );
 
   // On mount, check for existing token
   useEffect(() => {
@@ -337,6 +315,12 @@ const App: React.FC = () => {
   // Handle yes/no input for auth prompt
   useInput((input: string, key: { [key: string]: any }) => {
     if (authPrompt === null && !isLoggedIn) {
+      // Handle Ctrl+K for exit
+      if (key.ctrl && input.toLowerCase() === 'k') {
+        console.log('\n👋 Goodbye!');
+        process.exit(0);
+      }
+      
       if (key.return) {
         if (authInput.toLowerCase() === "y") {
           setAuthPrompt(true);
@@ -404,6 +388,12 @@ const App: React.FC = () => {
 
     useInput((inputChar: string, key: { [key: string]: any }) => {
       if (streamingPhase !== "awaitingFeedback") return;
+
+      // Handle Ctrl+K for exit
+      if (key.ctrl && inputChar.toLowerCase() === 'k') {
+        console.log('\n👋 Goodbye!');
+        process.exit(0);
+      }
 
       if (key.return && selectedOption) {
         setPlannerFeedback(selectedOption);
@@ -566,13 +556,6 @@ const App: React.FC = () => {
 
   // Main UI: logs area + input prompt
   if (isLoggedIn && selectedRepo) {
-    const modeIndicator = isLocalMode ? (
-      <Box paddingX={2} paddingY={1}>
-        <Text dimColor>
-          🏠 Local Mode - Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH}
-        </Text>
-      </Box>
-    ) : null;
     // Calculate available space for logs based on whether welcome message is shown
     const headerHeight = 0; // Welcome message is now above input bar, not at top
     const inputHeight = 4; // Fixed input area height (increased due to padding)
@@ -593,7 +576,6 @@ const App: React.FC = () => {
 
     return (
       <Box flexDirection="column" height={process.stdout.rows}>
-        {modeIndicator}
         {/* Auto-scrolling logs area - strict boundary container */}
         <Box
           height={availableLogHeight}
@@ -611,8 +593,8 @@ const App: React.FC = () => {
               visibleLogs.map((log, index) => (
                 <Box key={`${logs.length}-${index}`}>
                   <Text
-                    dimColor={!log.startsWith("[AI]")}
-                    bold={log.startsWith("[AI]")}
+                    dimColor={!log.startsWith("[AI]") && !log.includes("PROPOSED PLAN")}
+                    bold={log.startsWith("[AI]") || log.includes("PROPOSED PLAN")}
                   >
                     {log}
                   </Text>
@@ -668,22 +650,27 @@ const App: React.FC = () => {
                     setPlannerThreadId,
                     setStreamingPhase,
                     setLoadingLogs,
-                    setClient,
-                    setThreadId,
                   });
 
                   streamingService.startNewSession(value, selectedRepo);
                 }}
               />
             ) : (
-              <CustomInput
-                onSubmit={(value) => {
-                  sendInterruptMessage(value);
-                }}
-              />
+              <Box>
+                <Text>Streaming...</Text>
+              </Box>
             )}
           </Box>
         </Box>
+        
+        {/* Local mode indicator underneath the input bar */}
+        {isLocalMode && (
+          <Box paddingX={2} paddingY={0}>
+            <Text>
+              🏠 Local Mode - Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd()}
+            </Text>
+          </Box>
+        )}
       </Box>
     );
   }

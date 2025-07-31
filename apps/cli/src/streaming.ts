@@ -24,8 +24,6 @@ interface StreamingCallbacks {
   setPlannerThreadId: (id: string) => void; // eslint-disable-line no-unused-vars
   setStreamingPhase: (phase: "streaming" | "awaitingFeedback" | "done") => void; // eslint-disable-line no-unused-vars
   setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
-  setClient: (client: Client) => void; // eslint-disable-line no-unused-vars
-  setThreadId: (id: string) => void; // eslint-disable-line no-unused-vars
 }
 
 export class StreamingService {
@@ -245,10 +243,8 @@ export class StreamingService {
         defaultHeaders: headers,
       });
 
-      this.callbacks.setClient(newClient);
       const thread = await newClient.threads.create();
       const threadId = thread.thread_id;
-      this.callbacks.setThreadId(threadId);
 
       const run = await newClient.runs.create(threadId, MANAGER_GRAPH_ID, {
         input: runInput,
