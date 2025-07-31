@@ -215,7 +215,7 @@ const App: React.FC = () => {
   const [plannerFeedback, setPlannerFeedback] = useState<string | null>(null);
   const [streamingPhase, setStreamingPhase] = useState<
     "streaming" | "awaitingFeedback" | "done"
-  >("awaitingFeedback");
+  >("streaming");
   const [threadId, setThreadId] = useState<string | null>(null);
   const [plannerThreadId, setPlannerThreadId] = useState<string | null>(null);
   const [hasStartedChat, setHasStartedChat] = useState(false);
