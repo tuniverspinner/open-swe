@@ -114,14 +114,6 @@ const conversationHistorySummaryTool =
 type ConversationHistorySummaryToolArgs = z.infer<
   typeof conversationHistorySummaryTool.schema
 >;
-
-const textEditorTool = createTextEditorToolFields(
-  {
-    owner: "dummy",
-    repo: "dummy",
-  },
-  {},
-);
 const requestHumanHelpTool = createRequestHumanHelpToolFields();
 type RequestHumanHelpToolArgs = z.infer<typeof requestHumanHelpTool.schema>;
 const textEditorTool = createTextEditorToolFields(
