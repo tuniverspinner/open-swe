@@ -15,15 +15,18 @@ export const THREAD_SWR_CONFIG = {
 
 /**
  * SWR configuration for initial thread loading
+ * Aggressive for first load only
  */
-export const THREAD_LOADING_SWR_CONFIG = {
-  refreshInterval: 2000,
+export const THREAD_INITIAL_LOADING_SWR_CONFIG = {
+  refreshInterval: 1000,
   revalidateOnFocus: true,
   revalidateOnReconnect: true,
-  errorRetryCount: 8,
-  errorRetryInterval: 500,
-  dedupingInterval: 500,
+  errorRetryCount: 10,
+  errorRetryInterval: 100,
+  dedupingInterval: 100,
 } as const;
+
+
 
 /**
  * SWR configuration for thread status polling
