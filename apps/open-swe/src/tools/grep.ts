@@ -5,7 +5,7 @@ import { createLogger, LogLevel } from "../utils/logger.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
-import { isLocalMode, getLocalWorkingDirectory } from "../utils/local-mode.js";
+import { isLocalMode, getLocalWorkingDirectory } from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
 import {
   createGrepToolFields,

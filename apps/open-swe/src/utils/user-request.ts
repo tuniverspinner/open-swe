@@ -5,7 +5,7 @@ import {
 } from "@langchain/core/messages";
 import { getMessageContentString } from "@open-swe/shared/messages";
 import { extractContentWithoutDetailsFromIssueBody } from "./github/issue-messages.js";
-import { isLocalMode } from "./local-mode.js";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 
 // TODO: Might want a better way of doing this.

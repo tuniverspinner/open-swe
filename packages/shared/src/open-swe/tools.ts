@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { TargetRepository, GraphConfig } from "./types.js";
 import { getRepoAbsolutePath } from "../git.js";
-import { TIMEOUT_SEC, LOCAL_MODE_HEADER } from "../constants.js";
+import { TIMEOUT_SEC } from "../constants.js";
+import { isLocalMode, getLocalWorkingDirectory } from "./local-mode.js";
 
 export function createApplyPatchToolFields(targetRepository: TargetRepository) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
@@ -550,16 +551,7 @@ export function createViewToolFields(
   targetRepository: TargetRepository,
   config?: GraphConfig,
 ) {
-  // Local mode utility function (duplicated here since shared package doesn't have access to local-mode)
-  function isLocalMode(config?: GraphConfig): boolean {
-    return (config?.configurable as any)?.[LOCAL_MODE_HEADER] === "true";
-  }
-
-  function getLocalWorkingDirectory(): string {
-    return process.cwd();
-  }
-
-  const repoRoot = isLocalMode(config)
+  const repoRoot = config && isLocalMode(config)
     ? getLocalWorkingDirectory()
     : getRepoAbsolutePath(targetRepository);
   const viewSchema = z.object({

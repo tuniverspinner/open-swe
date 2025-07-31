@@ -4,7 +4,7 @@ import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { createShellToolFields } from "@open-swe/shared/open-swe/tools";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
-import { isLocalMode, getLocalWorkingDirectory } from "../utils/local-mode.js";
+import { isLocalMode, getLocalWorkingDirectory } from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
 
 const DEFAULT_ENV = {

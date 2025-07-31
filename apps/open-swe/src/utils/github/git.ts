@@ -20,7 +20,7 @@ import { addTaskPlanToIssue } from "./issue-task.js";
 import { DEFAULT_EXCLUDED_PATTERNS } from "./constants.js";
 import { escapeRegExp } from "../string-utils.js";
 import { getLocalShellExecutor } from "../local-shell-executor.js";
-import { getLocalWorkingDirectory, isLocalMode } from "../local-mode.js";
+import { getLocalWorkingDirectory, isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 
 const logger = createLogger(LogLevel.INFO, "GitHub-Git");
 

@@ -2,7 +2,7 @@ import { CustomRules } from "@open-swe/shared/open-swe/types";
 import { Sandbox } from "@daytonaio/sdk";
 import { createLogger, LogLevel } from "./logger.js";
 import { getSandboxErrorFields } from "./sandbox-error-fields.js";
-import { isLocalMode, getLocalWorkingDirectory } from "./local-mode.js";
+import { isLocalMode, getLocalWorkingDirectory } from "@open-swe/shared/open-swe/local-mode";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";

@@ -8,7 +8,7 @@ import { handleViewCommand } from "./handlers.js";
 import {
   isLocalMode,
   getLocalWorkingDirectory,
-} from "../../utils/local-mode.js";
+} from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "../../utils/local-shell-executor.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 
