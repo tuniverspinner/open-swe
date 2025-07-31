@@ -3,13 +3,13 @@ import React, { useState, useEffect } from "react";
 import { render, Box, Text, useInput } from "ink";
 
 // Handle graceful exit on Ctrl+C and Ctrl+K
-process.on('SIGINT', () => {
-  console.log('\n👋 Goodbye!');
+process.on("SIGINT", () => {
+  console.log("\n👋 Goodbye!");
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
-  console.log('\n👋 Goodbye!');
+process.on("SIGTERM", () => {
+  console.log("\n👋 Goodbye!");
   process.exit(0);
 });
 import {
@@ -89,13 +89,13 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
     if (isSubmitted) return;
-    
+
     // Handle Ctrl+K for exit
-    if (key.ctrl && inputChar.toLowerCase() === 'k') {
-      console.log('\n👋 Goodbye!');
+    if (key.ctrl && inputChar.toLowerCase() === "k") {
+      console.log("\n👋 Goodbye!");
       process.exit(0);
     }
-    
+
     if (key.return) {
       if (input.trim()) {
         // Only submit if there's actual content
@@ -161,13 +161,13 @@ const RepoSearchSelect: React.FC<{
 
   useInput((input: string, key: { [key: string]: any }) => {
     if (isMessage) return;
-    
+
     // Handle Ctrl+K for exit
-    if (key.ctrl && input.toLowerCase() === 'k') {
-      console.log('\n👋 Goodbye!');
+    if (key.ctrl && input.toLowerCase() === "k") {
+      console.log("\n👋 Goodbye!");
       process.exit(0);
     }
-    
+
     if (key.return) {
       if (shown.length > 0) {
         setIsMessage(true);
@@ -239,8 +239,6 @@ const App: React.FC = () => {
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
-
-
 
   // On mount, check for existing token
   useEffect(() => {
@@ -316,11 +314,11 @@ const App: React.FC = () => {
   useInput((input: string, key: { [key: string]: any }) => {
     if (authPrompt === null && !isLoggedIn) {
       // Handle Ctrl+K for exit
-      if (key.ctrl && input.toLowerCase() === 'k') {
-        console.log('\n👋 Goodbye!');
+      if (key.ctrl && input.toLowerCase() === "k") {
+        console.log("\n👋 Goodbye!");
         process.exit(0);
       }
-      
+
       if (key.return) {
         if (authInput.toLowerCase() === "y") {
           setAuthPrompt(true);
@@ -390,8 +388,8 @@ const App: React.FC = () => {
       if (streamingPhase !== "awaitingFeedback") return;
 
       // Handle Ctrl+K for exit
-      if (key.ctrl && inputChar.toLowerCase() === 'k') {
-        console.log('\n👋 Goodbye!');
+      if (key.ctrl && inputChar.toLowerCase() === "k") {
+        console.log("\n👋 Goodbye!");
         process.exit(0);
       }
 
@@ -593,8 +591,12 @@ const App: React.FC = () => {
               visibleLogs.map((log, index) => (
                 <Box key={`${logs.length}-${index}`}>
                   <Text
-                    dimColor={!log.startsWith("[AI]") && !log.includes("PROPOSED PLAN")}
-                    bold={log.startsWith("[AI]") || log.includes("PROPOSED PLAN")}
+                    dimColor={
+                      !log.startsWith("[AI]") && !log.includes("PROPOSED PLAN")
+                    }
+                    bold={
+                      log.startsWith("[AI]") || log.includes("PROPOSED PLAN")
+                    }
                   >
                     {log}
                   </Text>
@@ -662,12 +664,13 @@ const App: React.FC = () => {
             )}
           </Box>
         </Box>
-        
+
         {/* Local mode indicator underneath the input bar */}
         {isLocalMode && (
           <Box paddingX={2} paddingY={0}>
             <Text>
-              🏠 Local Mode - Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd()}
+              🏠 Local Mode - Working on{" "}
+              {process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd()}
             </Text>
           </Box>
         )}
