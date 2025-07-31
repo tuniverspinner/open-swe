@@ -227,7 +227,7 @@ export function createTextEditorTool(
         };
       }
     },
-    createTextEditorToolFields(state.targetRepository),
+    createTextEditorToolFields(state.targetRepository, config),
   );
 
   return textEditorTool;

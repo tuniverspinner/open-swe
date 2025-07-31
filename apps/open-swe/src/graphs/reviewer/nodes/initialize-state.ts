@@ -146,7 +146,7 @@ export async function initializeState(
   state: ReviewerGraphState,
   config: GraphConfig,
 ): Promise<ReviewerGraphUpdate> {
-  const repoRoot = getRepoAbsolutePath(state.targetRepository);
+  const repoRoot = getRepoAbsolutePath(state.targetRepository, config);
   logger.info("Initializing state for reviewer");
   // get the base branch name, then get the changed files
   const { sandbox, codebaseTree, dependenciesInstalled } =
