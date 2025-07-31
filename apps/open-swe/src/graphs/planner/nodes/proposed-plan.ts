@@ -39,12 +39,8 @@ import {
 } from "@open-swe/shared/open-swe/custom-node-events";
 import { getDefaultHeaders } from "../../../utils/default-headers.js";
 import { getCustomConfigurableFields } from "../../../utils/config.js";
-import {
-  createIssueComment,
-  getIssueComments,
-  updateIssueComment,
-} from "../../../utils/github/api.js";
 import { isLocalMode } from "../../../utils/local-mode.js";
+import {
   postGitHubIssueComment,
   cleanTaskItems,
 } from "../../../utils/github/plan.js";
