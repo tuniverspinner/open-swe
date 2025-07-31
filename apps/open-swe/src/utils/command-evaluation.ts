@@ -307,7 +307,7 @@ export async function filterUnsafeCommands(
 
   // Log unsafe commands that are being filtered out
   if (evaluationResult.unsafeCommands.length > 0) {
-    evaluationResult.unsafeCommands.forEach((evaluation, index) => {
+    evaluationResult.unsafeCommands.forEach((evaluation) => {
       logger.warn(`Filtering out UNSAFE command:`, {
         command: evaluation.commandDescription,
         reasoning: evaluation.reasoning,
@@ -318,7 +318,7 @@ export async function filterUnsafeCommands(
 
   // Log write commands for awareness (but don't filter them out)
   if (evaluationResult.writeCommands.length > 0) {
-    evaluationResult.writeCommands.forEach((evaluation, index) => {
+    evaluationResult.writeCommands.forEach((evaluation) => {
       logger.info(`Write command detected (will run if safe):`, {
         command: evaluation.commandDescription,
         isSafe: evaluation.isSafe,
