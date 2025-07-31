@@ -422,10 +422,16 @@ const App: React.FC = () => {
     return (
       <Box flexDirection="row" alignItems="center" gap={2}>
         <Text>Plan feedback: </Text>
-        <Text color={selectedOption === "approve" ? "black" : "white"} bold={selectedOption === "approve"}>
+        <Text
+          color={selectedOption === "approve" ? "black" : "white"}
+          bold={selectedOption === "approve"}
+        >
           {selectedOption === "approve" ? "▶ " : "  "}Approve
         </Text>
-        <Text color={selectedOption === "deny" ? "black" : "white"} bold={selectedOption === "deny"}>
+        <Text
+          color={selectedOption === "deny" ? "black" : "white"}
+          bold={selectedOption === "deny"}
+        >
           {selectedOption === "deny" ? "▶ " : "  "}Deny
         </Text>
         <Text dimColor>(Use ←/→ to select, Enter to confirm)</Text>
