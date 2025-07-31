@@ -106,7 +106,7 @@ export async function getSandboxWithErrorHandling(
     return {
       sandbox: mockSandbox,
       codebaseTree: null,
-      dependenciesInstalled: false,
+      dependenciesInstalled: null,
     };
   }
   try {

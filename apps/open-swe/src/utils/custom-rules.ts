@@ -164,7 +164,7 @@ export async function getCustomRules(
   return undefined;
 }
 
-/**Add a comment on lines R168 to R201Add diff commentMarkdown input: edit mode selected.WritePreviewAdd a suggestionHeadingBoldItalicQuoteCodeLinkUnordered listNumbered listTask listMentionReferenceSaved repliesAdd FilesPaste, drop, or click to add filesCancelCommentStart a reviewReturn to code
+/**
  * Local version of getCustomRules using Node.js fs
  */
 async function getCustomRulesLocal(
