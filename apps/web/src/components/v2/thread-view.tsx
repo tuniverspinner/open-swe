@@ -403,12 +403,14 @@ export function ThreadView({
                             {plannerSession ? (
                               <div className="scrollbar-pretty-auto overflow-y-auto px-2">
                                 <ActionsRenderer<PlannerGraphState>
+                                  taskPlan={programmerTaskPlan}
                                   runId={plannerSession.runId}
                                   customNodeEvents={customPlannerNodeEvents}
                                   setCustomNodeEvents={
                                     setCustomPlannerNodeEvents
                                   }
                                   stream={plannerStream}
+                                  threadId={plannerSession.threadId}
                                 />
                               </div>
                             ) : (
@@ -454,6 +456,40 @@ export function ThreadView({
                                     setCustomProgrammerNodeEvents
                                   }
                                   stream={programmerStream}
+                                  threadId={programmerSession.threadId}
+                                  modifyRunId={async (runId) => {
+                                    setProgrammerSession((prev) => {
+                                      if (!prev) {
+                                        return {
+                                          threadId: programmerSession.threadId,
+                                          runId,
+                                        };
+                                      }
+                                      return {
+                                        ...prev,
+                                        runId,
+                                      };
+                                    });
+                                    if (plannerSession?.threadId) {
+                                      try {
+                                        // Attempt to update the planner session with the new run ID of the programmer.
+                                        await programmerStream.client.threads.updateState(
+                                          plannerSession?.threadId,
+                                          {
+                                            values: {
+                                              programmerSession: {
+                                                threadId:
+                                                  programmerSession.threadId,
+                                                runId,
+                                              },
+                                            },
+                                          },
+                                        );
+                                      } catch {
+                                        // no-op
+                                      }
+                                    }
+                                  }}
                                 />
                               </div>
                             ) : (
