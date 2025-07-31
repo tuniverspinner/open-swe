@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import React, { useState, useEffect, useCallback } from "react";
 import { render, Box, Text, useInput } from "ink";
+import { Command } from "commander";
 import {
   startAuthServer,
   getAccessToken,
@@ -19,41 +20,24 @@ import { StreamingService } from "./streaming.js";
 const GITHUB_LOGIN_URL =
   process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
 
+// Set up Commander.js
+const program = new Command();
+
+program
+  .name("open-swe")
+  .description("Open SWE CLI - AI-powered software engineering assistant")
+  .version("0.0.0")
+  .option(
+    "--local",
+    "Work directly on local codebase without GitHub authentication"
+  )
+  .helpOption("-h, --help", "Display help for command")
+  .parse();
+
+const options = program.opts();
+const isLocalMode = options.local;
+
 startAuthServer();
-
-const isLocalMode = process.argv.includes("--local");
-
-// Show usage help
-if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`
-Open SWE CLI
-
-Usage:
-  yarn dev                 # Run with GitHub authentication (default)
-  yarn dev --local         # Run in local mode (no GitHub auth, works on current directory)
-  
-Options:
-  --local                  # Work directly on local codebase without GitHub authentication
-  --help, -h               # Show this help message
-
-Examples:
-  yarn dev --local         # Start CLI to modify files in current directory
-  yarn dev                 # Start CLI with full GitHub integration
-`);
-  process.exit(0);
-}
-
-if (isLocalMode) {
-  // Set environment variable to enable local mode on the server
-  process.env.OPEN_SWE_LOCAL_MODE = "true";
-
-  console.log("🏠 Starting Open SWE CLI in Local Mode");
-  console.log("   Working directory:", process.env.OPEN_SWE_PROJECT_PATH);
-  console.log("   No GitHub authentication required");
-  console.log("");
-} else {
-  startAuthServer();
-}
 
 const LoadingSpinner: React.FC<{ text: string }> = ({ text }) => {
   const [dots, setDots] = useState("");
