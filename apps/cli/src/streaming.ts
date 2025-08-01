@@ -8,6 +8,7 @@ import {
   GITHUB_INSTALLATION_NAME,
   GITHUB_INSTALLATION_ID,
   OPEN_SWE_STREAM_MODE,
+  LOCAL_MODE_HEADER,
 } from "@open-swe/shared/constants";
 import {
   getAccessToken,
@@ -16,8 +17,12 @@ import {
 } from "./auth-server.js";
 import { formatDisplayLog } from "./logger.js";
 import { isAgentInboxInterruptSchema } from "@open-swe/shared/agent-inbox-interrupt";
+import { ManagerGraphUpdate } from "@open-swe/shared/open-swe/manager/types";
+import { HumanMessage } from "@langchain/core/messages";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
+
+type RunInput = ManagerGraphUpdate;
 
 interface StreamingCallbacks {
   setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
@@ -169,17 +174,16 @@ export class StreamingService {
       const isLocalMode = process.env.OPEN_SWE_LOCAL_MODE === "true";
 
       let headers: Record<string, string> = {};
-      let runInput: any;
+      let runInput: RunInput;
 
       if (isLocalMode) {
         // Local mode: no GitHub authentication required
         runInput = {
           messages: [
-            {
+            new HumanMessage({
               id: uuidv4(),
-              type: "human",
-              content: [{ type: "text", text: prompt }],
-            },
+              content: prompt,
+            }),
           ],
           targetRepository: {
             owner: "local",
@@ -190,7 +194,7 @@ export class StreamingService {
         };
 
         headers = {
-          "x-local-mode": "true",
+          [LOCAL_MODE_HEADER]: "true",
         };
       } else {
         // Normal mode: require GitHub authentication
@@ -217,11 +221,10 @@ export class StreamingService {
 
         runInput = {
           messages: [
-            {
+            new HumanMessage({
               id: uuidv4(),
-              type: "human",
-              content: [{ type: "text", text: prompt }],
-            },
+              content: prompt,
+            }),
           ],
           targetRepository: {
             owner,

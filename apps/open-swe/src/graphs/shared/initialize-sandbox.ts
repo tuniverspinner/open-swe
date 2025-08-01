@@ -27,7 +27,7 @@ import { withRetry } from "../../utils/retry.js";
 import {
   isLocalMode,
   getLocalWorkingDirectory,
-} from "../../utils/local-mode.js";
+} from "@open-swe/shared/open-swe/local-mode";
 
 const logger = createLogger(LogLevel.INFO, "InitializeSandbox");
 

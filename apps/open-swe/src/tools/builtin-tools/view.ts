@@ -8,7 +8,7 @@ import { handleViewCommand } from "./handlers.js";
 import {
   isLocalMode,
   getLocalWorkingDirectory,
-} from "../../utils/local-mode.js";
+} from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "../../utils/local-shell-executor.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 
@@ -26,7 +26,7 @@ export function createViewTool(
           throw new Error(`Unknown command: ${command}`);
         }
 
-        let workDir;
+        let workDir: string;
         if (isLocalMode(config)) {
           // In local mode, use the local working directory
           workDir = getLocalWorkingDirectory();
@@ -35,7 +35,7 @@ export function createViewTool(
           workDir = getRepoAbsolutePath(state.targetRepository);
         }
 
-        let result;
+        let result: string;
         if (isLocalMode(config)) {
           // Local mode: use LocalShellExecutor for file viewing
           const executor = getLocalShellExecutor(getLocalWorkingDirectory());
@@ -49,13 +49,11 @@ export function createViewTool(
           const filePath = `${workDir}/${localPath}`;
 
           // Use cat command to view file content
-          const response = await executor.executeCommand(
-            `cat "${filePath}"`,
-            workDir,
-            {},
-            TIMEOUT_SEC,
-            true, // localMode
-          );
+          const response = await executor.executeCommand(`cat "${filePath}"`, {
+            workdir: workDir,
+            timeout: TIMEOUT_SEC,
+            localMode: true,
+          });
 
           if (response.exitCode !== 0) {
             throw new Error(`Failed to read file: ${response.result}`);

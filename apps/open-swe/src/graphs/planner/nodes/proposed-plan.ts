@@ -25,6 +25,7 @@ import {
   DO_NOT_RENDER_ID_PREFIX,
   PROGRAMMER_GRAPH_ID,
   OPEN_SWE_STREAM_MODE,
+  LOCAL_MODE_HEADER,
 } from "@open-swe/shared/constants";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import { createLangGraphClient } from "../../../utils/langgraph-client.js";
@@ -43,7 +44,7 @@ import {
   postGitHubIssueComment,
   cleanTaskItems,
 } from "../../../utils/github/plan.js";
-import { isLocalMode } from "../../../utils/local-mode.js";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 
 const logger = createLogger(LogLevel.INFO, "ProposedPlan");
 
@@ -86,16 +87,11 @@ async function startProgrammerRun(input: {
   newMessages?: BaseMessage[];
 }) {
   const { runInput, state, config, newMessages } = input;
-  let langGraphClient;
-  if (isLocalMode(config)) {
-    langGraphClient = createLangGraphClient({
-      defaultHeaders: { "x-local-mode": "true" },
-    });
-  } else {
-    langGraphClient = createLangGraphClient({
-      defaultHeaders: getDefaultHeaders(config),
-    });
-  }
+  const langGraphClient = createLangGraphClient({
+    defaultHeaders: isLocalMode(config)
+      ? { [LOCAL_MODE_HEADER]: "true" }
+      : getDefaultHeaders(config),
+  });
 
   const programmerThreadId = uuidv4();
   // Restart the sandbox.
@@ -122,7 +118,6 @@ async function startProgrammerRun(input: {
         recursion_limit: 400,
         configurable: {
           ...getCustomConfigurableFields(config),
-          ...(isLocalMode(config) && { "x-local-mode": "true" }),
         },
       },
       ifNotExists: "create",
@@ -232,7 +227,7 @@ export async function interruptProposedPlan(
     });
   }
 
-  if (!isLocalMode(config) && state.githubIssueId) {
+  if (!isLocalMode(config)) {
     await addProposedPlanToIssue(
       {
         githubIssueId: state.githubIssueId,

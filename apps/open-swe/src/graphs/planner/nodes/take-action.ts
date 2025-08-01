@@ -7,7 +7,7 @@ import {
 import {
   isLocalMode,
   getLocalWorkingDirectory,
-} from "../../../utils/local-mode.js";
+} from "@open-swe/shared/open-swe/local-mode";
 import {
   createGetURLContentTool,
   createShellTool,
@@ -57,7 +57,7 @@ export async function takeActions(
   const shellTool = createShellTool(state, config);
   const searchTool = createGrepTool(state, config);
   const scratchpadTool = createScratchpadTool("");
-  const getURLContentTool = createGetURLContentTool(state, config);
+  const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
   const mcpTools = await getMcpTools(config);
 
@@ -213,7 +213,9 @@ export async function takeActions(
         changedFiles,
       },
     );
-    await stashAndClearChanges(repoPath, sandbox, config);
+    if (!isLocalMode(config)) {
+      await stashAndClearChanges(repoPath, sandbox);
+    }
 
     // Rewrite the tool call contents to include a changed files warning.
     toolCallResults = toolCallResults.map(

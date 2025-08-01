@@ -20,7 +20,11 @@ import { addTaskPlanToIssue } from "./issue-task.js";
 import { DEFAULT_EXCLUDED_PATTERNS } from "./constants.js";
 import { escapeRegExp } from "../string-utils.js";
 import { getLocalShellExecutor } from "../local-shell-executor.js";
-import { getLocalWorkingDirectory, isLocalMode } from "../local-mode.js";
+import {
+  getLocalWorkingDirectory,
+  isLocalMode,
+} from "@open-swe/shared/open-swe/local-mode";
+import { ExecuteCommandResult } from "../shell-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "GitHub-Git");
 
@@ -45,19 +49,17 @@ async function getValidFilesToCommit(
   sandbox: Sandbox,
   excludePatterns: string[] = DEFAULT_EXCLUDED_PATTERNS,
 ): Promise<string[]> {
-  let gitStatusOutput;
+  let gitStatusOutput: ExecuteResponse | ExecuteCommandResult;
 
   // Check if we're in local mode (sandbox doesn't have process)
   if (!sandbox.process) {
     // Local mode: use LocalShellExecutor
     const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-    gitStatusOutput = await executor.executeCommand(
-      "git status --porcelain",
-      absoluteRepoDir,
-      undefined,
-      TIMEOUT_SEC,
-      true, // localMode
-    );
+    gitStatusOutput = await executor.executeCommand("git status --porcelain", {
+      workdir: absoluteRepoDir,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
   } else {
     // Sandbox mode: use sandbox.process
     gitStatusOutput = await sandbox.process.executeCommand(
@@ -138,19 +140,17 @@ export async function getChangedFilesStatus(
   absoluteRepoDir: string,
   sandbox: Sandbox,
 ): Promise<string[]> {
-  let gitStatusOutput;
+  let gitStatusOutput: ExecuteResponse | ExecuteCommandResult;
 
   // Check if we're in local mode (sandbox doesn't have process)
   if (!sandbox.process) {
     // Local mode: use LocalShellExecutor
     const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-    gitStatusOutput = await executor.executeCommand(
-      "git status --porcelain",
-      absoluteRepoDir,
-      undefined,
-      TIMEOUT_SEC,
-      true, // localMode
-    );
+    gitStatusOutput = await executor.executeCommand("git status --porcelain", {
+      workdir: absoluteRepoDir,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
   } else {
     // Sandbox mode: use sandbox.process
     gitStatusOutput = await sandbox.process.executeCommand(
@@ -176,31 +176,26 @@ export async function stashAndClearChanges(
   sandbox: Sandbox | null,
   config?: GraphConfig,
 ): Promise<ExecuteResponse | false> {
-  try {
-    let gitStashOutput: any; // Use any to handle type incompatibility
+  // In local mode, we don't want to stash and clear changes
+  if (config && isLocalMode(config)) {
+    logger.info("Skipping stash and clear changes in local mode");
+    return {
+      exitCode: 0,
+      result: "Skipped stash and clear in local mode",
+    };
+  }
 
-    if (config && isLocalMode(config)) {
-      // Local mode: use LocalShellExecutor
-      const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-      gitStashOutput = await executor.executeCommand(
-        "git add -A && git stash && git reset --hard",
-        absoluteRepoDir,
-        {},
-        TIMEOUT_SEC,
-        true, // localMode
-      );
-    } else {
-      // Sandbox mode: use existing sandbox logic
-      if (!sandbox) {
-        throw new Error("Sandbox is required in non-local mode");
-      }
-      gitStashOutput = await sandbox.process.executeCommand(
-        "git add -A && git stash && git reset --hard",
-        absoluteRepoDir,
-        undefined,
-        TIMEOUT_SEC,
-      );
+  try {
+    // Sandbox mode: use existing sandbox logic
+    if (!sandbox) {
+      throw new Error("Sandbox is required in non-local mode");
     }
+    const gitStashOutput = await sandbox.process.executeCommand(
+      "git add -A && git stash && git reset --hard",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
 
     if (gitStashOutput.exitCode !== 0) {
       logger.error(`Failed to stash and clear changes`, {
@@ -209,29 +204,17 @@ export async function stashAndClearChanges(
     }
     return gitStashOutput;
   } catch (e) {
-    if (config && isLocalMode(config)) {
-      // Local mode error handling
-      logger.error(`Failed to stash and clear changes in local mode`, {
-        ...(e instanceof Error && {
-          name: e.name,
-          message: e.message,
-          stack: e.stack,
-        }),
-      });
-      throw e;
-    } else {
-      // Sandbox mode error handling
-      const errorFields = getSandboxErrorFields(e);
-      logger.error(`Failed to stash and clear changes`, {
-        ...(errorFields && { errorFields }),
-        ...(e instanceof Error && {
-          name: e.name,
-          message: e.message,
-          stack: e.stack,
-        }),
-      });
-      return errorFields ?? false;
-    }
+    // Sandbox mode error handling
+    const errorFields = getSandboxErrorFields(e);
+    logger.error(`Failed to stash and clear changes`, {
+      ...(errorFields && { errorFields }),
+      ...(e instanceof Error && {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      }),
+    });
+    return errorFields ?? false;
   }
 }
 

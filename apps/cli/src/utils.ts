@@ -7,6 +7,7 @@ import { encryptSecret } from "@open-swe/shared/crypto";
 import {
   OPEN_SWE_STREAM_MODE,
   PLANNER_GRAPH_ID,
+  LOCAL_MODE_HEADER,
 } from "@open-swe/shared/constants";
 import {
   getAccessToken,
@@ -48,7 +49,7 @@ export async function submitFeedback({
       client = new Client({
         apiUrl: LANGGRAPH_URL,
         defaultHeaders: {
-          "x-local-mode": "true", // Signal to server this is local mode
+          [LOCAL_MODE_HEADER]: "true", // Signal to server this is local mode
         },
       });
     } else {
@@ -102,7 +103,7 @@ export async function submitFeedback({
       ...(isLocalMode && {
         config: {
           configurable: {
-            "x-local-mode": "true",
+            [LOCAL_MODE_HEADER]: "true",
           },
         },
       }),

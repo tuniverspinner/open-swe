@@ -1,9 +1,7 @@
-import { exec, spawn } from "child_process";
-import { promisify } from "util";
+import { spawn } from "child_process";
 import { createLogger, LogLevel } from "./logger.js";
 
 const logger = createLogger(LogLevel.INFO, "LocalShellExecutor");
-const execAsync = promisify(exec);
 
 export interface ExecuteResponse {
   exitCode: number;
@@ -24,11 +22,14 @@ export class LocalShellExecutor {
 
   async executeCommand(
     command: string,
-    workdir?: string,
-    env?: Record<string, string>,
-    timeout: number = 30,
-    localMode: boolean = false,
+    args?: {
+      workdir?: string;
+      env?: Record<string, string>;
+      timeout?: number;
+      localMode?: boolean;
+    },
   ): Promise<ExecuteResponse> {
+    const { workdir, env, timeout = 30, localMode = false } = args || {};
     const cwd = workdir || this.workingDirectory;
     const environment = { ...process.env, ...(env || {}) };
 
@@ -64,63 +65,8 @@ export class LocalShellExecutor {
       }
     }
 
-    // Non-local mode: try exec first, fallback to spawn
-    try {
-      const { stdout, stderr } = await execAsync(command, {
-        cwd,
-        env: environment,
-        timeout: timeout * 1000, // Convert to milliseconds
-        maxBuffer: 1024 * 1024 * 10, // 10MB buffer
-        shell: process.env.SHELL || "/bin/bash",
-      });
-
-      return {
-        exitCode: 0,
-        result: stdout,
-        artifacts: {
-          stdout,
-          stderr: stderr || undefined,
-        },
-      };
-    } catch (error: any) {
-      logger.error("Command execution failed with exec, trying spawn", {
-        command,
-        error: error.message,
-      });
-
-      // Fallback to spawn if exec fails
-      try {
-        const cleanEnv = Object.fromEntries(
-          Object.entries(environment).filter(([_, v]) => v !== undefined),
-        ) as Record<string, string>;
-        const result = await this.executeWithSpawn(
-          command,
-          cwd,
-          cleanEnv,
-          timeout,
-        );
-
-        logger.error("Spawn fallback succeeded", {
-          command,
-          result,
-        });
-        return result;
-      } catch (spawnError: any) {
-        logger.error("Spawn fallback also failed", {
-          command,
-          error: spawnError.message,
-        });
-
-        return {
-          exitCode: error.code || 1,
-          result: error.stdout || error.message,
-          artifacts: {
-            stdout: error.stdout || "",
-            stderr: error.stderr || error.message,
-          },
-        };
-      }
-    }
+    // Non-local mode: throw error as this executor is for local mode only
+    throw new Error("LocalShellExecutor is only for local mode operations");
   }
 
   private async executeWithSpawn(

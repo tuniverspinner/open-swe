@@ -13,7 +13,7 @@ import {
 import {
   isLocalMode,
   getLocalWorkingDirectory,
-} from "../../utils/local-mode.js";
+} from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "../../utils/local-shell-executor.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 
@@ -36,7 +36,7 @@ export function createTextEditorTool(
           insert_line,
         } = input;
 
-        let workDir;
+        let workDir: string;
         if (isLocalMode(config)) {
           // In local mode, use the local working directory
           workDir = getLocalWorkingDirectory();
@@ -64,10 +64,11 @@ export function createTextEditorTool(
               // Use cat command to view file content
               const viewResponse = await executor.executeCommand(
                 `cat "${filePath}"`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (viewResponse.exitCode !== 0) {
                 throw new Error(`Failed to read file: ${viewResponse.result}`);
@@ -93,10 +94,11 @@ export function createTextEditorTool(
 
               const sedResponse = await executor.executeCommand(
                 `sed -i 's/${escapedOldStr}/${escapedNewStr}/g' "${filePath}"`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (sedResponse.exitCode !== 0) {
                 throw new Error(
@@ -112,11 +114,12 @@ export function createTextEditorTool(
               }
               // Create file with content using a more robust approach
               const createResponse = await executor.executeCommand(
-                `cat > "${filePath}" << 'EOF'\n${file_text}\nEOF`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                `echo '${file_text}' > "${filePath}"`,
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (createResponse.exitCode !== 0) {
                 throw new Error(
@@ -140,10 +143,11 @@ export function createTextEditorTool(
 
               const insertResponse = await executor.executeCommand(
                 `sed -i '${insert_line}i\\${escapedNewStr}' "${filePath}"`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (insertResponse.exitCode !== 0) {
                 throw new Error(

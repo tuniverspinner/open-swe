@@ -9,7 +9,10 @@ import { createLogger, LogLevel } from "./logger.js";
 import path from "node:path";
 import { SANDBOX_ROOT_DIR, TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { getSandboxErrorFields } from "./sandbox-error-fields.js";
-import { isLocalMode, getLocalWorkingDirectory } from "./local-mode.js";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "./local-shell-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "Tree");
@@ -100,13 +103,11 @@ async function getCodebaseTreeLocal(): Promise<string> {
     const executor = getLocalShellExecutor(workingDirectory);
     const command = `git ls-files | tree --fromfile -L 3`;
 
-    const response = await executor.executeCommand(
-      command,
-      workingDirectory,
-      {},
-      TIMEOUT_SEC,
-      true, // localMode
-    );
+    const response = await executor.executeCommand(command, {
+      workdir: workingDirectory,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
 
     if (response.exitCode !== 0) {
       logger.error("Failed to generate tree in local mode", {

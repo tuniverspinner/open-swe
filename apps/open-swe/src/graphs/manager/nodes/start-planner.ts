@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
-import { isLocalMode } from "../../../utils/local-mode.js";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 import {
   ManagerGraphState,
   ManagerGraphUpdate,
@@ -9,6 +9,7 @@ import { createLangGraphClient } from "../../../utils/langgraph-client.js";
 import {
   OPEN_SWE_STREAM_MODE,
   PLANNER_GRAPH_ID,
+  LOCAL_MODE_HEADER,
 } from "@open-swe/shared/constants";
 import { createLogger, LogLevel } from "../../../utils/logger.js";
 import { getBranchName } from "../../../utils/github/git.js";
@@ -42,7 +43,7 @@ export async function startPlanner(
       // In local mode, create client with local mode headers
       langGraphClient = createLangGraphClient({
         defaultHeaders: {
-          "x-local-mode": "true",
+          [LOCAL_MODE_HEADER]: "true",
         },
       });
     } else {
@@ -73,7 +74,7 @@ export async function startPlanner(
           configurable: {
             ...getCustomConfigurableFields(config),
             ...(isLocalMode(config) && {
-              "x-local-mode": "true",
+              [LOCAL_MODE_HEADER]: "true",
             }),
           },
         },
