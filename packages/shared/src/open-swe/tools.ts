@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TargetRepository, GraphConfig } from "./types.js";
 import { getRepoAbsolutePath } from "../git.js";
 import { TIMEOUT_SEC } from "../constants.js";
-import { isLocalMode } from "./local-mode.js";
+import { isLocalMode, getLocalWorkingDirectory } from "./local-mode.js";
 
 export function createApplyPatchToolFields(targetRepository: TargetRepository) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
@@ -496,10 +496,6 @@ export function createReviewStartedToolFields() {
   };
 }
 
-function getLocalWorkingDirectory(): string {
-  return process.cwd();
-}
-
 export function createTextEditorToolFields(
   targetRepository: TargetRepository,
   config: GraphConfig,
@@ -507,6 +503,7 @@ export function createTextEditorToolFields(
   const repoRoot = isLocalMode(config)
     ? getLocalWorkingDirectory()
     : getRepoAbsolutePath(targetRepository);
+
   const textEditorToolSchema = z.object({
     command: z
       .enum(["view", "str_replace", "create", "insert"])
