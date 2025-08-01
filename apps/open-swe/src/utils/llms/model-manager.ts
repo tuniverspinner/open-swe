@@ -8,6 +8,7 @@ import { Task } from "./constants.js";
 import { isAllowedUser } from "@open-swe/shared/github/allowed-users";
 import { decryptSecret } from "@open-swe/shared/crypto";
 import { TASK_TO_CONFIG_DEFAULTS_MAP } from "./constants.js";
+import { API_KEY_REQUIRED_MESSAGE } from "@open-swe/shared/constants";
 
 const logger = createLogger(LogLevel.INFO, "ModelManager");
 
@@ -41,9 +42,9 @@ export enum CircuitState {
 }
 
 export const PROVIDER_FALLBACK_ORDER = [
-  "google-genai",
-  "anthropic",
   "openai",
+  "anthropic",
+  "google-genai",
 ] as const;
 export type Provider = (typeof PROVIDER_FALLBACK_ORDER)[number];
 
@@ -105,12 +106,55 @@ export class ModelManager {
     const model = await this.initializeModel(baseConfig, graphConfig);
     return model;
   }
+
+  private getUserApiKey(
+    graphConfig: GraphConfig,
+    provider: Provider,
+  ): string | null {
+    const userLogin = (graphConfig.configurable as any)?.langgraph_auth_user
+      ?.display_name;
+    const secretsEncryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+
+    if (!secretsEncryptionKey) {
+      throw new Error(
+        "SECRETS_ENCRYPTION_KEY environment variable is required",
+      );
+    }
+    if (!userLogin) {
+      throw new Error("User login not found in config");
+    }
+
+    // If the user is allowed, we can return early
+    if (isAllowedUser(userLogin)) {
+      return null;
+    }
+
+    const apiKeys = graphConfig.configurable?.apiKeys;
+    if (!apiKeys) {
+      throw new Error(API_KEY_REQUIRED_MESSAGE);
+    }
+
+    const missingProviderKeyMessage = `No API key found for provider: ${provider}. Please add one in the settings page.`;
+
+    const providerApiKey = providerToApiKey(provider, apiKeys);
+    if (!providerApiKey) {
+      throw new Error(missingProviderKeyMessage);
+    }
+
+    const apiKey = decryptSecret(providerApiKey, secretsEncryptionKey);
+    if (!apiKey) {
+      throw new Error(missingProviderKeyMessage);
+    }
+
+    return apiKey;
+  }
+
   /**
    * Initialize the model instance
    */
   public async initializeModel(
     config: ModelLoadConfig,
-    graphConfig?: GraphConfig,
+    graphConfig: GraphConfig,
   ) {
     const {
       provider,
@@ -130,42 +174,7 @@ export class ModelManager {
       finalMaxTokens = finalMaxTokens > 8_192 ? 8_192 : finalMaxTokens;
     }
 
-    let apiKey: string | null = null;
-    if (graphConfig) {
-      const userLogin = (graphConfig.configurable as any)?.langgraph_auth_user
-        ?.display_name;
-      const secretsEncryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
-      if (!secretsEncryptionKey) {
-        throw new Error(
-          "SECRETS_ENCRYPTION_KEY environment variable is required",
-        );
-      }
-      if (!userLogin) {
-        throw new Error("User login not found in config");
-      }
-      const apiKeys = graphConfig.configurable?.apiKeys;
-      if (!isAllowedUser(userLogin)) {
-        if (!apiKeys) {
-          throw new Error("API keys not found in config");
-        }
-        const providerApiKey = providerToApiKey(provider, apiKeys);
-        if (!providerApiKey) {
-          throw new Error(
-            "No API key found for provider: " +
-              provider +
-              ". Please add one in the settings page.",
-          );
-        }
-        apiKey = decryptSecret(providerApiKey, secretsEncryptionKey);
-        if (!apiKey) {
-          throw new Error(
-            "No API key found for provider: " +
-              provider +
-              ". Please add one in the settings page.",
-          );
-        }
-      }
-    }
+    const apiKey = this.getUserApiKey(graphConfig, provider);
 
     const modelOptions: InitChatModelArgs = {
       modelProvider: provider,
@@ -229,10 +238,21 @@ export class ModelManager {
         (!selectedModelConfig ||
           fallbackModel.modelName !== selectedModelConfig.modelName)
       ) {
+        // Check if fallback model is a thinking model
+        const isThinkingModel =
+          (provider === "openai" && fallbackModel.modelName.startsWith("o")) ||
+          fallbackModel.modelName.includes("extended-thinking");
+
         const fallbackConfig = {
           ...fallbackModel,
-          temperature: baseConfig.temperature,
+          temperature: isThinkingModel ? undefined : baseConfig.temperature,
           maxTokens: baseConfig.maxTokens,
+          ...(isThinkingModel
+            ? {
+                thinkingModel: true,
+                thinkingBudgetTokens: THINKING_BUDGET_TOKENS,
+              }
+            : {}),
         };
         configs.push(fallbackConfig);
       }
@@ -339,9 +359,9 @@ export class ModelManager {
         [Task.SUMMARIZER]: "gemini-2.5-pro",
       },
       openai: {
-        [Task.PLANNER]: "gpt-4.1",
+        [Task.PLANNER]: "o3",
         [Task.PROGRAMMER]: "gpt-4.1",
-        [Task.REVIEWER]: "gpt-4.1",
+        [Task.REVIEWER]: "o3",
         [Task.ROUTER]: "gpt-4o-mini",
         [Task.SUMMARIZER]: "gpt-4.1-mini",
       },
