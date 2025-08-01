@@ -1,6 +1,9 @@
 import { SANDBOX_ROOT_DIR } from "./constants.js";
 import { TargetRepository, GraphConfig } from "./open-swe/types.js";
-import { isLocalMode, getLocalWorkingDirectory } from "./open-swe/local-mode.js";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "./open-swe/local-mode.js";
 
 export function getRepoAbsolutePath(
   targetRepository: TargetRepository,

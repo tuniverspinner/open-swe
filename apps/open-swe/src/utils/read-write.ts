@@ -2,11 +2,13 @@ import { Sandbox } from "@daytonaio/sdk";
 import { createLogger, LogLevel } from "./logger.js";
 import { getSandboxErrorFields } from "./sandbox-error-fields.js";
 import { traceable } from "langsmith/traceable";
-import { isLocalMode, getLocalWorkingDirectory } from "@open-swe/shared/open-swe/local-mode";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "@open-swe/shared/open-swe/local-mode";
 import { promises as fs } from "fs";
 import { join, isAbsolute } from "path";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
-
 
 const logger = createLogger(LogLevel.INFO, "ReadWriteUtil");
 

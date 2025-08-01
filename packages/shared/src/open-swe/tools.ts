@@ -551,9 +551,10 @@ export function createViewToolFields(
   targetRepository: TargetRepository,
   config?: GraphConfig,
 ) {
-  const repoRoot = config && isLocalMode(config)
-    ? getLocalWorkingDirectory()
-    : getRepoAbsolutePath(targetRepository);
+  const repoRoot =
+    config && isLocalMode(config)
+      ? getLocalWorkingDirectory()
+      : getRepoAbsolutePath(targetRepository);
   const viewSchema = z.object({
     command: z.enum(["view"]).describe("The command to execute: view"),
     path: z

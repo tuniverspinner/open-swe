@@ -35,7 +35,7 @@ import { getPlansFromIssue } from "../../../../utils/github/issue-task.js";
 import { HumanResponse } from "@langchain/langgraph/prebuilt";
 import {
   OPEN_SWE_STREAM_MODE,
-  PLANNER_GRAPH_ID
+  PLANNER_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { createLogger, LogLevel } from "../../../../utils/logger.js";
 import { createClassificationPromptAndToolSchema } from "./utils.js";

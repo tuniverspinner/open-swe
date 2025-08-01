@@ -6,7 +6,10 @@ import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { createInstallDependenciesToolFields } from "@open-swe/shared/open-swe/tools";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
-import { isLocalMode, getLocalWorkingDirectory } from "@open-swe/shared/open-swe/local-mode";
+import {
+  isLocalMode,
+  getLocalWorkingDirectory,
+} from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "InstallDependenciesTool");
