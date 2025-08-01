@@ -39,13 +39,12 @@ export function createInstallDependenciesTool(
         if (isLocalMode(config)) {
           // Local mode: use LocalShellExecutor
           const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-          response = await executor.executeCommand(
-            command,
-            workdir,
-            DEFAULT_ENV,
-            TIMEOUT_SEC * 2.5, // add a 2.5 min timeout
-            true, // localMode
-          );
+          response = await executor.executeCommand(command, {
+            workdir: workdir,
+            env: DEFAULT_ENV,
+            timeout: TIMEOUT_SEC * 2.5, // add a 2.5 min timeout
+            localMode: true,
+          });
         } else {
           // Sandbox mode: use existing sandbox logic
           const sandbox = await getSandboxSessionOrThrow(input);
