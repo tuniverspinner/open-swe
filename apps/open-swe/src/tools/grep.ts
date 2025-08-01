@@ -14,6 +14,7 @@ import {
   createGrepToolFields,
   formatGrepCommand,
 } from "@open-swe/shared/open-swe/tools";
+import { Sandbox } from "@daytonaio/sdk";
 
 const logger = createLogger(LogLevel.INFO, "GrepTool");
 
@@ -41,7 +42,7 @@ export function createGrepTool(
         });
 
         // Get sandbox if needed for sandbox mode
-        let sandbox;
+        let sandbox: Sandbox | undefined;
         if (!isLocalMode(config)) {
           sandbox = await getSandboxSessionOrThrow(input);
         }

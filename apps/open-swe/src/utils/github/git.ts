@@ -24,6 +24,7 @@ import {
   getLocalWorkingDirectory,
   isLocalMode,
 } from "@open-swe/shared/open-swe/local-mode";
+import { ExecuteCommandResult } from "../shell-executor.js";
 
 const logger = createLogger(LogLevel.INFO, "GitHub-Git");
 
@@ -48,7 +49,7 @@ async function getValidFilesToCommit(
   sandbox: Sandbox,
   excludePatterns: string[] = DEFAULT_EXCLUDED_PATTERNS,
 ): Promise<string[]> {
-  let gitStatusOutput;
+  let gitStatusOutput: ExecuteResponse | ExecuteCommandResult;
 
   // Check if we're in local mode (sandbox doesn't have process)
   if (!sandbox.process) {
@@ -139,7 +140,7 @@ export async function getChangedFilesStatus(
   absoluteRepoDir: string,
   sandbox: Sandbox,
 ): Promise<string[]> {
-  let gitStatusOutput;
+  let gitStatusOutput: ExecuteResponse | ExecuteCommandResult;
 
   // Check if we're in local mode (sandbox doesn't have process)
   if (!sandbox.process) {

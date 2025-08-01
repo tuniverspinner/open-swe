@@ -6,6 +6,7 @@ import { createShellToolFields } from "@open-swe/shared/open-swe/tools";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
 import { createShellExecutor } from "../utils/shell-executor.js";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { Sandbox } from "@daytonaio/sdk";
 
 export function createShellTool(
   state: Pick<GraphState, "sandboxSessionId" | "targetRepository">,
@@ -17,7 +18,7 @@ export function createShellTool(
         const { command, workdir, timeout } = input;
 
         // Get sandbox if needed for sandbox mode
-        let sandbox;
+        let sandbox: Sandbox | undefined;
         if (!isLocalMode(config)) {
           sandbox = await getSandboxSessionOrThrow(input);
         }
