@@ -26,7 +26,7 @@ export function createViewTool(
           throw new Error(`Unknown command: ${command}`);
         }
 
-        let workDir;
+        let workDir: string;
         if (isLocalMode(config)) {
           // In local mode, use the local working directory
           workDir = getLocalWorkingDirectory();

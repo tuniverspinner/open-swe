@@ -91,13 +91,12 @@ export class ShellExecutor {
     const executor = getLocalShellExecutor(getLocalWorkingDirectory());
     const localWorkdir = workdir || getLocalWorkingDirectory();
 
-    return await executor.executeCommand(
-      command,
-      localWorkdir,
+    return await executor.executeCommand(command, {
+      workdir: localWorkdir,
       env,
       timeout,
-      true, // localMode
-    );
+      localMode: true,
+    });
   }
 
   /**

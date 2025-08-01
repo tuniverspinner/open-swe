@@ -26,7 +26,7 @@ export function createGrepTool(
       try {
         const command = formatGrepCommand(input as any);
 
-        let repoRoot;
+        let repoRoot: string;
         if (isLocalMode(config)) {
           // In local mode, use the local working directory
           repoRoot = getLocalWorkingDirectory();

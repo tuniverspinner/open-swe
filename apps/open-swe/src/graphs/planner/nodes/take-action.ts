@@ -213,7 +213,9 @@ export async function takeActions(
         changedFiles,
       },
     );
-    await stashAndClearChanges(repoPath, sandbox, config);
+    if (!isLocalMode(config)) {
+      await stashAndClearChanges(repoPath, sandbox);
+    }
 
     // Rewrite the tool call contents to include a changed files warning.
     toolCallResults = toolCallResults.map(

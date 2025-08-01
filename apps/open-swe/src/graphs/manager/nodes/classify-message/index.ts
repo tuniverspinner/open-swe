@@ -4,6 +4,7 @@ import {
   ManagerGraphUpdate,
 } from "@open-swe/shared/open-swe/manager/types";
 import { createLangGraphClient } from "../../../../utils/langgraph-client.js";
+import { DefaultValues } from "@langchain/langgraph-sdk";
 import {
   BaseMessage,
   HumanMessage,
@@ -40,9 +41,11 @@ import {
 import { createLogger, LogLevel } from "../../../../utils/logger.js";
 import { createClassificationPromptAndToolSchema } from "./utils.js";
 import { RequestSource } from "../../../../constants.js";
-import { StreamMode } from "@langchain/langgraph-sdk";
+import { StreamMode, Client } from "@langchain/langgraph-sdk";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
-
+import { Thread } from "@langchain/langgraph-sdk";
+import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
+import { GraphState } from "@open-swe/shared/open-swe/types";
 const logger = createLogger(LogLevel.INFO, "ClassifyMessage");
 
 /**
@@ -60,10 +63,9 @@ export async function classifyMessage(
     throw new Error("No human message found.");
   }
 
-  // In local mode, skip LangGraph client creation since we don't need external API calls
-  let plannerThread: any = undefined;
-  let programmerThread: any = undefined;
-  let langGraphClient: any = undefined;
+  let plannerThread: Thread<PlannerGraphState> | undefined;
+  let programmerThread: Thread<GraphState> | undefined;
+  let langGraphClient: Client | undefined;
 
   if (!isLocalMode(config)) {
     langGraphClient = createLangGraphClient({
@@ -269,6 +271,9 @@ export async function classifyMessage(
           args: "resume planner",
         };
         logger.info("Resuming planner session");
+        if (!langGraphClient) {
+          throw new Error("LangGraph client not initialized");
+        }
         const newPlannerRun = await langGraphClient.runs.create(
           state.plannerSession?.threadId,
           PLANNER_GRAPH_ID,

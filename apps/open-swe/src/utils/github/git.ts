@@ -179,31 +179,26 @@ export async function stashAndClearChanges(
   sandbox: Sandbox | null,
   config?: GraphConfig,
 ): Promise<ExecuteResponse | false> {
-  try {
-    let gitStashOutput: any; // Use any to handle type incompatibility
+  // In local mode, we don't want to stash and clear changes
+  if (config && isLocalMode(config)) {
+    logger.info("Skipping stash and clear changes in local mode");
+    return {
+      exitCode: 0,
+      result: "Skipped stash and clear in local mode",
+    };
+  }
 
-    if (config && isLocalMode(config)) {
-      // Local mode: use LocalShellExecutor
-      const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-      gitStashOutput = await executor.executeCommand(
-        "git add -A && git stash && git reset --hard",
-        absoluteRepoDir,
-        {},
-        TIMEOUT_SEC,
-        true, // localMode
-      );
-    } else {
-      // Sandbox mode: use existing sandbox logic
-      if (!sandbox) {
-        throw new Error("Sandbox is required in non-local mode");
-      }
-      gitStashOutput = await sandbox.process.executeCommand(
-        "git add -A && git stash && git reset --hard",
-        absoluteRepoDir,
-        undefined,
-        TIMEOUT_SEC,
-      );
+  try {
+    // Sandbox mode: use existing sandbox logic
+    if (!sandbox) {
+      throw new Error("Sandbox is required in non-local mode");
     }
+    const gitStashOutput = await sandbox.process.executeCommand(
+      "git add -A && git stash && git reset --hard",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
 
     if (gitStashOutput.exitCode !== 0) {
       logger.error(`Failed to stash and clear changes`, {
@@ -212,29 +207,17 @@ export async function stashAndClearChanges(
     }
     return gitStashOutput;
   } catch (e) {
-    if (config && isLocalMode(config)) {
-      // Local mode error handling
-      logger.error(`Failed to stash and clear changes in local mode`, {
-        ...(e instanceof Error && {
-          name: e.name,
-          message: e.message,
-          stack: e.stack,
-        }),
-      });
-      throw e;
-    } else {
-      // Sandbox mode error handling
-      const errorFields = getSandboxErrorFields(e);
-      logger.error(`Failed to stash and clear changes`, {
-        ...(errorFields && { errorFields }),
-        ...(e instanceof Error && {
-          name: e.name,
-          message: e.message,
-          stack: e.stack,
-        }),
-      });
-      return errorFields ?? false;
-    }
+    // Sandbox mode error handling
+    const errorFields = getSandboxErrorFields(e);
+    logger.error(`Failed to stash and clear changes`, {
+      ...(errorFields && { errorFields }),
+      ...(e instanceof Error && {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      }),
+    });
+    return errorFields ?? false;
   }
 }
 
