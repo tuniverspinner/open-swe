@@ -53,7 +53,7 @@ export function getRecentUserRequest(
   messages: BaseMessage[],
   options?: { returnFullMessage?: boolean; config?: GraphConfig },
 ): string | HumanMessage {
-  let recentUserMessage;
+  let recentUserMessage: HumanMessage | undefined;
 
   if (options?.config && isLocalMode(options.config)) {
     // In local mode, get the last human message regardless of flags
