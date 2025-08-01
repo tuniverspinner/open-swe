@@ -5,7 +5,7 @@
  * across all thread data fetching in the application.
  */
 export const THREAD_SWR_CONFIG = {
-  refreshInterval: 5000,
+  refreshInterval: 15000,
   revalidateOnFocus: false,
   revalidateOnReconnect: true,
   errorRetryCount: 5,
