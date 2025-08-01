@@ -57,11 +57,6 @@
       "import": "./dist/index.js",
       "require": "./dist/index.js"
     },
-    "./open-swe/*": {
-      "types": "./dist/open-swe/*.d.ts",
-      "import": "./dist/open-swe/*.js",
-      "require": "./dist/open-swe/*.js"
-    },
     "./*": {
       "types": "./dist/*.d.ts",
       "import": "./dist/*.js",

@@ -338,7 +338,7 @@ export async function initializeSandbox(
     },
   };
   emitStepEvent(baseGenerateCodebaseTreeAction, "pending");
-  let codebaseTree = undefined;
+  let codebaseTree: string | undefined;
   try {
     codebaseTree = await getCodebaseTree(sandbox.id);
     emitStepEvent(baseGenerateCodebaseTreeAction, "success");

@@ -1,3 +1,4 @@
+import { join } from "path";
 import { tool } from "@langchain/core/tools";
 import { GraphState, GraphConfig } from "@open-swe/shared/open-swe/types";
 import { createLogger, LogLevel } from "../../utils/logger.js";
@@ -14,8 +15,8 @@ import {
   isLocalMode,
   getLocalWorkingDirectory,
 } from "@open-swe/shared/open-swe/local-mode";
-import { getLocalShellExecutor } from "../../utils/local-shell-executor.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
+import { getLocalShellExecutor } from "../../utils/shell-executor/index.js";
 
 const logger = createLogger(LogLevel.INFO, "TextEditorTool");
 
@@ -36,20 +37,15 @@ export function createTextEditorTool(
           insert_line,
         } = input;
 
-        let workDir: string;
-        if (isLocalMode(config)) {
-          // In local mode, use the local working directory
-          workDir = getLocalWorkingDirectory();
-        } else {
-          // In sandbox mode, use the sandbox path
-          workDir = getRepoAbsolutePath(state.targetRepository);
-        }
-
+        const localMode = isLocalMode(config);
+        const localAbsolutePath = getLocalWorkingDirectory();
+        const sandboxAbsolutePath = getRepoAbsolutePath(state.targetRepository);
+        const workDir = localMode ? localAbsolutePath : sandboxAbsolutePath;
         let result: string;
 
-        if (isLocalMode(config)) {
+        if (localMode) {
           // Local mode: use LocalShellExecutor for file operations
-          const executor = getLocalShellExecutor(getLocalWorkingDirectory());
+          const executor = getLocalShellExecutor(localAbsolutePath);
 
           // Convert sandbox path to local path
           let localPath = path;
@@ -57,7 +53,7 @@ export function createTextEditorTool(
             // Remove the sandbox prefix to get the relative path
             localPath = path.replace("/home/daytona/project/", "");
           }
-          const filePath = `${workDir}/${localPath}`;
+          const filePath = join(workDir, localPath);
 
           switch (command) {
             case "view": {

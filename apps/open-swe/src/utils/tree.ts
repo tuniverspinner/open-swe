@@ -13,7 +13,7 @@ import {
   isLocalMode,
   getLocalWorkingDirectory,
 } from "@open-swe/shared/open-swe/local-mode";
-import { getLocalShellExecutor } from "./local-shell-executor.js";
+import { getLocalShellExecutor } from "./shell-executor/index.js";
 
 const logger = createLogger(LogLevel.INFO, "Tree");
 

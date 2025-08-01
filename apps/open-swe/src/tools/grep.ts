@@ -9,12 +9,12 @@ import {
   isLocalMode,
   getLocalWorkingDirectory,
 } from "@open-swe/shared/open-swe/local-mode";
-import { createShellExecutor } from "../utils/shell-executor.js";
 import {
   createGrepToolFields,
   formatGrepCommand,
 } from "@open-swe/shared/open-swe/tools";
 import { Sandbox } from "@daytonaio/sdk";
+import { createShellExecutor } from "../utils/shell-executor/index.js";
 
 const logger = createLogger(LogLevel.INFO, "GrepTool");
 
@@ -26,19 +26,14 @@ export function createGrepTool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
         const command = formatGrepCommand(input as any);
-
-        let repoRoot: string;
-        if (isLocalMode(config)) {
-          // In local mode, use the local working directory
-          repoRoot = getLocalWorkingDirectory();
-        } else {
-          // In sandbox mode, use the sandbox path
-          repoRoot = getRepoAbsolutePath(state.targetRepository);
-        }
+        const localMode = isLocalMode(config);
+        const localAbsolutePath = getLocalWorkingDirectory();
+        const sandboxAbsolutePath = getRepoAbsolutePath(state.targetRepository);
+        const workDir = localMode ? localAbsolutePath : sandboxAbsolutePath;
 
         logger.info("Running grep search command", {
           command: command.join(" "),
-          repoRoot,
+          workDir,
         });
 
         // Get sandbox if needed for sandbox mode
@@ -50,7 +45,7 @@ export function createGrepTool(
         const executor = createShellExecutor(config);
         const response = await executor.executeCommand({
           command,
-          workdir: repoRoot,
+          workdir: workDir,
           timeout: TIMEOUT_SEC,
           sandbox,
         });

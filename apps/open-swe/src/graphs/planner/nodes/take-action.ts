@@ -202,35 +202,35 @@ export async function takeActions(
       { documentCache: {} } as { documentCache: Record<string, string> },
     );
 
-  const repoPath = isLocalMode(config)
-    ? getLocalWorkingDirectory()
-    : getRepoAbsolutePath(state.targetRepository);
-  const changedFiles = await getChangedFilesStatus(repoPath, sandbox);
-  if (changedFiles?.length > 0) {
-    logger.warn(
-      "Changes found in the codebase after taking action. Reverting.",
-      {
-        changedFiles,
-      },
-    );
-    if (!isLocalMode(config)) {
+  if (!isLocalMode(config)) {
+    const repoPath = isLocalMode(config)
+      ? getLocalWorkingDirectory()
+      : getRepoAbsolutePath(state.targetRepository);
+    const changedFiles = await getChangedFilesStatus(repoPath, sandbox);
+    if (changedFiles?.length > 0) {
+      logger.warn(
+        "Changes found in the codebase after taking action. Reverting.",
+        {
+          changedFiles,
+        },
+      );
       await stashAndClearChanges(repoPath, sandbox);
+
+      // Rewrite the tool call contents to include a changed files warning.
+      toolCallResults = toolCallResults.map(
+        (tc) =>
+          new ToolMessage({
+            ...tc,
+            content: `**WARNING**: THIS TOOL, OR A PREVIOUS TOOL HAS CHANGED FILES IN THE REPO.
+  Remember that you are only permitted to take **READ** actions during the planning step. The changes have been reverted.
+  
+  Please ensure you only take read actions during the planning step to gather context. You may also call the \`take_notes\` tool at any time to record important information for the programmer step.
+  
+  Command Output:\n
+  ${tc.content}`,
+          }),
+      );
     }
-
-    // Rewrite the tool call contents to include a changed files warning.
-    toolCallResults = toolCallResults.map(
-      (tc) =>
-        new ToolMessage({
-          ...tc,
-          content: `**WARNING**: THIS TOOL, OR A PREVIOUS TOOL HAS CHANGED FILES IN THE REPO.
-Remember that you are only permitted to take **READ** actions during the planning step. The changes have been reverted.
-
-Please ensure you only take read actions during the planning step to gather context. You may also call the \`take_notes\` tool at any time to record important information for the programmer step.
-
-Command Output:\n
-${tc.content}`,
-        }),
-    );
   }
 
   logger.info("Completed planner tool action", {

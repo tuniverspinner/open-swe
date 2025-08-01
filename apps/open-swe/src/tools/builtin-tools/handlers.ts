@@ -1,12 +1,11 @@
 import { Sandbox } from "@daytonaio/sdk";
-import { ExecuteResponse } from "@daytonaio/sdk/src/types/ExecuteResponse.js";
 import { readFile, writeFile } from "../../utils/read-write.js";
 import { getSandboxErrorFields } from "../../utils/sandbox-error-fields.js";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import {
   createShellExecutor,
-  ExecuteCommandResult,
-} from "../../utils/shell-executor.js";
+  LocalExecuteResponse,
+} from "../../utils/shell-executor/index.js";
 
 export async function handleViewCommand(
   sandbox: Sandbox,
@@ -17,7 +16,7 @@ export async function handleViewCommand(
 ): Promise<string> {
   try {
     // Check if path is a directory
-    let statOutput: ExecuteResponse | ExecuteCommandResult;
+    let statOutput: LocalExecuteResponse;
     if (!config) {
       // Fallback to direct sandbox execution if no config provided
       statOutput = await sandbox.process.executeCommand(
@@ -35,7 +34,7 @@ export async function handleViewCommand(
 
     if (statOutput.exitCode === 0 && statOutput.result?.includes("directory")) {
       // List directory contents
-      let lsOutput: ExecuteResponse | ExecuteCommandResult;
+      let lsOutput: LocalExecuteResponse;
       if (!config) {
         // Fallback to direct sandbox execution if no config provided
         lsOutput = await sandbox.process.executeCommand(

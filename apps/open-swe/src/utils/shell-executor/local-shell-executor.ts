@@ -1,16 +1,8 @@
 import { spawn } from "child_process";
-import { createLogger, LogLevel } from "./logger.js";
+import { LocalExecuteResponse } from "./types.js";
+import { createLogger, LogLevel } from "../logger.js";
 
 const logger = createLogger(LogLevel.INFO, "LocalShellExecutor");
-
-export interface ExecuteResponse {
-  exitCode: number;
-  result: string;
-  artifacts?: {
-    stdout?: string;
-    stderr?: string;
-  };
-}
 
 export class LocalShellExecutor {
   private workingDirectory: string;
@@ -28,7 +20,7 @@ export class LocalShellExecutor {
       timeout?: number;
       localMode?: boolean;
     },
-  ): Promise<ExecuteResponse> {
+  ): Promise<LocalExecuteResponse> {
     const { workdir, env, timeout = 30, localMode = false } = args || {};
     const cwd = workdir || this.workingDirectory;
     const environment = { ...process.env, ...(env || {}) };
@@ -74,7 +66,7 @@ export class LocalShellExecutor {
     cwd: string,
     env: Record<string, string>,
     timeout: number,
-  ): Promise<ExecuteResponse> {
+  ): Promise<LocalExecuteResponse> {
     return new Promise((resolve, reject) => {
       // Try different shell paths
       const shellPaths = [

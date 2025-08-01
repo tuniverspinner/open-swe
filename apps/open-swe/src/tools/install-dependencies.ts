@@ -10,7 +10,8 @@ import {
   isLocalMode,
   getLocalWorkingDirectory,
 } from "@open-swe/shared/open-swe/local-mode";
-import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
+import { LocalExecuteResponse } from "../utils/shell-executor/types.js";
+import { getLocalShellExecutor } from "../utils/shell-executor/index.js";
 
 const logger = createLogger(LogLevel.INFO, "InstallDependenciesTool");
 
@@ -34,7 +35,7 @@ export function createInstallDependenciesTool(
           workdir,
         });
 
-        let response;
+        let response: LocalExecuteResponse;
 
         if (isLocalMode(config)) {
           // Local mode: use LocalShellExecutor

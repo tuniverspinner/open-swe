@@ -16,6 +16,7 @@ import {
 import { Client, StreamMode } from "@langchain/langgraph-sdk";
 import { submitFeedback } from "./utils.js";
 import { StreamingService } from "./streaming.js";
+import { OPEN_SWE_CLI_VERSION } from "./constants.js";
 
 const GITHUB_LOGIN_URL =
   process.env.GITHUB_LOGIN_URL || "http://localhost:3000/api/auth/github/login";
@@ -26,7 +27,7 @@ const program = new Command();
 program
   .name("open-swe")
   .description("Open SWE CLI")
-  .version("0.0.0")
+  .version(OPEN_SWE_CLI_VERSION)
   .option(
     "--local",
     "Work directly on local codebase without GitHub authentication",

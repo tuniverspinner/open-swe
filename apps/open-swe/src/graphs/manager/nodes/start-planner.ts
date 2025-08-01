@@ -36,22 +36,16 @@ export async function startPlanner(
     config,
   });
 
-  try {
-    let langGraphClient;
+  const localMode = isLocalMode(config);
 
-    if (isLocalMode(config)) {
-      // In local mode, create client with local mode headers
-      langGraphClient = createLangGraphClient({
-        defaultHeaders: {
-          [LOCAL_MODE_HEADER]: "true",
-        },
-      });
-    } else {
-      // In normal mode, create client with GitHub headers
-      langGraphClient = createLangGraphClient({
-        defaultHeaders: getDefaultHeaders(config),
-      });
-    }
+  try {
+    const langGraphClient = createLangGraphClient({
+      defaultHeaders: localMode
+        ? {
+            [LOCAL_MODE_HEADER]: "true",
+          }
+        : getDefaultHeaders(config),
+    });
 
     const runInput: PlannerGraphUpdate = {
       // github issue ID & target repo so the planning agent can fetch the user's request, and clone the repo.
@@ -61,7 +55,7 @@ export async function startPlanner(
       taskPlan: state.taskPlan,
       branchName: state.branchName ?? getBranchName(config),
       autoAcceptPlan: state.autoAcceptPlan,
-      ...(followupMessage && { messages: [followupMessage] }),
+      ...(followupMessage || localMode ? { messages: [followupMessage] } : {}),
     };
 
     const run = await langGraphClient.runs.create(
@@ -71,12 +65,7 @@ export async function startPlanner(
         input: runInput,
         config: {
           recursion_limit: 400,
-          configurable: {
-            ...getCustomConfigurableFields(config),
-            ...(isLocalMode(config) && {
-              [LOCAL_MODE_HEADER]: "true",
-            }),
-          },
+          configurable: getCustomConfigurableFields(config),
         },
         ifNotExists: "create",
         multitaskStrategy: "enqueue",

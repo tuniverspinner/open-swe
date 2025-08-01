@@ -116,9 +116,7 @@ async function startProgrammerRun(input: {
       input: runInput,
       config: {
         recursion_limit: 400,
-        configurable: {
-          ...getCustomConfigurableFields(config),
-        },
+        configurable: getCustomConfigurableFields(config),
       },
       ifNotExists: "create",
       streamResumable: true,

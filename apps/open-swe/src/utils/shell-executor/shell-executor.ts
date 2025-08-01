@@ -6,26 +6,10 @@ import {
   getLocalWorkingDirectory,
 } from "@open-swe/shared/open-swe/local-mode";
 import { getLocalShellExecutor } from "./local-shell-executor.js";
-import { createLogger, LogLevel } from "./logger.js";
+import { createLogger, LogLevel } from "../logger.js";
+import { ExecuteCommandOptions, LocalExecuteResponse } from "./types.js";
 
 const logger = createLogger(LogLevel.INFO, "ShellExecutor");
-
-export interface ExecuteCommandOptions {
-  command: string | string[];
-  workdir?: string;
-  env?: Record<string, string>;
-  timeout?: number;
-  sandbox?: Sandbox;
-}
-
-export interface ExecuteCommandResult {
-  exitCode: number;
-  result: string;
-  artifacts?: {
-    stdout?: string;
-    stderr?: string;
-  };
-}
 
 const DEFAULT_ENV = {
   // Prevents corepack from showing a y/n download prompt which causes the command to hang
@@ -48,7 +32,7 @@ export class ShellExecutor {
    */
   async executeCommand(
     options: ExecuteCommandOptions,
-  ): Promise<ExecuteCommandResult> {
+  ): Promise<LocalExecuteResponse> {
     const {
       command,
       workdir,
@@ -87,7 +71,7 @@ export class ShellExecutor {
     workdir?: string,
     env?: Record<string, string>,
     timeout?: number,
-  ): Promise<ExecuteCommandResult> {
+  ): Promise<LocalExecuteResponse> {
     const executor = getLocalShellExecutor(getLocalWorkingDirectory());
     const localWorkdir = workdir || getLocalWorkingDirectory();
 
@@ -108,7 +92,7 @@ export class ShellExecutor {
     env?: Record<string, string>,
     timeout?: number,
     sandbox?: Sandbox,
-  ): Promise<ExecuteCommandResult> {
+  ): Promise<LocalExecuteResponse> {
     if (!sandbox) {
       throw new Error("Sandbox is required for sandbox mode execution");
     }
@@ -151,7 +135,7 @@ export function createShellExecutor(config: GraphConfig): ShellExecutor {
 export async function executeCommand(
   config: GraphConfig,
   options: ExecuteCommandOptions,
-): Promise<ExecuteCommandResult> {
+): Promise<LocalExecuteResponse> {
   const executor = createShellExecutor(config);
   return await executor.executeCommand(options);
 }

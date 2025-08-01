@@ -51,7 +51,8 @@ export const auth = new Auth()
 
     // Check for local mode first
     const localModeHeader = request.headers.get(LOCAL_MODE_HEADER);
-    if (localModeHeader === "true") {
+    const isRunningLocalModeEnv = process.env.OPEN_SWE_LOCAL_MODE === "true";
+    if (localModeHeader === "true" && isRunningLocalModeEnv) {
       return {
         identity: "local-user",
         is_authenticated: true,

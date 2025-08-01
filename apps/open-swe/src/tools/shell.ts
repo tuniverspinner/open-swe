@@ -4,9 +4,9 @@ import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { createShellToolFields } from "@open-swe/shared/open-swe/tools";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
-import { createShellExecutor } from "../utils/shell-executor.js";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 import { Sandbox } from "@daytonaio/sdk";
+import { createShellExecutor } from "../utils/shell-executor/index.js";
 
 export function createShellTool(
   state: Pick<GraphState, "sandboxSessionId" | "targetRepository">,

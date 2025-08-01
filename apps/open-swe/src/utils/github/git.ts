@@ -19,12 +19,14 @@ import { createPullRequest } from "./api.js";
 import { addTaskPlanToIssue } from "./issue-task.js";
 import { DEFAULT_EXCLUDED_PATTERNS } from "./constants.js";
 import { escapeRegExp } from "../string-utils.js";
-import { getLocalShellExecutor } from "../local-shell-executor.js";
 import {
   getLocalWorkingDirectory,
   isLocalMode,
 } from "@open-swe/shared/open-swe/local-mode";
-import { ExecuteCommandResult } from "../shell-executor.js";
+import {
+  getLocalShellExecutor,
+  LocalExecuteResponse,
+} from "../shell-executor/index.js";
 
 const logger = createLogger(LogLevel.INFO, "GitHub-Git");
 
@@ -49,7 +51,7 @@ async function getValidFilesToCommit(
   sandbox: Sandbox,
   excludePatterns: string[] = DEFAULT_EXCLUDED_PATTERNS,
 ): Promise<string[]> {
-  let gitStatusOutput: ExecuteResponse | ExecuteCommandResult;
+  let gitStatusOutput: LocalExecuteResponse;
 
   // Check if we're in local mode (sandbox doesn't have process)
   if (!sandbox.process) {
@@ -140,7 +142,7 @@ export async function getChangedFilesStatus(
   absoluteRepoDir: string,
   sandbox: Sandbox,
 ): Promise<string[]> {
-  let gitStatusOutput: ExecuteResponse | ExecuteCommandResult;
+  let gitStatusOutput: LocalExecuteResponse;
 
   // Check if we're in local mode (sandbox doesn't have process)
   if (!sandbox.process) {
