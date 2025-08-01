@@ -46,7 +46,6 @@ async function getValidFilesToCommit(
   config?: GraphConfig,
   excludePatterns: string[] = DEFAULT_EXCLUDED_PATTERNS,
 ): Promise<string[]> {
-
   // Use unified shell executor
   const executor = createShellExecutor(config!);
   const gitStatusOutput = await executor.executeCommand({
