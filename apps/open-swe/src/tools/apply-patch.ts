@@ -12,7 +12,7 @@ import {
   isLocalMode,
   getLocalWorkingDirectory,
 } from "@open-swe/shared/open-swe/local-mode";
-import { getLocalShellExecutor } from "../utils/local-shell-executor.js";
+import { createShellExecutor } from "../utils/shell-executor.js";
 import { promises as fs } from "fs";
 import { join, isAbsolute } from "path";
 
@@ -93,6 +93,7 @@ async function writeFileLocal(
 async function applyPatchWithGitLocal(
   workDir: string,
   diffContent: string,
+  config: GraphConfig,
 ): Promise<{ success: boolean; output: string }> {
   const tempPatchFile = join(
     workDir,
@@ -104,14 +105,12 @@ async function applyPatchWithGitLocal(
     await fs.writeFile(tempPatchFile, diffContent, "utf-8");
 
     // Execute git apply with --verbose for detailed error messages
-    const executor = getLocalShellExecutor(workDir);
-    const response = await executor.executeCommand(
-      `git apply --verbose "${tempPatchFile}"`,
-      workDir,
-      {},
-      30, // 30 seconds timeout
-      true, // localMode
-    );
+    const executor = createShellExecutor(config);
+    const response = await executor.executeCommand({
+      command: `git apply --verbose "${tempPatchFile}"`,
+      workdir: workDir,
+      timeout: 30, // 30 seconds timeout
+    });
 
     // Clean up temp file
     try {
@@ -235,7 +234,7 @@ export function createApplyPatchTool(state: GraphState, config: GraphConfig) {
         logger.info(
           `Attempting to apply patch to ${file_path} using Git CLI (local mode)`,
         );
-        gitResult = await applyPatchWithGitLocal(workDir, diff);
+        gitResult = await applyPatchWithGitLocal(workDir, diff, config);
       } else {
         // Sandbox mode: use existing sandbox operations
         const sandbox = await getSandboxSessionOrThrow(input);
