@@ -103,13 +103,11 @@ async function getCodebaseTreeLocal(): Promise<string> {
     const executor = getLocalShellExecutor(workingDirectory);
     const command = `git ls-files | tree --fromfile -L 3`;
 
-    const response = await executor.executeCommand(
-      command,
-      workingDirectory,
-      {},
-      TIMEOUT_SEC,
-      true, // localMode
-    );
+    const response = await executor.executeCommand(command, {
+      workdir: workingDirectory,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
 
     if (response.exitCode !== 0) {
       logger.error("Failed to generate tree in local mode", {

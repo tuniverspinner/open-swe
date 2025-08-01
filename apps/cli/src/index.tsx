@@ -25,7 +25,7 @@ const program = new Command();
 
 program
   .name("open-swe")
-  .description("Open SWE CLI - AI-powered software engineering assistant")
+  .description("Open SWE CLI")
   .version("0.0.0")
   .option(
     "--local",
@@ -256,8 +256,8 @@ const App: React.FC = () => {
       setLoadingRepos(false); // Ensure no loading state in local mode
       // Set up local mode defaults
       setSelectedRepo({
-        full_name: "local/project",
-        clone_url: "local",
+        full_name: process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "",
+        clone_url: process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "",
         default_branch: "main",
       });
       setInstallChecked(true);

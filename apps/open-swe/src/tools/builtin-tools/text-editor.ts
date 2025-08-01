@@ -64,10 +64,11 @@ export function createTextEditorTool(
               // Use cat command to view file content
               const viewResponse = await executor.executeCommand(
                 `cat "${filePath}"`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (viewResponse.exitCode !== 0) {
                 throw new Error(`Failed to read file: ${viewResponse.result}`);
@@ -93,10 +94,11 @@ export function createTextEditorTool(
 
               const sedResponse = await executor.executeCommand(
                 `sed -i 's/${escapedOldStr}/${escapedNewStr}/g' "${filePath}"`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (sedResponse.exitCode !== 0) {
                 throw new Error(
@@ -117,10 +119,11 @@ export function createTextEditorTool(
 
               const createResponse = await executor.executeCommand(
                 `echo '${escapedFileText}' > "${filePath}"`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (createResponse.exitCode !== 0) {
                 throw new Error(
@@ -144,10 +147,11 @@ export function createTextEditorTool(
 
               const insertResponse = await executor.executeCommand(
                 `sed -i '${insert_line}i\\${escapedNewStr}' "${filePath}"`,
-                workDir,
-                {},
-                TIMEOUT_SEC,
-                true, // localMode
+                {
+                  workdir: workDir,
+                  timeout: TIMEOUT_SEC,
+                  localMode: true,
+                },
               );
               if (insertResponse.exitCode !== 0) {
                 throw new Error(

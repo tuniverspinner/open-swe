@@ -4,7 +4,6 @@ import {
   ManagerGraphUpdate,
 } from "@open-swe/shared/open-swe/manager/types";
 import { createLangGraphClient } from "../../../../utils/langgraph-client.js";
-import { DefaultValues } from "@langchain/langgraph-sdk";
 import {
   BaseMessage,
   HumanMessage,

@@ -64,6 +64,9 @@ export class LocalShellExecutor {
         };
       }
     }
+
+    // Non-local mode: throw error as this executor is for local mode only
+    throw new Error("LocalShellExecutor is only for local mode operations");
   }
 
   private async executeWithSpawn(

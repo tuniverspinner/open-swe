@@ -54,13 +54,11 @@ async function getValidFilesToCommit(
   if (!sandbox.process) {
     // Local mode: use LocalShellExecutor
     const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-    gitStatusOutput = await executor.executeCommand(
-      "git status --porcelain",
-      absoluteRepoDir,
-      undefined,
-      TIMEOUT_SEC,
-      true, // localMode
-    );
+    gitStatusOutput = await executor.executeCommand("git status --porcelain", {
+      workdir: absoluteRepoDir,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
   } else {
     // Sandbox mode: use sandbox.process
     gitStatusOutput = await sandbox.process.executeCommand(
@@ -147,13 +145,11 @@ export async function getChangedFilesStatus(
   if (!sandbox.process) {
     // Local mode: use LocalShellExecutor
     const executor = getLocalShellExecutor(getLocalWorkingDirectory());
-    gitStatusOutput = await executor.executeCommand(
-      "git status --porcelain",
-      absoluteRepoDir,
-      undefined,
-      TIMEOUT_SEC,
-      true, // localMode
-    );
+    gitStatusOutput = await executor.executeCommand("git status --porcelain", {
+      workdir: absoluteRepoDir,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
   } else {
     // Sandbox mode: use sandbox.process
     gitStatusOutput = await sandbox.process.executeCommand(

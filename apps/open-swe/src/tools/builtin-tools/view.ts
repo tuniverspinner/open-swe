@@ -49,13 +49,11 @@ export function createViewTool(
           const filePath = `${workDir}/${localPath}`;
 
           // Use cat command to view file content
-          const response = await executor.executeCommand(
-            `cat "${filePath}"`,
-            workDir,
-            {},
-            TIMEOUT_SEC,
-            true, // localMode
-          );
+          const response = await executor.executeCommand(`cat "${filePath}"`, {
+            workdir: workDir,
+            timeout: TIMEOUT_SEC,
+            localMode: true,
+          });
 
           if (response.exitCode !== 0) {
             throw new Error(`Failed to read file: ${response.result}`);
