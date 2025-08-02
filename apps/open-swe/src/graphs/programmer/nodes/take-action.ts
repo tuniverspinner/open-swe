@@ -7,6 +7,7 @@ import {
   createTextEditorTool,
   createShellTool,
   createSearchDocumentForTool,
+  createMonitorDevServerTool,
 } from "../../../tools/index.js";
 import {
   GraphState,
@@ -58,6 +59,7 @@ export async function takeAction(
   const installDependenciesTool = createInstallDependenciesTool(state);
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
+  const monitorDevServerTool = createMonitorDevServerTool(state);
   const mcpTools = await getMcpTools(config);
 
   const higherContextLimitToolNames = [
@@ -74,6 +76,7 @@ export async function takeAction(
     applyPatchTool,
     getURLContentTool,
     searchDocumentForTool,
+    monitorDevServerTool,
     ...mcpTools,
   ];
   const toolsMap = Object.fromEntries(
