@@ -21,8 +21,11 @@ function createEnvFingerprint(envVars: Record<string, string>): string {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, value]) => `${key}=${value}`)
     .join("|");
-  
-  return createHash("sha256").update(sortedEntries).digest("hex").substring(0, 16);
+
+  return createHash("sha256")
+    .update(sortedEntries)
+    .digest("hex")
+    .substring(0, 16);
 }
 
 /**
@@ -78,14 +81,15 @@ export async function deleteSandbox(
   }
 }
 
-async function createSandbox(attempt: number, config: GraphConfig): Promise<Sandbox | null> {
+async function createSandbox(
+  attempt: number,
+  config: GraphConfig,
+): Promise<Sandbox | null> {
   try {
     // Get user environment variables
     const userEnvVars = config ? getUserEnvironmentVariables(config) : {};
-    
-    // Create fingerprint for change detection
     const envFingerprint = createEnvFingerprint(userEnvVars);
-    
+
     const sandboxParams = {
       ...DEFAULT_SANDBOX_CREATE_PARAMS,
       labels: {
@@ -142,26 +146,23 @@ export async function getSandboxWithErrorHandling(
     }
 
     logger.info("Getting sandbox.");
-    // Try to get existing sandbox
     const sandbox = await daytonaClient().get(sandboxSessionId);
 
     // Check if environment variables have changed
     const currentUserEnvs = getUserEnvironmentVariables(config);
     const currentEnvFingerprint = createEnvFingerprint(currentUserEnvs);
-    const sandboxEnvFingerprint = sandbox.labels?.["OPENSWE_ENV_FINGERPRINT"] || null;
+    const sandboxEnvFingerprint =
+      sandbox.labels?.["OPENSWE_ENV_FINGERPRINT"] || null;
 
-    console.log("[IMPORTANT]sandboxEnvFingerprint", sandboxEnvFingerprint);
-    
-    if (sandboxEnvFingerprint && sandboxEnvFingerprint !== currentEnvFingerprint) {
+    if (sandboxEnvFingerprint !== currentEnvFingerprint) {
       logger.info("Environment variables changed, forcing sandbox recreation", {
         oldFingerprint: sandboxEnvFingerprint,
         newFingerprint: currentEnvFingerprint,
         currentUserEnvCount: Object.keys(currentUserEnvs).length,
       });
-      throw new Error("Environment variables changed. Restarting sandbox.");
+      throw new Error("Environment variables changed. Recreating sandbox.");
     }
 
-    // Check sandbox state
     const state = sandbox.state;
 
     if (state === "started") {

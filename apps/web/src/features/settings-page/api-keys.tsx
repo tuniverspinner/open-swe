@@ -10,12 +10,26 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Eye, EyeOff, Key, Trash2, Info, Server, CircleQuestionMark, Plus } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Key,
+  Trash2,
+  Info,
+  Server,
+  CircleQuestionMark,
+  Plus,
+} from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useConfigStore, DEFAULT_CONFIG_KEY } from "@/hooks/useConfigStore";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ApiKey {
   id: string;
@@ -41,7 +55,7 @@ const API_KEY_SECTIONS: Record<string, Omit<ApiKeySection, "keys">> = {
   // },
   custom: {
     title: "Add More Environment Variables",
-  }
+  },
 };
 
 const PROVIDER_DEFINITIONS = {
@@ -57,14 +71,16 @@ const PROVIDER_DEFINITIONS = {
   //     description: "Users not required to set this if using the demo",
   //   },
   // ],
-  custom: []
+  custom: [],
 };
 
 export function APIKeysTab() {
   const { getConfig, updateConfig } = useConfigStore();
   const config = getConfig(DEFAULT_CONFIG_KEY);
 
-  const [visibilityState, setVisibilityState] = useState<Record<string, boolean>>({});
+  const [visibilityState, setVisibilityState] = useState<
+    Record<string, boolean>
+  >({});
 
   const toggleKeyVisibility = (providerId: string) => {
     setVisibilityState((prev) => ({
@@ -76,7 +92,7 @@ export function APIKeysTab() {
   const updateApiKey = (providerId: string, value: string) => {
     const currentApiKeys = config.apiKeys || {};
     const currentProvider = currentApiKeys[providerId] || {};
-    
+
     updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", {
       ...currentApiKeys,
       [providerId]: {
@@ -89,7 +105,7 @@ export function APIKeysTab() {
   const updateDevServerSetting = (providerId: string, enabled: boolean) => {
     const currentApiKeys = config.apiKeys || {};
     const currentProvider = currentApiKeys[providerId] || {};
-    
+
     updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", {
       ...currentApiKeys,
       [providerId]: {
@@ -114,17 +130,20 @@ export function APIKeysTab() {
 
   const updateCustomKeyName = (oldKey: string, newKey: string) => {
     if (!newKey.trim() || oldKey === newKey) return;
-    
-    const cleanNewKey = newKey.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+
+    const cleanNewKey = newKey
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, "_");
     const currentApiKeys = config.apiKeys || {};
     const keyData = currentApiKeys[oldKey];
-    
+
     if (keyData) {
       // Create new entry with cleaned key name
       const updatedApiKeys = { ...currentApiKeys };
       updatedApiKeys[cleanNewKey] = keyData;
       delete updatedApiKeys[oldKey];
-      
+
       updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", updatedApiKeys);
     }
   };
@@ -134,18 +153,17 @@ export function APIKeysTab() {
     const currentApiKeys = config.apiKeys || {};
 
     const predefinedIds = [
-      ...PROVIDER_DEFINITIONS.llms.map(p => p.id),
+      ...PROVIDER_DEFINITIONS.llms.map((p) => p.id),
       // ...PROVIDER_DEFINITIONS.infrastructure.map(p => p.id),
     ];
-    
-    const customProviders = Object.keys(currentApiKeys)
-      .filter(id => !predefinedIds.includes(id))
-      .map(id => ({ 
-        id, 
-        name: id.startsWith('NEW_VAR_') ? '' : id,
-        description: "" 
-      }));
 
+    const customProviders = Object.keys(currentApiKeys)
+      .filter((id) => !predefinedIds.includes(id))
+      .map((id) => ({
+        id,
+        name: id.startsWith("NEW_VAR_") ? "" : id,
+        description: "",
+      }));
 
     const dynamicProviderDefinitions = {
       ...PROVIDER_DEFINITIONS,
@@ -155,7 +173,9 @@ export function APIKeysTab() {
     Object.entries(API_KEY_SECTIONS).forEach(([sectionKey, sectionInfo]) => {
       sections[sectionKey] = {
         ...sectionInfo,
-        keys: dynamicProviderDefinitions[sectionKey as keyof typeof dynamicProviderDefinitions].map((providerDef): ApiKey => {
+        keys: dynamicProviderDefinitions[
+          sectionKey as keyof typeof dynamicProviderDefinitions
+        ].map((providerDef): ApiKey => {
           const providerData = currentApiKeys[providerDef.id] || {};
           return {
             id: providerDef.id,
@@ -196,10 +216,9 @@ export function APIKeysTab() {
               {section.title}
             </CardTitle>
             <CardDescription>
-              {sectionKey === 'custom' 
+              {sectionKey === "custom"
                 ? "Add custom environment variables for development server monitoring"
-                : `Manage API keys for ${section.title.toLowerCase()} services`
-              }
+                : `Manage API keys for ${section.title.toLowerCase()} services`}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -210,19 +229,24 @@ export function APIKeysTab() {
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {sectionKey === 'custom' ? (
+                    {sectionKey === "custom" ? (
                       <Input
                         value={apiKey.name}
-                        onChange={(e) => updateCustomKeyName(apiKey.id, e.target.value)}
+                        onChange={(e) =>
+                          updateCustomKeyName(apiKey.id, e.target.value)
+                        }
                         onBlur={(e) => {
                           // Clean up the display name to match the stored key
-                          const cleanKey = e.target.value.trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+                          const cleanKey = e.target.value
+                            .trim()
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9_]/g, "_");
                           if (cleanKey !== apiKey.name) {
                             updateCustomKeyName(apiKey.id, cleanKey);
                           }
                         }}
                         placeholder="VARIABLE_NAME"
-                        className="font-mono font-semibold text-foreground bg-transparent border-dashed min-w-0 w-auto px-2 py-1 h-auto text-base"
+                        className="text-foreground h-auto w-auto min-w-0 border-dashed bg-transparent px-2 py-1 font-mono text-base font-semibold"
                       />
                     ) : (
                       <h3 className="text-foreground font-mono font-semibold">
@@ -257,7 +281,7 @@ export function APIKeysTab() {
                         htmlFor={`${apiKey.id}-key`}
                         className="text-sm font-medium"
                       >
-                        {sectionKey === 'custom' ? 'Value' : 'API Key'}
+                        {sectionKey === "custom" ? "Value" : "API Key"}
                       </Label>
                       {apiKey.description && (
                         <p className="text-muted-foreground text-xs">
@@ -272,9 +296,10 @@ export function APIKeysTab() {
                           onChange={(e) =>
                             updateApiKey(apiKey.id, e.target.value)
                           }
-                          placeholder={sectionKey === 'custom' 
-                            ? `Enter value for ${apiKey.name}`
-                            : `Enter your ${apiKey.name} API key`
+                          placeholder={
+                            sectionKey === "custom"
+                              ? `Enter value for ${apiKey.name}`
+                              : `Enter your ${apiKey.name} API key`
                           }
                           className="font-mono text-sm"
                         />
@@ -290,7 +315,7 @@ export function APIKeysTab() {
                             <Eye className="h-4 w-4" />
                           )}
                         </Button>
-                        {(apiKey.value || sectionKey === 'custom') && (
+                        {(apiKey.value || sectionKey === "custom") && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -308,19 +333,28 @@ export function APIKeysTab() {
                   </div>
 
                   {/* Dev Server Toggle */}
-                  <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <div className="border-border flex items-center justify-between border-t pt-2">
                     <div className="flex items-center gap-1">
-                      <Label htmlFor={`${apiKey.id}-devserver`} className="text-sm font-medium">
-                        <Server className="h-4 w-4 text-muted-foreground" />
+                      <Label
+                        htmlFor={`${apiKey.id}-devserver`}
+                        className="text-sm font-medium"
+                      >
+                        <Server className="text-muted-foreground h-4 w-4" />
                         Include in Dev Server
                       </Label>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <CircleQuestionMark className="h-3 w-3 text-muted-foreground cursor-help" />
+                            <CircleQuestionMark className="text-muted-foreground h-3 w-3 cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">Make this {sectionKey === 'custom' ? 'environment variable' : 'API key'} available when monitoring development servers</p>
+                            <p className="max-w-xs">
+                              Make this{" "}
+                              {sectionKey === "custom"
+                                ? "environment variable"
+                                : "API key"}{" "}
+                              available when monitoring development servers
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -337,14 +371,14 @@ export function APIKeysTab() {
                 </div>
               </div>
             ))}
-            
+
             {/* Button for custom section */}
-            {sectionKey === 'custom' && (
+            {sectionKey === "custom" && (
               <div className="flex justify-center pt-2">
                 <Button
                   variant="outline"
                   onClick={addCustomEnvVar}
-                  className="min-w-[200px] h-10 gap-2 border-dashed border-2 hover:border-solid hover:bg-accent transition-all"
+                  className="hover:bg-accent h-10 min-w-[200px] gap-2 border-2 border-dashed transition-all hover:border-solid"
                 >
                   <Plus className="h-4 w-4" />
                   Add Environment Variable

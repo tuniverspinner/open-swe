@@ -48,7 +48,7 @@ export const { GET, POST, PUT, PATCH, DELETE, OPTIONS, runtime } =
             encryptedApiKeys[providerId] = {
               ...providerConfig,
               api_key: encryptSecret(providerConfig.api_key, encryptionKey),
-            }
+            };
           } else {
             encryptedApiKeys[providerId] = providerConfig;
           }

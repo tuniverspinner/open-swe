@@ -12,7 +12,6 @@ import { API_KEY_REQUIRED_MESSAGE } from "@open-swe/shared/constants";
 
 const logger = createLogger(LogLevel.INFO, "ModelManager");
 
-
 type InitChatModelArgs = Parameters<typeof initChatModel>[1];
 
 export interface CircuitBreakerState {
