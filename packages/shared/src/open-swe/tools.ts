@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { TargetRepository } from "./types.js";
+import { TargetRepository, GraphConfig } from "./types.js";
 import { getRepoAbsolutePath } from "../git.js";
 import { TIMEOUT_SEC } from "../constants.js";
+import { isLocalMode, getLocalWorkingDirectory } from "./local-mode.js";
 
 export function createApplyPatchToolFields(targetRepository: TargetRepository) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
@@ -28,7 +29,9 @@ export function createRequestHumanHelpToolFields() {
     help_request: z
       .string()
       .describe(
-        "The help request to send to the human. Should be concise, but descriptive.",
+        "The help request to send to the human. Should be concise, but descriptive.\n" +
+          "IMPORTANT: This should be a request which the user can help with, such as providing context into where a function lives/is used within a codebase, or answering questions about how to run scripts.\n" +
+          "IMPORTANT: The user does NOT have access to the filesystem you're running on, and thus can not make changes to the code for you.",
       ),
   });
   return {
@@ -546,8 +549,14 @@ export function createTextEditorToolFields(targetRepository: TargetRepository) {
   };
 }
 
-export function createViewToolFields(targetRepository: TargetRepository) {
-  const repoRoot = getRepoAbsolutePath(targetRepository);
+export function createViewToolFields(
+  targetRepository: TargetRepository,
+  config?: GraphConfig,
+) {
+  const repoRoot =
+    config && isLocalMode(config)
+      ? getLocalWorkingDirectory()
+      : getRepoAbsolutePath(targetRepository);
   const viewSchema = z.object({
     command: z.enum(["view"]).describe("The command to execute: view"),
     path: z
@@ -568,6 +577,28 @@ export function createViewToolFields(targetRepository: TargetRepository) {
       `The working directory is \`${repoRoot}\`. Ensure file paths are absolute and properly formatted. ` +
       "Supports commands: view (read file/directory).",
     schema: viewSchema,
+  };
+}
+
+export function createWriteDefaultTsConfigToolFields(
+  targetRepository: TargetRepository,
+) {
+  const repoRoot = getRepoAbsolutePath(targetRepository);
+
+  const writeDefaultTsConfigToolSchema = z.object({
+    workdir: z
+      .string()
+      .default(repoRoot)
+      .describe(
+        `The directory which the tsconfig.json file will be written to. The default value is the root of the repository: \`${repoRoot}\`.`,
+      ),
+  });
+
+  return {
+    name: "write_default_tsconfig",
+    description:
+      "Writes a default tsconfig.json file to the specified directory. This should ONLY be called when creating a new TypeScript project.",
+    schema: writeDefaultTsConfigToolSchema,
   };
 }
 export function createMonitorDevServerToolFields(

@@ -10,8 +10,8 @@ import {
   loadModel,
   Provider,
   supportsParallelToolCallsParam,
-  Task,
 } from "../../../../utils/llms/index.js";
+import { LLMTask } from "@open-swe/shared/open-swe/llm-task";
 import {
   createShellTool,
   createApplyPatchTool,
@@ -20,6 +20,7 @@ import {
   createGetURLContentTool,
   createSearchDocumentForTool,
   createMonitorDevServerTool,
+  createWriteDefaultTsConfigTool,
 } from "../../../../tools/index.js";
 import { formatPlanPrompt } from "../../../../utils/plan-prompt.js";
 import { stopSandbox } from "../../../../utils/sandbox.js";
@@ -174,15 +175,16 @@ async function createToolsAndPrompt(
 }> {
   const mcpTools = await getMcpTools(config);
   const sharedTools = [
-    createGrepTool(state),
-    createShellTool(state),
+    createGrepTool(state, config),
+    createShellTool(state, config),
     createRequestHumanHelpToolFields(),
     createUpdatePlanToolFields(),
     createGetURLContentTool(state),
-    createInstallDependenciesTool(state),
+    createInstallDependenciesTool(state, config),
     createMarkTaskCompletedToolFields(),
     createSearchDocumentForTool(state, config),
     createMonitorDevServerTool(state),
+    createWriteDefaultTsConfigTool(state, config),
     ...mcpTools,
   ];
 
@@ -266,10 +268,13 @@ export async function generateAction(
   config: GraphConfig,
 ): Promise<GraphUpdate> {
   const modelManager = getModelManager();
-  const modelName = modelManager.getModelNameForTask(config, Task.PROGRAMMER);
+  const modelName = modelManager.getModelNameForTask(
+    config,
+    LLMTask.PROGRAMMER,
+  );
   const modelSupportsParallelToolCallsParam = supportsParallelToolCallsParam(
     config,
-    Task.PROGRAMMER,
+    LLMTask.PROGRAMMER,
   );
   const markTaskCompletedTool = createMarkTaskCompletedToolFields();
   const isAnthropicModel = modelName.includes("claude-");
@@ -288,7 +293,7 @@ export async function generateAction(
     },
   );
 
-  const model = await loadModel(config, Task.PROGRAMMER, {
+  const model = await loadModel(config, LLMTask.PROGRAMMER, {
     providerTools: providerTools,
     providerMessages: providerMessages,
   });

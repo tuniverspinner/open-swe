@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "dev": "langgraphjs dev --no-browser --config ../../langgraph.json",
-    "clean": "rm -rf ../../.langgraph_api || true && rm -rf .turbo || true && rm -rf ./dist || true",
+    "clean": "rm -rf .turbo ../../.langgraph_api ./dist || true",
     "build": "tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -24,7 +24,7 @@
     "postinstall": "turbo build"
   },
   "dependencies": {
-    "@daytonaio/sdk": "^0.25.0",
+    "@daytonaio/sdk": "^0.25.4",
     "@langchain/anthropic": "^0.3.25",
     "@langchain/community": "^0.3.47",
     "@langchain/core": "^0.3.65",

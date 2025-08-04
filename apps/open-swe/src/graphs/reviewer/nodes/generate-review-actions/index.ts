@@ -3,8 +3,8 @@ import {
   loadModel,
   Provider,
   supportsParallelToolCallsParam,
-  Task,
 } from "../../../../utils/llms/index.js";
+import { LLMTask } from "@open-swe/shared/open-swe/llm-task";
 import {
   ReviewerGraphState,
   ReviewerGraphUpdate,
@@ -120,15 +120,18 @@ ${messages.map(getMessageString).join("\n")}
   ];
 }
 
-function createToolsAndPrompt(state: ReviewerGraphState): {
+function createToolsAndPrompt(
+  state: ReviewerGraphState,
+  config: GraphConfig,
+): {
   providerTools: Record<Provider, BindToolsInput[]>;
   providerMessages: Record<Provider, BaseMessageLike[]>;
 } {
   const tools = [
-    createGrepTool(state),
-    createShellTool(state),
-    createViewTool(state),
-    createInstallDependenciesTool(state),
+    createGrepTool(state, config),
+    createShellTool(state, config),
+    createViewTool(state, config),
+    createInstallDependenciesTool(state, config),
     createScratchpadTool(
       "when generating a final review, after all context gathering and reviewing is complete",
     ),
@@ -186,16 +189,19 @@ export async function generateReviewActions(
   config: GraphConfig,
 ): Promise<ReviewerGraphUpdate> {
   const modelManager = getModelManager();
-  const modelName = modelManager.getModelNameForTask(config, Task.REVIEWER);
+  const modelName = modelManager.getModelNameForTask(config, LLMTask.REVIEWER);
   const modelSupportsParallelToolCallsParam = supportsParallelToolCallsParam(
     config,
-    Task.REVIEWER,
+    LLMTask.REVIEWER,
   );
   const isAnthropicModel = modelName.includes("claude-");
 
-  const { providerTools, providerMessages } = createToolsAndPrompt(state);
+  const { providerTools, providerMessages } = createToolsAndPrompt(
+    state,
+    config,
+  );
 
-  const model = await loadModel(config, Task.REVIEWER, {
+  const model = await loadModel(config, LLMTask.REVIEWER, {
     providerTools,
     providerMessages,
   });

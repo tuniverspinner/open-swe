@@ -8,6 +8,7 @@ import {
   createShellTool,
   createSearchDocumentForTool,
   createMonitorDevServerTool,
+  createWriteDefaultTsConfigTool,
 } from "../../../tools/index.js";
 import {
   GraphState,
@@ -53,19 +54,24 @@ export async function takeAction(
   }
 
   const applyPatchTool = createApplyPatchTool(state);
-  const shellTool = createShellTool(state);
-  const searchTool = createGrepTool(state);
-  const textEditorTool = createTextEditorTool(state);
-  const installDependenciesTool = createInstallDependenciesTool(state);
+  const shellTool = createShellTool(state, config);
+  const searchTool = createGrepTool(state, config);
+  const textEditorTool = createTextEditorTool(state, config);
+  const installDependenciesTool = createInstallDependenciesTool(state, config);
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
   const monitorDevServerTool = createMonitorDevServerTool(state);
   const mcpTools = await getMcpTools(config);
+  const writeDefaultTsConfigTool = createWriteDefaultTsConfigTool(
+    state,
+    config,
+  );
 
   const higherContextLimitToolNames = [
     ...mcpTools.map((t) => t.name),
     getURLContentTool.name,
     searchDocumentForTool.name,
+    writeDefaultTsConfigTool.name,
   ];
 
   const allTools = [
@@ -76,6 +82,7 @@ export async function takeAction(
     applyPatchTool,
     getURLContentTool,
     searchDocumentForTool,
+    writeDefaultTsConfigTool,
     monitorDevServerTool,
     ...mcpTools,
   ];
