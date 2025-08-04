@@ -42,6 +42,8 @@ export interface ModelTokenData extends CacheMetrics {
   model: string;
 }
 
+
+
 export type PlanItem = {
   /**
    * The index of the plan item. This is the order in which
@@ -159,6 +161,11 @@ export type CustomRules = {
   testingInstructions?: string;
   pullRequestFormatting?: string;
 };
+
+export interface ProviderConfig {
+  api_key: string;
+  allowed_in_dev: boolean;
+}
 
 export const GraphAnnotation = MessagesZodState.extend({
   /**
@@ -617,7 +624,10 @@ export const GraphConfiguration = z.object({
   /**
    * User defined API keys to use
    */
-  apiKeys: withLangGraph(z.record(z.string(), z.string()).optional(), {
+  apiKeys: withLangGraph(z.record(z.string(), z.object({
+    api_key: z.string(),
+    allowed_in_dev: z.boolean().optional().default(false)
+  })).optional(), {
     metadata: GraphConfigurationMetadata.apiKeys,
   }),
   /**

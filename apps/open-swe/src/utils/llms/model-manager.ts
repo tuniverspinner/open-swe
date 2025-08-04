@@ -2,7 +2,7 @@ import {
   ConfigurableModel,
   initChatModel,
 } from "langchain/chat_models/universal";
-import { GraphConfig } from "@open-swe/shared/open-swe/types";
+import { GraphConfig, ProviderConfig } from "@open-swe/shared/open-swe/types";
 import { createLogger, LogLevel } from "../logger.js";
 import { Task } from "./constants.js";
 import { isAllowedUser } from "@open-swe/shared/github/allowed-users";
@@ -11,6 +11,7 @@ import { TASK_TO_CONFIG_DEFAULTS_MAP } from "./constants.js";
 import { API_KEY_REQUIRED_MESSAGE } from "@open-swe/shared/constants";
 
 const logger = createLogger(LogLevel.INFO, "ModelManager");
+
 
 type InitChatModelArgs = Parameters<typeof initChatModel>[1];
 
@@ -71,15 +72,15 @@ const THINKING_BUDGET_TOKENS = 5000;
 
 const providerToApiKey = (
   providerName: string,
-  apiKeys: Record<string, string>,
+  apiKeys: Record<string, ProviderConfig>,
 ): string => {
   switch (providerName) {
     case "openai":
-      return apiKeys.openaiApiKey;
+      return apiKeys.openai.api_key;
     case "anthropic":
-      return apiKeys.anthropicApiKey;
+      return apiKeys.anthropic.api_key;
     case "google-genai":
-      return apiKeys.googleApiKey;
+      return apiKeys["google-genai"].api_key;
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
