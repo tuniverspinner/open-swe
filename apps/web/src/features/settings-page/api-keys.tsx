@@ -81,6 +81,10 @@ export function APIKeysTab() {
   const [visibilityState, setVisibilityState] = useState<
     Record<string, boolean>
   >({});
+  
+  const [editingKeyNames, setEditingKeyNames] = useState<
+    Record<string, string>
+  >({});
 
   const toggleKeyVisibility = (providerId: string) => {
     setVisibilityState((prev) => ({
@@ -123,7 +127,6 @@ export function APIKeysTab() {
   };
 
   const addCustomEnvVar = () => {
-    // Create a temporary entry with a unique key that user can edit
     const tempKey = `NEW_VAR_${Date.now()}`;
     updateApiKey(tempKey, "");
   };
@@ -139,10 +142,14 @@ export function APIKeysTab() {
     const keyData = currentApiKeys[oldKey];
 
     if (keyData) {
-      // Create new entry with cleaned key name
-      const updatedApiKeys = { ...currentApiKeys };
-      updatedApiKeys[cleanNewKey] = keyData;
-      delete updatedApiKeys[oldKey];
+      const updatedApiKeys: Record<string, typeof keyData> = {};
+      Object.keys(currentApiKeys).forEach(key => {
+        if (key === oldKey) {
+          updatedApiKeys[cleanNewKey] = keyData;
+        } else {
+          updatedApiKeys[key] = currentApiKeys[key];
+        }
+      });
 
       updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", updatedApiKeys);
     }
@@ -222,21 +229,23 @@ export function APIKeysTab() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {section.keys.map((apiKey: ApiKey) => (
+            {section.keys.map((apiKey: ApiKey, index: number) => (
               <div
-                key={apiKey.id}
+                key={`${sectionKey}-${index}`}
                 className="border-border rounded-lg border p-4"
               >
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {sectionKey === "custom" ? (
                       <Input
-                        value={apiKey.name}
+                        value={editingKeyNames[apiKey.id] ?? apiKey.name}
                         onChange={(e) =>
-                          updateCustomKeyName(apiKey.id, e.target.value)
+                          setEditingKeyNames(prev => ({
+                            ...prev,
+                            [apiKey.id]: e.target.value
+                          }))
                         }
                         onBlur={(e) => {
-                          // Clean up the display name to match the stored key
                           const cleanKey = e.target.value
                             .trim()
                             .toUpperCase()
@@ -244,6 +253,12 @@ export function APIKeysTab() {
                           if (cleanKey !== apiKey.name) {
                             updateCustomKeyName(apiKey.id, cleanKey);
                           }
+                          // Clear the editing state
+                          setEditingKeyNames(prev => {
+                            const updated = { ...prev };
+                            delete updated[apiKey.id];
+                            return updated;
+                          });
                         }}
                         placeholder="VARIABLE_NAME"
                         className="text-foreground h-auto w-auto min-w-0 border-dashed bg-transparent px-2 py-1 font-mono text-base font-semibold"
