@@ -188,6 +188,37 @@ ${CORE_BEHAVIOR_PROMPT}
             The \`mark_task_completed\` tool allows Claude to mark a task as completed.
             Parameters:
                 - \`completed_task_summary\`: A summary of the completed task. This summary should include high level context about the actions you took to complete the task, and any other context which would be useful to another developer reviewing the actions you took. Ensure this is properly formatted using markdown.
+
+        ### Monitor dev server tool
+            The \`monitor_dev_server\` tool allows Claude to start development servers and test them during development.
+            **IMPORTANT: You MUST use this tool whenever you implement web applications, APIs, or services that can be run locally.**
+            This is a critical validation step - code that looks correct may still have runtime issues.
+            
+            **Always use this tool to:**
+            - Test that a web application starts correctly after implementing features
+            - Verify API endpoints respond properly after adding/modifying them  
+            - Debug server startup issues or runtime errors
+            - Validate that changes work in a running environment
+            
+            Common development server commands by technology:
+            - **Python/LangGraph**: \`langgraph dev\` (for LangGraph applications)
+            - **Node.js/React**: \`npm start\`, \`npm run dev\`, \`yarn start\`, \`yarn dev\`
+            - **Python/Django**: \`python manage.py runserver\`
+            - **Python/Flask**: \`python app.py\`, \`flask run\`
+            - **Python/FastAPI**: \`uvicorn main:app --reload\`
+            - **Go**: \`go run .\`, \`go run main.go\`
+            - **Ruby/Rails**: \`rails server\`, \`bundle exec rails server\`
+            
+            Parameters:
+                - \`command\`: The development server command to execute (e.g., ["langgraph", "dev"] or ["npm", "start"])
+                - \`request\`: HTTP request to send to the server for testing (JSON format with url, method, headers, body)
+                - \`workdir\`: Working directory for the command
+                - \`wait_time\`: Time to wait in seconds before sending request (default: 10)
+            
+            The tool will start the server, send a test request, capture logs, and return the results for validation.
+            
+            **CRITICAL:** Always use this tool to verify your implementation works in practice, not just in theory. 
+            Do not assume code works without testing it. Runtime testing is mandatory for web applications and APIs.
     </tool_usage>
 
     ${TOOL_USE_BEST_PRACTICES_PROMPT}

@@ -31,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { parseEnvFile } from "@/lib/parse-env";
 
 interface ApiKey {
   id: string;
@@ -129,6 +130,45 @@ export function APIKeysTab() {
     updateEnvVarProperty(id, { name: newName });
   };
 
+  const handlePasteDetection = (pastedText: string, currentId: string) => {
+    try {
+      const parsedVars = parseEnvFile(pastedText);
+
+      // If we get multiple variables or it looks like an env format, handle as bulk import
+      if (
+        parsedVars.length > 1 ||
+        (parsedVars.length === 1 && pastedText.includes("="))
+      ) {
+        const currentApiKeys = config.apiKeys || {};
+        const newApiKeys = { ...currentApiKeys };
+
+        parsedVars.forEach((envVar, index) => {
+          if (index === 0) {
+            newApiKeys[currentId] = {
+              ...newApiKeys[currentId],
+              name: envVar.name,
+              api_key: envVar.value,
+            };
+          } else {
+            const id = crypto.randomUUID();
+            newApiKeys[id] = {
+              name: envVar.name,
+              api_key: envVar.value,
+              allowed_in_dev: false,
+            };
+          }
+        });
+
+        updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", newApiKeys);
+        return true;
+      }
+    } catch {
+      // Not a valid env format, treat as regular text
+    }
+
+    return false;
+  };
+
   const getApiKeySections = (): Record<string, ApiKeySection> => {
     const sections: Record<string, ApiKeySection> = {};
     const currentApiKeys = config.apiKeys || {};
@@ -209,8 +249,8 @@ export function APIKeysTab() {
               </span>
             ))}
             Your API keys will be readable by LLMs and any code running in the
-            sandbox environment. Only enable this feature if you understand the
-            security implications.
+            sandbox environment. We only recommend enabling this feature if you
+            understand the security vulnerabilities.
           </AlertDescription>
         </Alert>
       )}
@@ -248,6 +288,17 @@ export function APIKeysTab() {
                             [apiKey.id]: e.target.value,
                           }))
                         }
+                        onPaste={(e) => {
+                          const pastedText = e.clipboardData.getData("text");
+                          if (handlePasteDetection(pastedText, apiKey.id)) {
+                            e.preventDefault();
+                            setEditingKeyNames((prev) => {
+                              const updated = { ...prev };
+                              delete updated[apiKey.id];
+                              return updated;
+                            });
+                          }
+                        }}
                         onBlur={(e) => {
                           const cleanKey = e.target.value
                             .trim()
@@ -264,7 +315,7 @@ export function APIKeysTab() {
                           });
                         }}
                         placeholder="VARIABLE_NAME"
-                        className="text-foreground h-auto w-auto min-w-0 border-dashed bg-transparent px-2 py-1 font-mono text-base font-semibold"
+                        className="text-foreground h-auto w-auto min-w-[200px] border-dashed bg-transparent px-2 py-1 font-mono text-base font-semibold"
                       />
                     ) : (
                       <h3 className="text-foreground font-mono font-semibold">

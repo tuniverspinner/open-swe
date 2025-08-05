@@ -18,6 +18,7 @@ import {
   createGrepTool,
   createShellTool,
   createInstallDependenciesTool,
+  createMonitorDevServerTool,
 } from "../../../../tools/index.js";
 import { formatCustomRulesPrompt } from "../../../../utils/custom-rules.js";
 import { formatUserRequestPrompt } from "../../../../utils/user-request.js";
@@ -135,6 +136,7 @@ function createToolsAndPrompt(
     createScratchpadTool(
       "when generating a final review, after all context gathering and reviewing is complete",
     ),
+    createMonitorDevServerTool(state),
   ];
   const anthropicTools = tools;
   anthropicTools[anthropicTools.length - 1] = {
