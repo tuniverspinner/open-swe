@@ -19,6 +19,7 @@ import {
   Server,
   CircleQuestionMark,
   Plus,
+  AlertTriangle,
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -177,6 +178,12 @@ export function APIKeysTab() {
 
   const apiKeySections = getApiKeySections();
 
+  // Get all keys that are exposed to dev server
+  const exposedKeys = Object.values(apiKeySections)
+    .flatMap((section) => section.keys)
+    .filter((key) => key.allowed_in_dev && key.value)
+    .map((key) => key.name);
+
   return (
     <div className="space-y-8">
       <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20">
@@ -186,6 +193,27 @@ export function APIKeysTab() {
           API key below to get started.
         </AlertDescription>
       </Alert>
+
+      {exposedKeys.length > 0 && (
+        <Alert className="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Warning:</strong> The following environment variables are
+            exposed to the development sandbox:{" "}
+            {exposedKeys.map((keyName, index) => (
+              <span key={keyName}>
+                <code className="rounded bg-amber-100 px-1.5 py-0.5 font-mono text-xs text-amber-800 dark:bg-amber-800/20 dark:text-amber-200">
+                  {keyName}
+                </code>
+                {index < exposedKeys.length - 1 && ", "}
+              </span>
+            ))}
+            Your API keys will be readable by LLMs and any code running in the
+            sandbox environment. Only enable this feature if you understand the
+            security implications.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {Object.entries(apiKeySections).map(([sectionKey, section]) => (
         <Card
