@@ -12,14 +12,15 @@ import {
   getGitHubAccessTokenOrThrow,
 } from "./utils";
 import { encryptSecret } from "@open-swe/shared/crypto";
-import { ProviderConfig } from "@open-swe/shared/open-swe/types";
+import { EnvVarConfig } from "@open-swe/shared/open-swe/types";
 
 // This file acts as a proxy for requests to your LangGraph server.
 // Read the [Going to Production](https://github.com/langchain-ai/agent-chat-ui?tab=readme-ov-file#going-to-production) section for more information.
-function isProviderConfig(value: unknown): value is ProviderConfig {
+function isEnvVarConfig(value: unknown): value is EnvVarConfig {
   return (
     typeof value === "object" &&
     value !== null &&
+    "name" in value &&
     "api_key" in value &&
     typeof (value as any).api_key === "string"
   );
@@ -43,14 +44,14 @@ export const { GET, POST, PUT, PATCH, DELETE, OPTIONS, runtime } =
         const encryptedApiKeys: Record<string, unknown> = {};
 
         // Encrypt each field in the apiKeys object
-        for (const [providerId, providerConfig] of Object.entries(apiKeys)) {
-          if (isProviderConfig(providerConfig)) {
-            encryptedApiKeys[providerId] = {
-              ...providerConfig,
-              api_key: encryptSecret(providerConfig.api_key, encryptionKey),
+        for (const [envVarId, envVarConfig] of Object.entries(apiKeys)) {
+          if (isEnvVarConfig(envVarConfig)) {
+            encryptedApiKeys[envVarId] = {
+              ...envVarConfig,
+              api_key: encryptSecret(envVarConfig.api_key, encryptionKey),
             };
           } else {
-            encryptedApiKeys[providerId] = providerConfig;
+            encryptedApiKeys[envVarId] = envVarConfig;
           }
         }
 

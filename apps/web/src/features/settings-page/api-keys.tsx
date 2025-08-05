@@ -60,14 +60,14 @@ const API_KEY_SECTIONS: Record<string, Omit<ApiKeySection, "keys">> = {
 
 const PROVIDER_DEFINITIONS = {
   llms: [
-    { id: "anthropic", name: "Anthropic", description: "" },
-    { id: "openai", name: "OpenAI", description: "" },
-    { id: "google-genai", name: "Google Gen AI", description: "" },
+    { id: "anthropic", name: "ANTHROPIC_API_KEY", description: "" },
+    { id: "openai", name: "OPENAI_API_KEY", description: "" },
+    { id: "google-genai", name: "GOOGLE_API_KEY", description: "" },
   ],
   // infrastructure: [
   //   {
   //     id: "daytona",
-  //     name: "Daytona",
+  //     name: "DAYTONA_API_KEY",
   //     description: "Users not required to set this if using the demo",
   //   },
   // ],
@@ -93,88 +93,56 @@ export function APIKeysTab() {
     }));
   };
 
-  const updateApiKey = (providerId: string, value: string) => {
+  const updateEnvVarProperty = (id: string, updates: Partial<{name: string, api_key: string, allowed_in_dev: boolean}>) => {
     const currentApiKeys = config.apiKeys || {};
-    const currentProvider = currentApiKeys[providerId] || {};
-
+    const keyData = currentApiKeys[id] || {};
     updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", {
       ...currentApiKeys,
-      [providerId]: {
-        ...currentProvider,
-        api_key: value,
+      [id]: {
+        ...keyData,
+        ...updates,
       },
     });
-  };
+  }
 
-  const updateDevServerSetting = (providerId: string, enabled: boolean) => {
-    const currentApiKeys = config.apiKeys || {};
-    const currentProvider = currentApiKeys[providerId] || {};
-
-    updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", {
-      ...currentApiKeys,
-      [providerId]: {
-        ...currentProvider,
-        allowed_in_dev: enabled,
-      },
-    });
-  };
-
-  const deleteApiKey = (providerId: string) => {
+  const deleteApiKey = (id: string) => {
     const currentApiKeys = config.apiKeys || {};
     const updatedApiKeys = { ...currentApiKeys };
-    delete updatedApiKeys[providerId];
+    delete updatedApiKeys[id];
     updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", updatedApiKeys);
   };
 
   const addCustomEnvVar = () => {
-    const tempKey = `NEW_VAR_${Date.now()}`;
-    updateApiKey(tempKey, "");
+    const id = crypto.randomUUID();
+    updateEnvVarProperty(id, {name: "", api_key: "", allowed_in_dev: false});
   };
 
-  const updateCustomKeyName = (oldKey: string, newKey: string) => {
-    if (!newKey.trim() || oldKey === newKey) return;
-
-    const cleanNewKey = newKey
-      .trim()
-      .toUpperCase()
-      .replace(/[^A-Z0-9_]/g, "_");
-    const currentApiKeys = config.apiKeys || {};
-    const keyData = currentApiKeys[oldKey];
-
-    if (keyData) {
-      const updatedApiKeys: Record<string, typeof keyData> = {};
-      Object.keys(currentApiKeys).forEach(key => {
-        if (key === oldKey) {
-          updatedApiKeys[cleanNewKey] = keyData;
-        } else {
-          updatedApiKeys[key] = currentApiKeys[key];
-        }
-      });
-
-      updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", updatedApiKeys);
-    }
+  const updateCustomKeyName = (id: string, newName: string) => {
+    updateEnvVarProperty(id, {name: newName});
   };
 
   const getApiKeySections = (): Record<string, ApiKeySection> => {
     const sections: Record<string, ApiKeySection> = {};
     const currentApiKeys = config.apiKeys || {};
 
-    const predefinedIds = [
+    const predefinedEnvVarIds = [
       ...PROVIDER_DEFINITIONS.llms.map((p) => p.id),
       // ...PROVIDER_DEFINITIONS.infrastructure.map(p => p.id),
     ];
 
-    const customProviders = Object.keys(currentApiKeys)
-      .filter((id) => !predefinedIds.includes(id))
-      .map((id) => ({
-        id,
-        name: id.startsWith("NEW_VAR_") ? "" : id,
+    const customEnvVars = Object.entries(currentApiKeys)
+      .filter(([envId, envData]: [string, any]) => {
+        return !predefinedEnvVarIds.includes(envId);
+      })
+      .map(([envId, envData]: [string, any]) => ({
+        id: envId,
+        name: envData.name,
         description: "",
       }));
 
     const dynamicProviderDefinitions = {
       ...PROVIDER_DEFINITIONS,
-      custom: customProviders,
+      custom: customEnvVars,
     };
 
     Object.entries(API_KEY_SECTIONS).forEach(([sectionKey, sectionInfo]) => {
@@ -186,7 +154,7 @@ export function APIKeysTab() {
           const providerData = currentApiKeys[providerDef.id] || {};
           return {
             id: providerDef.id,
-            name: providerDef.name,
+            name: providerData.name || providerDef.name,
             description: providerDef.description,
             value: providerData.api_key || "",
             allowed_in_dev: providerData.allowed_in_dev || false,
@@ -231,7 +199,7 @@ export function APIKeysTab() {
           <CardContent className="space-y-4">
             {section.keys.map((apiKey: ApiKey, index: number) => (
               <div
-                key={`${sectionKey}-${index}`}
+                key={apiKey.id}
                 className="border-border rounded-lg border p-4"
               >
                 <div className="mb-3 flex items-center justify-between">
@@ -309,12 +277,12 @@ export function APIKeysTab() {
                           type={apiKey.isVisible ? "text" : "password"}
                           value={apiKey.value}
                           onChange={(e) =>
-                            updateApiKey(apiKey.id, e.target.value)
+                            updateEnvVarProperty(apiKey.id, {api_key: e.target.value})
                           }
                           placeholder={
                             sectionKey === "custom"
                               ? `Enter value for ${apiKey.name}`
-                              : `Enter your ${apiKey.name} API key`
+                              : `Enter your ${apiKey.name}`
                           }
                           className="font-mono text-sm"
                         />
@@ -378,7 +346,7 @@ export function APIKeysTab() {
                       id={`${apiKey.id}-devserver`}
                       checked={apiKey.allowed_in_dev}
                       onCheckedChange={(enabled) =>
-                        updateDevServerSetting(apiKey.id, enabled)
+                        updateEnvVarProperty(apiKey.id, {allowed_in_dev: enabled})
                       }
                       disabled={!apiKey.value}
                     />

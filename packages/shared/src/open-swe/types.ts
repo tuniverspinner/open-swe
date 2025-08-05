@@ -160,7 +160,8 @@ export type CustomRules = {
   pullRequestFormatting?: string;
 };
 
-export interface ProviderConfig {
+export interface EnvVarConfig {
+  name: string;
   api_key: string;
   allowed_in_dev: boolean;
 }
@@ -627,6 +628,7 @@ export const GraphConfiguration = z.object({
       .record(
         z.string(),
         z.object({
+          name: z.string(),
           api_key: z.string(),
           allowed_in_dev: z.boolean().optional().default(false),
         }),

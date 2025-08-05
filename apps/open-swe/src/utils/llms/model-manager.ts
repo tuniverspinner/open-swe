@@ -2,7 +2,7 @@ import {
   ConfigurableModel,
   initChatModel,
 } from "langchain/chat_models/universal";
-import { GraphConfig, ProviderConfig } from "@open-swe/shared/open-swe/types";
+import { GraphConfig, EnvVarConfig } from "@open-swe/shared/open-swe/types";
 import { createLogger, LogLevel } from "../logger.js";
 import {
   LLMTask,
@@ -73,7 +73,7 @@ const THINKING_BUDGET_TOKENS = 5000;
 
 const providerToApiKey = (
   providerName: string,
-  apiKeys: Record<string, ProviderConfig>,
+  apiKeys: Record<string, EnvVarConfig>,
 ): string => {
   switch (providerName) {
     case "openai":
