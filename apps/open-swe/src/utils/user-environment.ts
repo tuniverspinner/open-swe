@@ -44,10 +44,7 @@ export function getUserEnvironmentVariables(
           userEnvs[envVarConfig.name] = decryptedKey; // Use the actual env var name
         }
       } catch (error) {
-        console.warn(
-          `Failed to decrypt key for env var ${envVarConfig.name}:`,
-          error,
-        );
+        throw new Error(`Failed to decrypt key for env var ${envVarConfig.name}: ${error}`);
       }
     }
   }

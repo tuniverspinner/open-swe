@@ -81,7 +81,7 @@ export function APIKeysTab() {
   const [visibilityState, setVisibilityState] = useState<
     Record<string, boolean>
   >({});
-  
+
   const [editingKeyNames, setEditingKeyNames] = useState<
     Record<string, string>
   >({});
@@ -93,7 +93,14 @@ export function APIKeysTab() {
     }));
   };
 
-  const updateEnvVarProperty = (id: string, updates: Partial<{name: string, api_key: string, allowed_in_dev: boolean}>) => {
+  const updateEnvVarProperty = (
+    id: string,
+    updates: Partial<{
+      name: string;
+      api_key: string;
+      allowed_in_dev: boolean;
+    }>,
+  ) => {
     const currentApiKeys = config.apiKeys || {};
     const keyData = currentApiKeys[id] || {};
     updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", {
@@ -103,7 +110,7 @@ export function APIKeysTab() {
         ...updates,
       },
     });
-  }
+  };
 
   const deleteApiKey = (id: string) => {
     const currentApiKeys = config.apiKeys || {};
@@ -114,11 +121,11 @@ export function APIKeysTab() {
 
   const addCustomEnvVar = () => {
     const id = crypto.randomUUID();
-    updateEnvVarProperty(id, {name: "", api_key: "", allowed_in_dev: false});
+    updateEnvVarProperty(id, { name: "", api_key: "", allowed_in_dev: false });
   };
 
   const updateCustomKeyName = (id: string, newName: string) => {
-    updateEnvVarProperty(id, {name: newName});
+    updateEnvVarProperty(id, { name: newName });
   };
 
   const getApiKeySections = (): Record<string, ApiKeySection> => {
@@ -208,9 +215,9 @@ export function APIKeysTab() {
                       <Input
                         value={editingKeyNames[apiKey.id] ?? apiKey.name}
                         onChange={(e) =>
-                          setEditingKeyNames(prev => ({
+                          setEditingKeyNames((prev) => ({
                             ...prev,
-                            [apiKey.id]: e.target.value
+                            [apiKey.id]: e.target.value,
                           }))
                         }
                         onBlur={(e) => {
@@ -222,7 +229,7 @@ export function APIKeysTab() {
                             updateCustomKeyName(apiKey.id, cleanKey);
                           }
                           // Clear the editing state
-                          setEditingKeyNames(prev => {
+                          setEditingKeyNames((prev) => {
                             const updated = { ...prev };
                             delete updated[apiKey.id];
                             return updated;
@@ -277,7 +284,9 @@ export function APIKeysTab() {
                           type={apiKey.isVisible ? "text" : "password"}
                           value={apiKey.value}
                           onChange={(e) =>
-                            updateEnvVarProperty(apiKey.id, {api_key: e.target.value})
+                            updateEnvVarProperty(apiKey.id, {
+                              api_key: e.target.value,
+                            })
                           }
                           placeholder={
                             sectionKey === "custom"
@@ -346,7 +355,9 @@ export function APIKeysTab() {
                       id={`${apiKey.id}-devserver`}
                       checked={apiKey.allowed_in_dev}
                       onCheckedChange={(enabled) =>
-                        updateEnvVarProperty(apiKey.id, {allowed_in_dev: enabled})
+                        updateEnvVarProperty(apiKey.id, {
+                          allowed_in_dev: enabled,
+                        })
                       }
                       disabled={!apiKey.value}
                     />
