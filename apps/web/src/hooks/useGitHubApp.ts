@@ -15,33 +15,91 @@ import {
 
 const GITHUB_SELECTED_REPO_KEY = "selected-repository";
 
-const saveRepositoryToLocalStorage = (repo: TargetRepository | null) => {
+const saveRepositoryToLocalStorage = (repo: TargetRepository | null, installationId: string) => {
   try {
+    if (!installationId) {
+      console.warn("Cannot save repository without installation ID");
+      return;
+    }
+
+    // Get existing stored repositories
+    const existingData = localStorage.getItem(GITHUB_SELECTED_REPO_KEY);
+    let repositories: Record<string, TargetRepository> = {};
+
+    // Handle backward compatibility - migrate single repository to new format
+    if (existingData) {
+      try {
+        const parsed = JSON.parse(existingData);
+        // Check if it's the old format (single repository object)
+        if (parsed && typeof parsed.owner === "string" && typeof parsed.repo === "string") {
+          // This is the old format, we'll migrate it but can't associate it with a specific installation
+          // So we'll just start fresh with the new format
+          repositories = {};
+        } else if (parsed && typeof parsed === "object") {
+          // This is the new format (object with installation IDs as keys)
+          repositories = parsed;
+        }
+      } catch {
+        // Invalid JSON, start fresh
+        repositories = {};
+      }
+    }
+
     if (repo) {
-      localStorage.setItem(GITHUB_SELECTED_REPO_KEY, JSON.stringify(repo));
+      repositories[installationId] = {
+        owner: repo.owner,
+        repo: repo.repo,
+        // Don't store branch in localStorage
+      };
+      localStorage.setItem(GITHUB_SELECTED_REPO_KEY, JSON.stringify(repositories));
     } else {
-      localStorage.removeItem(GITHUB_SELECTED_REPO_KEY);
+      // Remove the repository for this installation
+      delete repositories[installationId];
+      if (Object.keys(repositories).length === 0) {
+        localStorage.removeItem(GITHUB_SELECTED_REPO_KEY);
+      } else {
+        localStorage.setItem(GITHUB_SELECTED_REPO_KEY, JSON.stringify(repositories));
+      }
     }
   } catch (error) {
     console.warn("Failed to save repository to localStorage:", error);
   }
 };
 
-const getRepositoryFromLocalStorage = (): TargetRepository | null => {
+const getRepositoryFromLocalStorage = (installationId: string): TargetRepository | null => {
   try {
+    if (!installationId) {
+      return null;
+    }
+
     const stored = localStorage.getItem(GITHUB_SELECTED_REPO_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
-      if (
-        parsed &&
-        typeof parsed.owner === "string" &&
-        typeof parsed.repo === "string"
-      ) {
+      
+      // Handle backward compatibility - check if it's the old format
+      if (parsed && typeof parsed.owner === "string" && typeof parsed.repo === "string") {
+        // This is the old format, return it but don't migrate here (migration happens in save)
         return {
           owner: parsed.owner,
           repo: parsed.repo,
           // Don't restore branch from localStorage
         };
+      }
+      
+      // New format - get repository for specific installation
+      if (parsed && typeof parsed === "object" && parsed[installationId]) {
+        const repo = parsed[installationId];
+        if (
+          repo &&
+          typeof repo.owner === "string" &&
+          typeof repo.repo === "string"
+        ) {
+          return {
+            owner: repo.owner,
+            repo: repo.repo,
+            // Don't restore branch from localStorage
+          };
+        }
       }
     }
     return null;
@@ -524,3 +582,4 @@ export function useGitHubApp(): UseGitHubAppReturn {
     defaultBranch,
   };
 }
+
