@@ -393,18 +393,18 @@ export function useGitHubApp(): UseGitHubAppReturn {
     if (currentInstallationId) {
       const previousInstallationId = previousInstallationIdRef.current;
 
-      // Only clear repository if installation actually changed to a different value
+      // Only reset state if installation actually changed to a different value
       if (
         previousInstallationId !== null &&
         previousInstallationId !== currentInstallationId
       ) {
-        // Clear selected repository and branches when installation changes
-        setSelectedRepository(null);
+        // Reset branches and pagination state when installation changes
         setBranches([]);
         setRepositoriesPage(1);
         setRepositoriesHasMore(false);
 
         // Reset auto-selection flags so they can run again for the new installation
+        // This allows the restoration logic to check localStorage for the new installation
         hasAutoSelectedRef.current = false;
         hasCheckedLocalStorageRef.current = false;
       }
@@ -582,4 +582,5 @@ export function useGitHubApp(): UseGitHubAppReturn {
     defaultBranch,
   };
 }
+
 
