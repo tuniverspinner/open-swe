@@ -3,6 +3,7 @@ export * from "./shell.js";
 export * from "./builtin-tools/text-editor.js";
 export * from "./url-content.js";
 export * from "./search-documents-for/index.js";
+export * from "./monitor-dev-server.js";
 export {
   createUpdatePlanToolFields,
   createSessionPlanToolFields,
@@ -10,4 +11,4 @@ export {
 } from "@open-swe/shared/open-swe/tools";
 export * from "./grep.js";
 export * from "./install-dependencies.js";
-export * from "./planner-notes.js";
+export * from "./default-tsconfig.js";

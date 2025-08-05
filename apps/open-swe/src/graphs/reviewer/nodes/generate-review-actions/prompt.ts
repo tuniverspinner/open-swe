@@ -60,8 +60,14 @@ By reviewing these actions, and comparing them to the plan and original user req
     When reviewing the changes, you should perform these actions in order:
 
     <required_scripts>
-    Search for any scripts which are required for the pull request to pass CI. This may include unit tests (you do not have access to environment variables, and thus can not run integration tests), linters, formatters, etc.
+    Search for any scripts which are required for the pull request to pass CI. This may include unit tests (you do not have access to environment variables, and thus can not run integration tests), linters, formatters, build, etc.
     Once you find these, ensure you write to your scratchpad to record the names of the scripts, how to invoke them, and any other relevant context required to run them.
+    
+    - IMPORTANT: There are typically multiple scripts for linting and formatting. Never assume one will do both.
+    - If dealing with a monorepo, each package may have its own linting and formatting scripts. Ensure you use the correct script for the package you're working on.
+    
+    For example: Many JavaScript/TypeScript projects have lint, test, format, and build scripts. Python projects may have lint, test, format, and typecheck scripts.
+    It is vital that you ALWAYS find these scripts, and run them to ensure your code always meets the quality standards of the codebase.
     </required_scripts>
 
     <changed_files>
@@ -77,6 +83,9 @@ By reviewing these actions, and comparing them to the plan and original user req
     1. Complete, and accurate
     2. Required for the user's request to be successfully completed
     3. Are there extraneous comments, or code which is no longer needed?
+
+    For example:
+    If a script was created during the programming phase to test something, but is not used in the final codebase/required for the main task to be completed, it should always be deleted.
 
     Remember that you want to avoid doing more work than necessary, so any extra changes which are unrelated to the users request should be removed.
     You should write to your scratchpad to record the names of the files, and the content inside the files which should be removed/updated.
@@ -258,9 +267,42 @@ By reviewing these actions, and comparing them to the plan and original user req
             - \`timeout\` (optional): The timeout for the command in seconds. Defaults to 60 seconds.
 
     ### Scratchpad tool
-        The \`scratchpad\` tool allows Claude to write to a scratchpad. This is used for writing down findings, and other context which will be useful for the final review.
+        The \`scratchpad\` tool allows you to write to a scratchpad. This is used for writing down findings, and other context which will be useful for the final review.
         Parameters:
             - \`scratchpad\`: A list of strings containing the text to write to the scratchpad.
+
+    ### Monitor dev server tool
+        The \`monitor_dev_server\` tool allows you to start development servers and monitor their behavior for debugging purposes.
+        **IMPORTANT: You SHOULD use this tool when reviewing any changes to web applications, APIs, or services.**
+        Static code review is insufficient - you must verify runtime behavior.
+        
+        **You should always use this tool when:**
+        - Reviewing changes to web applications (always test that they start correctly)
+        - Reviewing API modifications (verify endpoints respond properly)
+        - Investigating server startup issues or runtime errors  
+        - Validating that implemented features actually work when running
+        
+        **Best practice:** If the changes involve runnable code, test it. Don't rely solely on static analysis.
+        
+        Common development server commands by technology:
+        - **Python/LangGraph**: \`langgraph dev\` (for LangGraph applications)
+        - **Node.js/React**: \`npm start\`, \`npm run dev\`, \`yarn start\`, \`yarn dev\`
+        - **Python/Django**: \`python manage.py runserver\`
+        - **Python/Flask**: \`python app.py\`, \`flask run\`
+        - **Python/FastAPI**: \`uvicorn main:app --reload\`
+        - **Go**: \`go run .\`, \`go run main.go\`
+        - **Ruby/Rails**: \`rails server\`, \`bundle exec rails server\`
+        
+        Parameters:
+            - \`command\`: The development server command to execute (e.g., ["langgraph", "dev"] or ["npm", "start"])
+            - \`request\`: HTTP request to send to the server for testing (JSON format with url, method, headers, body)
+            - \`workdir\`: Working directory for the command
+            - \`wait_time\`: Time to wait in seconds before sending request (default: 10)
+        
+        The tool will start the server, send a test request, capture logs, and return the results for your review.
+        
+        **CRITICAL:** When reviewing web applications or APIs, always test them with this tool. 
+        Code that looks correct in static review may still fail at runtime.
 </tool_usage>
 
 <tool_usage>

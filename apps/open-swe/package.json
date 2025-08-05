@@ -9,8 +9,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "langgraphjs dev --port 3002 --no-browser --config ../../langgraph.json",
-    "clean": "rm -rf ../../.langgraph_api || true && rm -rf .turbo || true && rm -rf ./dist || true",
+    "dev": "langgraphjs dev --no-browser --config ../../langgraph.json",
+    "clean": "rm -rf .turbo ../../.langgraph_api ./dist || true",
     "build": "tsc",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -24,7 +24,7 @@
     "postinstall": "turbo build"
   },
   "dependencies": {
-    "@daytonaio/sdk": "^0.23.1",
+    "@daytonaio/sdk": "^0.25.4",
     "@langchain/anthropic": "^0.3.25",
     "@langchain/community": "^0.3.47",
     "@langchain/core": "^0.3.65",
@@ -41,6 +41,7 @@
     "@open-swe/shared": "*",
     "diff": "^8.0.1",
     "hono": "^4.8.3",
+    "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.26",
     "langsmith": "^0.3.29",
     "uuid": "^11.0.5",
@@ -53,6 +54,7 @@
     "@langchain/langgraph-cli": "^0.0.47",
     "@tsconfig/recommended": "^1.0.8",
     "@types/jest": "^29.5.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.13.5",
     "dotenv": "^16.4.7",
     "eslint": "^9.19.0",

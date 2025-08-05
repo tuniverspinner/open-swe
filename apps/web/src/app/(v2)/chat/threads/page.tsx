@@ -16,6 +16,8 @@ import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
 import { useThreadsStatus } from "@/hooks/useThreadsStatus";
 import { cn } from "@/lib/utils";
 import { threadsToMetadata } from "@/lib/thread-utils";
+import { UserPopover } from "@/components/user-popover";
+import { OpenSWELogoSVG } from "@/components/icons/openswe";
 
 type FilterStatus =
   | "all"
@@ -29,10 +31,22 @@ type FilterStatus =
 
 function AllThreadsPageContent() {
   const router = useRouter();
+  const limit = 25;
+  const [offset, setOffset] = useState(0);
   const { currentInstallation, installationsLoading } = useGitHubAppProvider();
-  const { threads, isLoading: threadsLoading } = useThreadsSWR({
+  const {
+    threads,
+    isLoading: threadsLoading,
+    hasMore,
+  } = useThreadsSWR({
     assistantId: MANAGER_GRAPH_ID,
     currentInstallation,
+    pagination: {
+      limit,
+      offset,
+      sortBy: "updated_at",
+      sortOrder: "desc",
+    },
   });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
@@ -94,6 +108,11 @@ function AllThreadsPageContent() {
     (statusFilter === "all"
       ? Object.values(groupedThreads).flat().length === 0
       : filteredThreads.length === 0);
+  const showNoThreads =
+    filteredThreads.length === 0 &&
+    !threadsLoading &&
+    !statusLoading &&
+    !showThreadsLoading;
 
   return (
     <div className="bg-background flex h-screen flex-col">
@@ -109,10 +128,10 @@ function AllThreadsPageContent() {
             <ArrowLeft className="h-3 w-3" />
           </Button>
           <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div>
-            <span className="text-muted-foreground font-mono text-sm">
-              All Threads
-            </span>
+            <OpenSWELogoSVG
+              width={120}
+              height={18}
+            />
           </div>
           <div className="ml-auto flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -121,15 +140,15 @@ function AllThreadsPageContent() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <InstallationSelector />
               <ThemeToggle />
+              <UserPopover />
             </div>
           </div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="border-border bg-muted/50 border-b px-4 py-3 dark:bg-gray-950">
+      <div className="border-border bg-muted/50 border-b px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="relative max-w-md flex-1">
             <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transform" />
@@ -137,7 +156,7 @@ function AllThreadsPageContent() {
               placeholder="Search threads..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="border-border bg-background text-foreground placeholder:text-muted-foreground pl-10 dark:bg-gray-900"
+              className="border-border bg-background text-foreground placeholder:text-muted-foreground pl-10"
             />
           </div>
           <div className="flex items-center gap-1">
@@ -162,7 +181,7 @@ function AllThreadsPageContent() {
                 className={cn(
                   "h-7 text-xs",
                   statusFilter === status
-                    ? "bg-muted text-foreground dark:bg-gray-700"
+                    ? "bg-muted text-foreground"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
                 onClick={() => setStatusFilter(status)}
@@ -172,7 +191,7 @@ function AllThreadsPageContent() {
                   : status.charAt(0).toUpperCase() + status.slice(1)}
                 <Badge
                   variant="secondary"
-                  className="bg-muted/70 text-muted-foreground ml-1 text-xs dark:bg-gray-800"
+                  className="bg-muted/70 text-muted-foreground ml-1 text-xs"
                 >
                   {statusCounts[status]}
                 </Badge>
@@ -197,7 +216,7 @@ function AllThreadsPageContent() {
                       </h2>
                       <Badge
                         variant="secondary"
-                        className="bg-muted/70 text-muted-foreground text-xs dark:bg-gray-800"
+                        className="bg-muted/70 text-muted-foreground text-xs"
                       >
                         {threads.length}
                       </Badge>
@@ -231,22 +250,18 @@ function AllThreadsPageContent() {
             </div>
           )}
 
-          {filteredThreads.length === 0 &&
-            !threadsLoading &&
-            !statusLoading && (
-              <div className="py-12 text-center">
-                <div className="text-muted-foreground mb-2">
-                  No threads found
-                </div>
-                <div className="text-muted-foreground/70 text-xs">
-                  {!threads || threads.length === 0
-                    ? "No threads have been created yet"
-                    : searchQuery
-                      ? "Try adjusting your search query"
-                      : "No threads match the selected filter"}
-                </div>
+          {showNoThreads && (
+            <div className="py-12 text-center">
+              <div className="text-muted-foreground mb-2">No threads found</div>
+              <div className="text-muted-foreground/70 text-xs">
+                {!threads || threads.length === 0
+                  ? "No threads have been created yet"
+                  : searchQuery
+                    ? "Try adjusting your search query"
+                    : "No threads match the selected filter"}
               </div>
-            )}
+            </div>
+          )}
 
           {showThreadsLoading && (
             <div>
@@ -260,6 +275,16 @@ function AllThreadsPageContent() {
                   <ThreadCardLoading key={`all-threads-loading-${index}`} />
                 ))}
               </div>
+            </div>
+          )}
+          {!showNoThreads && hasMore && (
+            <div className="flex items-center justify-center">
+              <Button
+                variant="outline"
+                onClick={() => setOffset((prev) => prev + limit)}
+              >
+                Load more
+              </Button>
             </div>
           )}
         </div>

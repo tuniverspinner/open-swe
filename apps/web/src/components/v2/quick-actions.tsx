@@ -1,5 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import { GitHubSVG } from "../icons/github";
 
 const GENERATE_RULES_PROMPT = `You're given a task to write a collection of rules, context and guidelines on the repository you're provided. Please gather context on the following categories, then write an \`AGENTS.md\` file in the root of the repository.
 
@@ -41,7 +42,7 @@ function DevReadmePromptQuickAction({
   return (
     <Card
       onClick={() => setQuickActionPrompt(DEV_README_PROMPT)}
-      className="border-border bg-card hover:bg-muted cursor-pointer py-3 transition-shadow hover:shadow-lg dark:bg-gray-950"
+      className="border-border bg-card hover:bg-muted/30 dark:hover:bg-muted/20 hover:shadow-primary/2 cursor-pointer py-3 transition-all duration-200 hover:shadow-sm"
     >
       <CardHeader className="px-3">
         <CardTitle className="text-foreground text-sm">
@@ -52,6 +53,61 @@ function DevReadmePromptQuickAction({
         </CardDescription>
       </CardHeader>
     </Card>
+  );
+}
+
+function AgentsMarkdownQuickAction({
+  setQuickActionPrompt,
+}: QuickActionsProps) {
+  return (
+    <Card
+      onClick={() => setQuickActionPrompt(GENERATE_RULES_PROMPT)}
+      className="border-border bg-card hover:bg-muted/30 dark:hover:bg-muted/20 hover:shadow-primary/2 cursor-pointer py-3 transition-all duration-200 hover:shadow-sm"
+    >
+      <CardHeader className="px-3">
+        <CardTitle className="text-foreground text-sm">
+          Generate Agent Rules
+        </CardTitle>
+        <CardDescription className="text-muted-foreground text-xs">
+          Generate an AGENTS.md file for the repository.
+        </CardDescription>
+      </CardHeader>
+    </Card>
+  );
+}
+
+function RepositoryTemplateQuickAction(props: {
+  owner: string;
+  repo: string;
+  title: string;
+  description: string;
+}) {
+  const repoUrl = `https://github.com/${props.owner}/${props.repo}`;
+  return (
+    <a
+      href={repoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <Card className="border-border bg-card hover:bg-muted/30 dark:hover:bg-muted/20 hover:shadow-primary/2 cursor-pointer py-3 transition-all duration-200 hover:shadow-sm">
+        <CardHeader className="px-3">
+          <CardTitle className="text-foreground text-sm">
+            {props.title}
+            <p className="text-foreground/80 mt-1 flex items-center gap-1 font-mono text-xs">
+              <GitHubSVG
+                width="12"
+                height="12"
+                className="flex-shrink-0"
+              />
+              {props.owner}/{props.repo}
+            </p>
+          </CardTitle>
+          <CardDescription className="text-muted-foreground text-xs">
+            {props.description}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    </a>
   );
 }
 
@@ -69,19 +125,15 @@ export function QuickActions({ setQuickActionPrompt }: QuickActionsProps) {
         <DevReadmePromptQuickAction
           setQuickActionPrompt={setQuickActionPrompt}
         />
-        <Card
-          onClick={() => setQuickActionPrompt(GENERATE_RULES_PROMPT)}
-          className="border-border bg-card hover:bg-muted cursor-pointer py-3 transition-shadow hover:shadow-lg dark:bg-gray-950"
-        >
-          <CardHeader className="px-3">
-            <CardTitle className="text-foreground text-sm">
-              Generate Agent Rules
-            </CardTitle>
-            <CardDescription className="text-muted-foreground text-xs">
-              Generate an AGENTS.md file for the repository.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        <AgentsMarkdownQuickAction
+          setQuickActionPrompt={setQuickActionPrompt}
+        />
+        <RepositoryTemplateQuickAction
+          owner="bracesproul"
+          repo="typescript-template"
+          title="Clone a TypeScript Template"
+          description="Bootstrap a new TypeScript project with pre-configured build tools, linting, testing setup, etc."
+        />
       </div>
     </div>
   );

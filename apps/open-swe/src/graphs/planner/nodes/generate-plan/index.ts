@@ -5,8 +5,8 @@ import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import {
   loadModel,
   supportsParallelToolCallsParam,
-  Task,
 } from "../../../../utils/llms/index.js";
+import { LLMTask } from "@open-swe/shared/open-swe/llm-task";
 import {
   PlannerGraphState,
   PlannerGraphUpdate,
@@ -25,6 +25,7 @@ import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
 import { filterMessagesWithoutContent } from "../../../../utils/message/content.js";
 import { getModelManager } from "../../../../utils/llms/model-manager.js";
 import { trackCachePerformance } from "../../../../utils/caching.js";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 
 function formatSystemPrompt(state: PlannerGraphState): string {
   // It's a followup if there's more than one human message.
@@ -54,12 +55,12 @@ export async function generatePlan(
   state: PlannerGraphState,
   config: GraphConfig,
 ): Promise<PlannerGraphUpdate> {
-  const model = await loadModel(config, Task.PLANNER);
+  const model = await loadModel(config, LLMTask.PLANNER);
   const modelManager = getModelManager();
-  const modelName = modelManager.getModelNameForTask(config, Task.PLANNER);
+  const modelName = modelManager.getModelNameForTask(config, LLMTask.PLANNER);
   const modelSupportsParallelToolCallsParam = supportsParallelToolCallsParam(
     config,
-    Task.PLANNER,
+    LLMTask.PLANNER,
   );
   const sessionPlanTool = createSessionPlanToolFields();
   const modelWithTools = model.bindTools([sessionPlanTool], {
@@ -101,13 +102,29 @@ export async function generatePlan(
       ...inputMessages,
     ]);
 
+  // Filter out empty plans
+  response.tool_calls = response.tool_calls?.map((tc) => {
+    if (tc.id === sessionPlanTool.name) {
+      return {
+        ...tc,
+        args: {
+          ...tc.args,
+          plan: (tc.args as z.infer<typeof sessionPlanTool.schema>).plan.filter(
+            (p) => p.length > 0,
+          ),
+        },
+      };
+    }
+    return tc;
+  });
+
   const toolCall = response.tool_calls?.[0];
   if (!toolCall) {
     throw new Error("Failed to generate plan");
   }
 
   let newSessionId: string | undefined;
-  if (state.sandboxSessionId) {
+  if (state.sandboxSessionId && !isLocalMode(config)) {
     // Stop before returning, as the next step will be to interrupt the graph.
     newSessionId = await stopSandbox(state.sandboxSessionId);
   }

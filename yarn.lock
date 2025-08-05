@@ -1282,31 +1282,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@daytonaio/api-client@npm:0.23.1":
-  version: 0.23.1
-  resolution: "@daytonaio/api-client@npm:0.23.1"
+"@daytonaio/api-client@npm:0.25.4":
+  version: 0.25.4
+  resolution: "@daytonaio/api-client@npm:0.25.4"
   dependencies:
     axios: ^1.6.1
-  checksum: 415ca9369e02c4b64925a834fa076a8b2c841d2bd08205b404b31b5b12f83a0c8b8c2ffb4f678b5cb73b14c013311cd2d81494132917c9e94946c2b55ce2f653
+  checksum: c3ff09da2af437620bada5c6161e52104ec32a2ef0f3a890d4da5458015e78e9de7ee28954e423477dc5fd7a8a07f58e5fd1fc919d9f382e86b6ad2da8b421c6
   languageName: node
   linkType: hard
 
-"@daytonaio/sdk@npm:^0.23.1":
-  version: 0.23.1
-  resolution: "@daytonaio/sdk@npm:0.23.1"
+"@daytonaio/sdk@npm:^0.25.4":
+  version: 0.25.4
+  resolution: "@daytonaio/sdk@npm:0.25.4"
   dependencies:
     "@aws-sdk/client-s3": ^3.787.0
     "@aws-sdk/lib-storage": ^3.798.0
-    "@daytonaio/api-client": 0.23.1
+    "@daytonaio/api-client": 0.25.4
     "@iarna/toml": ^2.2.5
     axios: ^1.6.1
     dotenv: ^17.0.1
     expand-tilde: ^2.0.2
     fast-glob: ^3.3.0
     form-data: ^4.0.0
+    isomorphic-ws: 5.0.0
+    pathe: ^2.0.3
     shell-quote: ^1.8.2
     tar: ^6.2.0
-  checksum: d78d6048a867eb17233be36810140ecdfd70fe1344e4fdcf2b3d25bbae01ea38102875e9720179ef89338ba5774064f089c5daec10b8af5775bf10e502a58657
+  checksum: d3d6e35c8c27a69c4cd8e241b9e1e4ac2171136718dc0ec21bf20e63e0d027f29a37ab16909025f14f891428055c9493382d72fe368d8db391249f59b4f00e21
   languageName: node
   linkType: hard
 
@@ -4091,7 +4093,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@open-swe/agent@workspace:apps/open-swe"
   dependencies:
-    "@daytonaio/sdk": ^0.23.1
+    "@daytonaio/sdk": ^0.25.4
     "@eslint/eslintrc": ^3.1.0
     "@eslint/js": ^9.19.0
     "@jest/globals": ^29.7.0
@@ -4112,6 +4114,7 @@ __metadata:
     "@open-swe/shared": "*"
     "@tsconfig/recommended": ^1.0.8
     "@types/jest": ^29.5.0
+    "@types/jsonwebtoken": ^9.0.10
     "@types/node": ^22.13.5
     diff: ^8.0.1
     dotenv: ^16.4.7
@@ -4122,6 +4125,7 @@ __metadata:
     eslint-plugin-prettier: ^4.2.1
     hono: ^4.8.3
     jest: ^29.7.0
+    jsonwebtoken: ^9.0.2
     langchain: ^0.3.26
     langsmith: ^0.3.29
     prettier: ^3.5.2
@@ -4142,13 +4146,17 @@ __metadata:
   dependencies:
     "@eslint/eslintrc": ^3.1.0
     "@eslint/js": ^9.19.0
+    "@langchain/langgraph-sdk": ^0.0.95
+    "@open-swe/shared": "*"
     "@tsconfig/recommended": ^1.0.8
     "@types/express": ^4.17.21
-    "@types/node": ^22.13.5
+    "@types/node": ^24.1.0
     "@types/node-fetch": ^2.6.4
     "@types/react": ^19.1.8
+    "@types/uuid": ^10.0.0
     "@typescript-eslint/eslint-plugin": ^8.38.0
     "@typescript-eslint/parser": ^8.38.0
+    commander: ^12.0.0
     dotenv: ^16.6.1
     eslint: ^9.19.0
     eslint-config-prettier: ^8.8.0
@@ -4164,6 +4172,7 @@ __metadata:
     react: ^19.1.0
     tsx: ^4.20.3
     typescript: ^5.8.3
+    uuid: ^10.0.0
   languageName: unknown
   linkType: soft
 
@@ -4190,6 +4199,7 @@ __metadata:
     "@octokit/types": ^12.0.0
     "@tsconfig/recommended": ^1.0.8
     "@types/jest": ^29.5.0
+    "@types/jsonwebtoken": ^9.0.10
     "@types/node": ^22.13.5
     dotenv: ^16.4.7
     eslint: ^9.19.0
@@ -4234,7 +4244,7 @@ __metadata:
     "@radix-ui/react-tabs": ^1.1.12
     "@radix-ui/react-tooltip": ^1.1.8
     "@tailwindcss/postcss": ^4.0.13
-    "@types/jsonwebtoken": ^9.0.9
+    "@types/jsonwebtoken": ^9.0.10
     "@types/lodash": ^4.17.16
     "@types/node": ^22.13.5
     "@types/react": ^19.0.8
@@ -4255,6 +4265,7 @@ __metadata:
     eslint-plugin-react-refresh: ^0.4.18
     framer-motion: ^12.4.9
     globals: ^15.14.0
+    jsonwebtoken: ^9.0.2
     katex: ^0.16.21
     langgraph-nextjs-api-passthrough: ^0.1.4
     lodash: ^4.17.21
@@ -6903,7 +6914,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/jsonwebtoken@npm:^9.0.9":
+"@types/jsonwebtoken@npm:^9.0.10":
   version: 9.0.10
   resolution: "@types/jsonwebtoken@npm:9.0.10"
   dependencies:
@@ -6991,6 +7002,15 @@ __metadata:
   dependencies:
     undici-types: ~6.21.0
   checksum: 8a8cb8468187845c77403a41e98fe0fdd148741456382eb01bfaee6431303111eae5f2716ce9069b884518862ab96bcc04adf1c90a10ff35e88db19732b383c0
+  languageName: node
+  linkType: hard
+
+"@types/node@npm:^24.1.0":
+  version: 24.1.0
+  resolution: "@types/node@npm:24.1.0"
+  dependencies:
+    undici-types: ~7.8.0
+  checksum: 01f9a97909eec619d937af3bc00ac49461e1846656b4d060f648145df06508eb6d77c200637a792481ee93a73976ced46cfbbdfe307e79be0f58ccdc415dfcd2
   languageName: node
   linkType: hard
 
@@ -9130,6 +9150,13 @@ __metadata:
   version: 10.0.1
   resolution: "commander@npm:10.0.1"
   checksum: 436901d64a818295803c1996cd856621a74f30b9f9e28a588e726b2b1670665bccd7c1a77007ebf328729f0139838a88a19265858a0fa7a8728c4656796db948
+  languageName: node
+  linkType: hard
+
+"commander@npm:^12.0.0":
+  version: 12.1.0
+  resolution: "commander@npm:12.1.0"
+  checksum: 68e9818b00fc1ed9cdab9eb16905551c2b768a317ae69a5e3c43924c2b20ac9bb65b27e1cab36aeda7b6496376d4da908996ba2c0b5d79463e0fb1e77935d514
   languageName: node
   linkType: hard
 
@@ -13225,6 +13252,15 @@ __metadata:
   version: 3.1.1
   resolution: "isexe@npm:3.1.1"
   checksum: 7fe1931ee4e88eb5aa524cd3ceb8c882537bc3a81b02e438b240e47012eef49c86904d0f0e593ea7c3a9996d18d0f1f3be8d3eaa92333977b0c3a9d353d5563e
+  languageName: node
+  linkType: hard
+
+"isomorphic-ws@npm:5.0.0":
+  version: 5.0.0
+  resolution: "isomorphic-ws@npm:5.0.0"
+  peerDependencies:
+    ws: "*"
+  checksum: e20eb2aee09ba96247465fda40c6d22c1153394c0144fa34fe6609f341af4c8c564f60ea3ba762335a7a9c306809349f9b863c8beedf2beea09b299834ad5398
   languageName: node
   linkType: hard
 

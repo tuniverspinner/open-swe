@@ -7,6 +7,7 @@ import {
 import {
   createInstallDependenciesTool,
   createShellTool,
+  createMonitorDevServerTool,
 } from "../../../tools/index.js";
 import { GraphConfig, TaskPlan } from "@open-swe/shared/open-swe/types";
 import {
@@ -46,17 +47,19 @@ export async function takeReviewerActions(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
-  const shellTool = createShellTool(state);
-  const searchTool = createGrepTool(state);
-  const viewTool = createViewTool(state);
-  const installDependenciesTool = createInstallDependenciesTool(state);
+  const shellTool = createShellTool(state, config);
+  const searchTool = createGrepTool(state, config);
+  const viewTool = createViewTool(state, config);
+  const installDependenciesTool = createInstallDependenciesTool(state, config);
   const scratchpadTool = createScratchpadTool("");
+  const monitorDevServerTool = createMonitorDevServerTool(state);
   const allTools = [
     shellTool,
     searchTool,
     viewTool,
     installDependenciesTool,
     scratchpadTool,
+    monitorDevServerTool,
   ];
   const toolsMap = Object.fromEntries(
     allTools.map((tool) => [tool.name, tool]),

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Sheet,
   SheetContent,
@@ -11,32 +11,29 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  CheckCircle,
-  XCircle,
-  Loader2,
-  GitBranch,
-  Layers3,
-  Plus,
-  Bug,
-} from "lucide-react";
+import { Layers3, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ThreadMetadata } from "./types";
 import { ThreadCard } from "./thread-card";
+import { useThreadsSWR } from "@/hooks/useThreadsSWR";
+import { MANAGER_GRAPH_ID } from "@open-swe/shared/constants";
+import { threadsToMetadata } from "@/lib/thread-utils";
 
 interface ThreadSwitcherProps {
   currentThread: ThreadMetadata;
-  allThreads: ThreadMetadata[];
 }
 
-export function ThreadSwitcher({
-  currentThread,
-  allThreads,
-}: ThreadSwitcherProps) {
+export function ThreadSwitcher({ currentThread }: ThreadSwitcherProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
-  const otherThreads = allThreads.filter((t) => t.id !== currentThread.id);
+  const { threads, isLoading: threadsLoading } = useThreadsSWR({
+    assistantId: MANAGER_GRAPH_ID,
+    disableOrgFiltering: true,
+  });
+
+  const threadsMetadata = useMemo(() => threadsToMetadata(threads), [threads]);
+  const otherThreads = threadsMetadata.filter((t) => t.id !== currentThread.id);
 
   return (
     <Sheet
@@ -47,7 +44,7 @@ export function ThreadSwitcher({
         <Button
           variant="outline"
           size="sm"
-          className="border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground h-7 gap-1 text-xs dark:border-gray-700 dark:bg-gray-900 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          className="border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground h-7 gap-1 text-xs"
         >
           <Layers3 className="h-3 w-3" />
           <span className="hidden sm:inline">Switch Thread</span>
@@ -55,7 +52,7 @@ export function ThreadSwitcher({
       </SheetTrigger>
       <SheetContent
         side="right"
-        className="border-border bg-background w-80 sm:w-96 dark:border-gray-800 dark:bg-gray-950"
+        className="border-border bg-background w-80 sm:w-96"
       >
         <SheetHeader className="pb-4">
           <SheetTitle className="text-foreground text-base">
@@ -70,7 +67,7 @@ export function ThreadSwitcher({
               router.push("/chat");
               setOpen(false);
             }}
-            className="border-border bg-card text-foreground hover:bg-muted h-8 w-full justify-start gap-2 text-xs dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+            className="border-border bg-card text-foreground hover:bg-muted h-8 w-full justify-start gap-2 text-xs"
             variant="outline"
           >
             <Plus className="h-3 w-3" />
@@ -79,16 +76,35 @@ export function ThreadSwitcher({
 
           {/* Current Thread */}
           <div className="space-y-2">
-            <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase dark:text-gray-500">
+            <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
               Current Thread
             </h3>
             <ThreadCard thread={currentThread} />
           </div>
 
           {/* Other Threads */}
-          {otherThreads.length > 0 && (
+          {threadsLoading ? (
             <div className="h-full space-y-2">
-              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase dark:text-gray-500">
+              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                Other Threads
+              </h3>
+              <ScrollArea className="h-full">
+                <div className="space-y-1">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="border-border space-y-2 rounded-lg border p-3"
+                    >
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          ) : otherThreads.length > 0 ? (
+            <div className="h-full space-y-2">
+              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                 Other Threads
               </h3>
               <ScrollArea className="h-full">
@@ -101,6 +117,17 @@ export function ThreadSwitcher({
                   ))}
                 </div>
               </ScrollArea>
+            </div>
+          ) : (
+            <div className="h-full space-y-2">
+              <h3 className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                Other Threads
+              </h3>
+              <div className="flex h-32 items-center justify-center">
+                <p className="text-muted-foreground text-sm">
+                  No other threads
+                </p>
+              </div>
             </div>
           )}
         </div>

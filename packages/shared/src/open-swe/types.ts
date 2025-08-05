@@ -160,6 +160,12 @@ export type CustomRules = {
   pullRequestFormatting?: string;
 };
 
+export interface EnvVarConfig {
+  name: string;
+  api_key: string;
+  allowed_in_dev: boolean;
+}
+
 export const GraphAnnotation = MessagesZodState.extend({
   /**
    * The internal messages. These are the messages which are
@@ -617,9 +623,21 @@ export const GraphConfiguration = z.object({
   /**
    * User defined API keys to use
    */
-  apiKeys: withLangGraph(z.record(z.string(), z.string()).optional(), {
-    metadata: GraphConfigurationMetadata.apiKeys,
-  }),
+  apiKeys: withLangGraph(
+    z
+      .record(
+        z.string(),
+        z.object({
+          name: z.string(),
+          api_key: z.string(),
+          allowed_in_dev: z.boolean().optional().default(false),
+        }),
+      )
+      .optional(),
+    {
+      metadata: GraphConfigurationMetadata.apiKeys,
+    },
+  ),
   /**
    * The user's GitHub access token. To be used in requests to get information about the user.
    */

@@ -3,6 +3,10 @@ title: "From Github"
 description: "How to use Open SWE from Github"
 ---
 
+<Warning>
+  GitHub webhooks are _not_ available via the demo application. To use GitHub webhooks, you must set up your own instance of Open SWE following the [development setup guide](/labs/swe/setup/development).
+</Warning>
+
 # GitHub Webhook Integration
 
 Open SWE integrates seamlessly with GitHub through webhooks, allowing you to trigger automated code changes directly from GitHub issues. This provides a streamlined workflow where you can request code changes by simply adding labels to issues in repositories where Open SWE is installed.
@@ -29,7 +33,7 @@ Open SWE supports three types of labels that control how the agent operates:
 
 **Max Mode (`open-swe-max` and `open-swe-max-auto`)**
 
-- Uses Claude Opus 4 for both planning and programming tasks
+- Uses Claude Opus 4.1 for both planning and programming tasks
 - Provides enhanced performance and reasoning capabilities for complex problems
 - `open-swe-max`: Requires manual plan approval with premium model performance
 - `open-swe-max-auto`: Combines automatic execution with premium model capabilities
@@ -123,4 +127,4 @@ To start using Open SWE with webhooks:
 4. **Monitor the issue comments** for the run link and status updates
 5. **Review and merge the PR** when Open SWE completes the changes
 
-For setup instructions, see the [Development Setup](/setup/development) guide.
+For setup instructions, see the [Development Setup](/labs/swe/setup/development) guide.

@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { TargetRepository } from "./types.js";
+import { TargetRepository, GraphConfig } from "./types.js";
 import { getRepoAbsolutePath } from "../git.js";
 import { TIMEOUT_SEC } from "../constants.js";
+import { isLocalMode, getLocalWorkingDirectory } from "./local-mode.js";
 
 export function createApplyPatchToolFields(targetRepository: TargetRepository) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
@@ -28,7 +29,9 @@ export function createRequestHumanHelpToolFields() {
     help_request: z
       .string()
       .describe(
-        "The help request to send to the human. Should be concise, but descriptive.",
+        "The help request to send to the human. Should be concise, but descriptive.\n" +
+          "IMPORTANT: This should be a request which the user can help with, such as providing context into where a function lives/is used within a codebase, or answering questions about how to run scripts.\n" +
+          "IMPORTANT: The user does NOT have access to the filesystem you're running on, and thus can not make changes to the code for you.",
       ),
   });
   return {
@@ -546,8 +549,14 @@ export function createTextEditorToolFields(targetRepository: TargetRepository) {
   };
 }
 
-export function createViewToolFields(targetRepository: TargetRepository) {
-  const repoRoot = getRepoAbsolutePath(targetRepository);
+export function createViewToolFields(
+  targetRepository: TargetRepository,
+  config?: GraphConfig,
+) {
+  const repoRoot =
+    config && isLocalMode(config)
+      ? getLocalWorkingDirectory()
+      : getRepoAbsolutePath(targetRepository);
   const viewSchema = z.object({
     command: z.enum(["view"]).describe("The command to execute: view"),
     path: z
@@ -568,5 +577,63 @@ export function createViewToolFields(targetRepository: TargetRepository) {
       `The working directory is \`${repoRoot}\`. Ensure file paths are absolute and properly formatted. ` +
       "Supports commands: view (read file/directory).",
     schema: viewSchema,
+  };
+}
+
+export function createWriteDefaultTsConfigToolFields(
+  targetRepository: TargetRepository,
+) {
+  const repoRoot = getRepoAbsolutePath(targetRepository);
+
+  const writeDefaultTsConfigToolSchema = z.object({
+    workdir: z
+      .string()
+      .default(repoRoot)
+      .describe(
+        `The directory which the tsconfig.json file will be written to. The default value is the root of the repository: \`${repoRoot}\`.`,
+      ),
+  });
+
+  return {
+    name: "write_default_tsconfig",
+    description:
+      "Writes a default tsconfig.json file to the specified directory. This should ONLY be called when creating a new TypeScript project.",
+    schema: writeDefaultTsConfigToolSchema,
+  };
+}
+export function createMonitorDevServerToolFields(
+  targetRepository: TargetRepository,
+) {
+  const repoRoot = getRepoAbsolutePath(targetRepository);
+  const monitorDevServerToolSchema = z.object({
+    command: z
+      .array(z.string())
+      .describe(
+        "The command to start the development server. Examples: ['npm', 'run', 'dev'], ['yarn', 'dev'], ['python', 'app.py'], ['node', 'server.js']. Ensure the command is properly formatted with arguments in the correct order.",
+      ),
+    request: z
+      .string()
+      .describe(
+        "The HTTP request command to test the server. Should be a complete curl command that will be executed after the server starts. Examples: 'curl -s http://localhost:3000', 'curl -X POST -H \"Content-Type: application/json\" -d '{\"test\":true}' http://localhost:3000/api/test', 'curl -I http://localhost:8080/health'.",
+      ),
+    workdir: z
+      .string()
+      .default(repoRoot)
+      .describe(
+        `The working directory where the server command should be executed. Defaults to the root of the repository (${repoRoot}).`,
+      ),
+    wait_time: z
+      .number()
+      .optional()
+      .default(5)
+      .describe(
+        "Time in seconds to wait for server startup before sending the test request, and also time to wait after sending the request before capturing logs. Increase for slower servers like React/Next.js (8-10s) or decrease for simple servers (2-3s). This allows the server to process the request and generate log output.",
+      ),
+  });
+  return {
+    name: "monitor_dev_server",
+    description:
+      "Starts a development server in the background using tmux, waits for startup, sends a test HTTP request, captures all server logs including the request processing, then cleanly stops the server. The function should be used for testing if your server implementation works correctly and debugging issues. The fuction returns a string containing the HTTP response and complete server logs for debugging.",
+    schema: monitorDevServerToolSchema,
   };
 }

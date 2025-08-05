@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { GitHubSVG } from "@/components/icons/github";
@@ -7,8 +8,10 @@ import { LangGraphLogoSVG } from "../icons/langgraph";
 import { useGitHubToken } from "@/hooks/useGitHubToken";
 import { useGitHubAppProvider } from "@/providers/GitHubApp";
 import { GitHubAppProvider } from "@/providers/GitHubApp";
+import { useRouter } from "next/navigation";
 
 function AuthStatusContent() {
+  const router = useRouter();
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -40,6 +43,13 @@ function AuthStatusContent() {
     fetchGitHubToken,
   ]);
 
+  useEffect(() => {
+    if (githubToken) {
+      console.log("redirecting to chat");
+      router.push("/chat");
+    }
+  }, [githubToken]);
+
   const checkAuthStatus = async () => {
     try {
       const response = await fetch("/api/auth/status");
@@ -61,7 +71,18 @@ function AuthStatusContent() {
     window.location.href = "/api/github/installation";
   };
 
-  if (!isAuth) {
+  const showGetStarted = !isAuth;
+  const showInstallApp =
+    !showGetStarted && !hasGitHubAppInstalled && !isTokenLoading;
+  const showLoading = !showGetStarted && !showInstallApp && !githubToken;
+
+  useEffect(() => {
+    if (!showGetStarted && !showInstallApp && !showLoading) {
+      router.push("/chat");
+    }
+  }, [showGetStarted, showInstallApp, showLoading, router]);
+
+  if (showGetStarted) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
         <div className="animate-in fade-in-0 zoom-in-95 flex w-full max-w-3xl flex-col rounded-lg border shadow-lg">
@@ -91,7 +112,7 @@ function AuthStatusContent() {
     );
   }
 
-  if (isAuth && hasGitHubAppInstalled === false && !isTokenLoading) {
+  if (showInstallApp) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
         <div className="animate-in fade-in-0 zoom-in-95 flex w-full max-w-3xl flex-col rounded-lg border shadow-lg">
@@ -124,7 +145,7 @@ function AuthStatusContent() {
             <Button
               onClick={handleInstallGitHubApp}
               disabled={isLoading || isCheckingAppInstallation}
-              className="bg-black hover:bg-gray-800"
+              className="bg-black hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-200"
             >
               <GitHubSVG
                 width="16"
@@ -140,7 +161,7 @@ function AuthStatusContent() {
     );
   }
 
-  if (!githubToken) {
+  if (showLoading) {
     return (
       <div className="flex min-h-screen w-full items-center justify-center p-4">
         <div className="animate-in fade-in-0 zoom-in-95 flex w-full max-w-3xl flex-col rounded-lg border shadow-lg">
@@ -159,6 +180,8 @@ function AuthStatusContent() {
       </div>
     );
   }
+
+  return null;
 }
 
 export default function AuthStatus() {

@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { AIMessage, BaseMessage } from "@langchain/core/messages";
 import { Command, END, interrupt } from "@langchain/langgraph";
+import { StreamMode } from "@langchain/langgraph-sdk";
 import {
   GraphUpdate,
   GraphConfig,
@@ -23,6 +24,11 @@ import {
   PLAN_INTERRUPT_DELIMITER,
   DO_NOT_RENDER_ID_PREFIX,
   PROGRAMMER_GRAPH_ID,
+  OPEN_SWE_STREAM_MODE,
+  LOCAL_MODE_HEADER,
+  GITHUB_INSTALLATION_ID,
+  GITHUB_INSTALLATION_TOKEN_COOKIE,
+  GITHUB_PAT,
 } from "@open-swe/shared/constants";
 import { PlannerGraphState } from "@open-swe/shared/open-swe/planner/types";
 import { createLangGraphClient } from "../../../utils/langgraph-client.js";
@@ -37,96 +43,14 @@ import {
 } from "@open-swe/shared/open-swe/custom-node-events";
 import { getDefaultHeaders } from "../../../utils/default-headers.js";
 import { getCustomConfigurableFields } from "../../../utils/config.js";
-import { getGitHubTokensFromConfig } from "../../../utils/github-tokens.js";
 import {
-  createIssueComment,
-  getIssueComments,
-  updateIssueComment,
-} from "../../../utils/github/api.js";
+  postGitHubIssueComment,
+  cleanTaskItems,
+} from "../../../utils/github/plan.js";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { regenerateInstallationToken } from "../../../utils/github/regenerate-token.js";
 
 const logger = createLogger(LogLevel.INFO, "ProposedPlan");
-
-const PLAN_MESSAGE_OPEN_TAG = "<open-swe-plan-message>";
-const PLAN_MESSAGE_CLOSE_TAG = "</open-swe-plan-message>";
-
-function formatBodyWithPlanMessage(body: string, message: string): string {
-  if (
-    body.includes(PLAN_MESSAGE_OPEN_TAG) &&
-    body.includes(PLAN_MESSAGE_CLOSE_TAG)
-  ) {
-    const bodyBeforeTag = body.split(PLAN_MESSAGE_OPEN_TAG)[0];
-    const bodyAfterTag = body.split(PLAN_MESSAGE_CLOSE_TAG)[1];
-    const newInnerContents = `\n${PLAN_MESSAGE_OPEN_TAG}\n\n${message}\n\n${PLAN_MESSAGE_CLOSE_TAG}\n`;
-    return `${bodyBeforeTag}${newInnerContents}${bodyAfterTag}`;
-  }
-
-  return `${body}\n${PLAN_MESSAGE_OPEN_TAG}\n\n${message}\n\n${PLAN_MESSAGE_CLOSE_TAG}`;
-}
-
-function cleanTaskItems(taskItem: string): string {
-  return "```\n" + taskItem.replace("```", "\\```") + "\n```";
-}
-
-/**
- * Posts a comment to a GitHub issue using the installation token
- */
-async function postGitHubIssueComment(input: {
-  githubIssueId: number;
-  targetRepository: { owner: string; repo: string };
-  commentBody: string;
-  config: GraphConfig;
-}): Promise<void> {
-  const { githubIssueId, targetRepository, commentBody, config } = input;
-  const githubAppName = process.env.GITHUB_APP_NAME;
-  if (!githubAppName) {
-    throw new Error("GITHUB_APP_NAME not set");
-  }
-
-  try {
-    const { githubInstallationToken } = getGitHubTokensFromConfig(config);
-    const existingComments = await getIssueComments({
-      owner: targetRepository.owner,
-      repo: targetRepository.repo,
-      issueNumber: githubIssueId,
-      githubInstallationToken,
-    });
-
-    const existingOpenSWEComment = existingComments?.findLast((c) =>
-      c.user?.login?.startsWith(githubAppName),
-    );
-
-    if (!existingOpenSWEComment) {
-      await createIssueComment({
-        owner: targetRepository.owner,
-        repo: targetRepository.repo,
-        issueNumber: githubIssueId,
-        body: commentBody,
-        githubToken: githubInstallationToken,
-      });
-
-      logger.info(`Posted comment to GitHub issue #${githubIssueId}`);
-      return;
-    }
-
-    // Update the comment
-    const newCommentBody = formatBodyWithPlanMessage(
-      existingOpenSWEComment.body ?? "",
-      commentBody,
-    );
-    await updateIssueComment({
-      owner: targetRepository.owner,
-      repo: targetRepository.repo,
-      commentId: existingOpenSWEComment.id,
-      body: newCommentBody,
-      githubInstallationToken,
-    });
-
-    logger.info(`Updated comment to GitHub issue #${githubIssueId}`);
-  } catch (error) {
-    logger.error("Failed to post GitHub comment:", error);
-    // Don't throw - we don't want to fail the entire process if comment posting fails
-  }
-}
 
 function createAcceptedPlanMessage(input: {
   planTitle: string;
@@ -167,8 +91,26 @@ async function startProgrammerRun(input: {
   newMessages?: BaseMessage[];
 }) {
   const { runInput, state, config, newMessages } = input;
+  const isLocal = isLocalMode(config);
+  const defaultHeaders = isLocal
+    ? { [LOCAL_MODE_HEADER]: "true" }
+    : getDefaultHeaders(config);
+
+  // Only regenerate if its not running in local mode, and the GITHUB_PAT is not in the headers
+  // If the GITHUB_PAT is in the headers, then it means we're running an eval and this does not need to be regenerated
+  if (!isLocal && !(GITHUB_PAT in defaultHeaders)) {
+    logger.info(
+      "Regenerating installation token before starting programmer run.",
+    );
+    defaultHeaders[GITHUB_INSTALLATION_TOKEN_COOKIE] =
+      await regenerateInstallationToken(defaultHeaders[GITHUB_INSTALLATION_ID]);
+    logger.info(
+      "Regenerated installation token before starting programmer run.",
+    );
+  }
+
   const langGraphClient = createLangGraphClient({
-    defaultHeaders: getDefaultHeaders(config),
+    defaultHeaders,
   });
 
   const programmerThreadId = uuidv4();
@@ -199,18 +141,21 @@ async function startProgrammerRun(input: {
       ifNotExists: "create",
       streamResumable: true,
       streamSubgraphs: true,
-      streamMode: ["values", "messages-tuple", "custom"],
+      streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
     },
   );
 
-  await addTaskPlanToIssue(
-    {
-      githubIssueId: state.githubIssueId,
-      targetRepository: state.targetRepository,
-    },
-    config,
-    runInput.taskPlan,
-  );
+  // Skip GitHub operations in local mode
+  if (!isLocalMode(config)) {
+    await addTaskPlanToIssue(
+      {
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+      },
+      config,
+      runInput.taskPlan,
+    );
+  }
 
   return new Command({
     goto: END,
@@ -235,6 +180,13 @@ export async function interruptProposedPlan(
     throw new Error("No proposed plan found.");
   }
 
+  logger.info("Interrupting proposed plan", {
+    autoAcceptPlan: state.autoAcceptPlan,
+    isLocalMode: isLocalMode(config),
+    proposedPlanLength: proposedPlan.length,
+    proposedPlanTitle: state.proposedPlanTitle,
+  });
+
   let planItems: PlanItem[];
   const userRequest = getInitialUserRequest(state.messages);
   const userFollowupRequest = getRecentUserRequest(state.messages);
@@ -249,7 +201,10 @@ export async function interruptProposedPlan(
   };
 
   if (state.autoAcceptPlan) {
-    logger.info("Auto accepting plan.");
+    logger.info("Auto accepting plan.", {
+      autoAcceptPlan: state.autoAcceptPlan,
+      isLocalMode: isLocalMode(config),
+    });
 
     // Post comment to GitHub issue about auto-accepting the plan
     await postGitHubIssueComment({
@@ -288,22 +243,24 @@ export async function interruptProposedPlan(
     });
   }
 
-  await addProposedPlanToIssue(
-    {
+  if (!isLocalMode(config)) {
+    await addProposedPlanToIssue(
+      {
+        githubIssueId: state.githubIssueId,
+        targetRepository: state.targetRepository,
+      },
+      config,
+      proposedPlan,
+    );
+
+    // Post comment to GitHub issue about plan being ready for approval
+    await postGitHubIssueComment({
       githubIssueId: state.githubIssueId,
       targetRepository: state.targetRepository,
-    },
-    config,
-    proposedPlan,
-  );
-
-  // Post comment to GitHub issue about plan being ready for approval
-  await postGitHubIssueComment({
-    githubIssueId: state.githubIssueId,
-    targetRepository: state.targetRepository,
-    commentBody: `### 🟠 Plan Ready for Approval 🟠\n\nI've generated a plan for this issue and it's ready for your review.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${proposedPlan.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step)}`).join("\n")}\n\nPlease review the plan and let me know if you'd like me to proceed, make changes, or if you have any feedback.`,
-    config,
-  });
+      commentBody: `### 🟠 Plan Ready for Approval 🟠\n\nI've generated a plan for this issue and it's ready for your review.\n\n**Plan: ${state.proposedPlanTitle}**\n\n${proposedPlan.map((step, index) => `- Task ${index + 1}:\n${cleanTaskItems(step)}`).join("\n")}\n\nPlease review the plan and let me know if you'd like me to proceed, make changes, or if you have any feedback.`,
+      config,
+    });
+  }
 
   const interruptResponse = interrupt<
     HumanInterrupt,

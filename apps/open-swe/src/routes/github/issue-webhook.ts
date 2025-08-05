@@ -12,6 +12,7 @@ import {
   GITHUB_USER_ID_HEADER,
   GITHUB_USER_LOGIN_HEADER,
   MANAGER_GRAPH_ID,
+  OPEN_SWE_STREAM_MODE,
 } from "@open-swe/shared/constants";
 import { encryptSecret } from "@open-swe/shared/crypto";
 import { HumanMessage } from "@langchain/core/messages";
@@ -24,6 +25,8 @@ import {
 import { ManagerGraphUpdate } from "@open-swe/shared/open-swe/manager/types";
 import { RequestSource } from "../../constants.js";
 import { isAllowedUser } from "@open-swe/shared/github/allowed-users";
+import { getOpenSweAppUrl } from "../../utils/url-helpers.js";
+import { StreamMode } from "@langchain/langgraph-sdk";
 
 const logger = createLogger(LogLevel.INFO, "GitHubIssueWebhook");
 
@@ -34,19 +37,6 @@ const githubApp = new GitHubApp();
 const webhooks = new Webhooks({
   secret: GITHUB_WEBHOOK_SECRET,
 });
-
-const getOpenSweAppUrl = (threadId: string) => {
-  if (!process.env.OPEN_SWE_APP_URL) {
-    return "";
-  }
-  try {
-    const baseUrl = new URL(process.env.OPEN_SWE_APP_URL);
-    baseUrl.pathname = `/chat/${threadId}`;
-    return baseUrl.toString();
-  } catch {
-    return "";
-  }
-};
 
 const getPayload = (body: string): Record<string, any> | null => {
   try {
@@ -185,15 +175,15 @@ webhooks.on("issues.labeled", async ({ payload }) => {
       },
       autoAcceptPlan: isAutoAcceptLabel,
     };
-    // Create config object with Claude Opus 4 model configuration for max labels
+    // Create config object with Claude Opus 4.1 model configuration for max labels
     const config: Record<string, any> = {
       recursion_limit: 400,
     };
 
     if (isMaxLabel) {
       config.configurable = {
-        plannerModelName: "anthropic:claude-opus-4-0",
-        programmerModelName: "anthropic:claude-opus-4-0",
+        plannerModelName: "anthropic:claude-opus-4-1",
+        programmerModelName: "anthropic:claude-opus-4-1",
       };
     }
 
@@ -202,7 +192,7 @@ webhooks.on("issues.labeled", async ({ payload }) => {
       config,
       ifNotExists: "create",
       streamResumable: true,
-      streamMode: ["values", "messages-tuple", "custom"],
+      streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
     });
 
     logger.info("Created new run from GitHub issue.", {

@@ -1,5 +1,5 @@
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
-import { Task } from "./llms/index.js";
+import { LLMTask } from "@open-swe/shared/open-swe/llm-task";
 import { ModelManager, Provider } from "./llms/model-manager.js";
 import { createLogger, LogLevel } from "./logger.js";
 import { Runnable, RunnableConfig } from "@langchain/core/runnables";
@@ -17,6 +17,8 @@ import { ChatResult, ChatGeneration } from "@langchain/core/outputs";
 import { BaseLanguageModelInput } from "@langchain/core/language_models/base";
 import { BindToolsInput } from "@langchain/core/language_models/chat_models";
 import { getMessageContentString } from "@open-swe/shared/messages";
+import { getConfig } from "@langchain/langgraph";
+import { MODELS_NO_PARALLEL_TOOL_CALLING } from "./llms/load-model.js";
 
 const logger = createLogger(LogLevel.DEBUG, "FallbackRunnable");
 
@@ -43,7 +45,7 @@ export class FallbackRunnable<
 > extends ConfigurableModel<RunInput, CallOptions> {
   private primaryRunnable: any;
   private config: GraphConfig;
-  private task: Task;
+  private task: LLMTask;
   private modelManager: ModelManager;
   private providerTools?: Record<Provider, BindToolsInput[]>;
   private providerMessages?: Record<Provider, BaseMessageLike[]>;
@@ -51,7 +53,7 @@ export class FallbackRunnable<
   constructor(
     primaryRunnable: any,
     config: GraphConfig,
-    task: Task,
+    task: LLMTask,
     modelManager: ModelManager,
     options?: {
       providerTools?: Record<Provider, BindToolsInput[]>;
@@ -108,8 +110,13 @@ export class FallbackRunnable<
         continue;
       }
 
+      const graphConfig = getConfig() as GraphConfig;
+
       try {
-        const model = await this.modelManager.initializeModel(modelConfig);
+        const model = await this.modelManager.initializeModel(
+          modelConfig,
+          graphConfig,
+        );
         let runnableToUse: Runnable<BaseLanguageModelInput, AIMessageChunk> =
           model;
 
@@ -135,9 +142,19 @@ export class FallbackRunnable<
           "bindTools" in runnableToUse &&
           runnableToUse.bindTools
         ) {
+          const supportsParallelToolCall =
+            !MODELS_NO_PARALLEL_TOOL_CALLING.some(
+              (modelName) => modelKey === modelName,
+            );
+
+          const kwargs = { ...toolsToUse.kwargs };
+          if (!supportsParallelToolCall && "parallel_tool_calls" in kwargs) {
+            delete kwargs.parallel_tool_calls;
+          }
+
           runnableToUse = (runnableToUse as ConfigurableModel).bindTools(
             toolsToUse.tools,
-            toolsToUse.kwargs,
+            kwargs,
           );
         }
 

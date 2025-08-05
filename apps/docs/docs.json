@@ -19,7 +19,14 @@
           },
           {
             "group": "Usage",
-            "pages": ["usage/intro", "usage/ui", "usage/github"]
+            "pages": [
+              "usage/intro",
+              "usage/ui",
+              "usage/github",
+              "usage/examples",
+              "usage/best-practices",
+              "usage/custom-rules"
+            ]
           },
           {
             "group": "Development Setup",
@@ -27,8 +34,13 @@
               "setup/intro",
               "setup/development",
               "setup/authentication",
-              "setup/monorepo"
+              "setup/monorepo",
+              "setup/ci"
             ]
+          },
+          {
+            "group": "FAQ",
+            "pages": ["faq"]
           }
         ]
       }

@@ -19,6 +19,14 @@ import { createPullRequest } from "./api.js";
 import { addTaskPlanToIssue } from "./issue-task.js";
 import { DEFAULT_EXCLUDED_PATTERNS } from "./constants.js";
 import { escapeRegExp } from "../string-utils.js";
+import {
+  getLocalWorkingDirectory,
+  isLocalMode,
+} from "@open-swe/shared/open-swe/local-mode";
+import {
+  getLocalShellExecutor,
+  LocalExecuteResponse,
+} from "../shell-executor/index.js";
 
 const logger = createLogger(LogLevel.INFO, "GitHub-Git");
 
@@ -43,12 +51,26 @@ async function getValidFilesToCommit(
   sandbox: Sandbox,
   excludePatterns: string[] = DEFAULT_EXCLUDED_PATTERNS,
 ): Promise<string[]> {
-  const gitStatusOutput = await sandbox.process.executeCommand(
-    "git status --porcelain",
-    absoluteRepoDir,
-    undefined,
-    TIMEOUT_SEC,
-  );
+  let gitStatusOutput: LocalExecuteResponse;
+
+  // Check if we're in local mode (sandbox doesn't have process)
+  if (!sandbox.process) {
+    // Local mode: use LocalShellExecutor
+    const executor = getLocalShellExecutor(getLocalWorkingDirectory());
+    gitStatusOutput = await executor.executeCommand("git status --porcelain", {
+      workdir: absoluteRepoDir,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
+  } else {
+    // Sandbox mode: use sandbox.process
+    gitStatusOutput = await sandbox.process.executeCommand(
+      "git status --porcelain",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+  }
 
   if (gitStatusOutput.exitCode !== 0) {
     logger.error(`Failed to get git status for file validation`, {
@@ -120,12 +142,26 @@ export async function getChangedFilesStatus(
   absoluteRepoDir: string,
   sandbox: Sandbox,
 ): Promise<string[]> {
-  const gitStatusOutput = await sandbox.process.executeCommand(
-    "git status --porcelain",
-    absoluteRepoDir,
-    undefined,
-    TIMEOUT_SEC,
-  );
+  let gitStatusOutput: LocalExecuteResponse;
+
+  // Check if we're in local mode (sandbox doesn't have process)
+  if (!sandbox.process) {
+    // Local mode: use LocalShellExecutor
+    const executor = getLocalShellExecutor(getLocalWorkingDirectory());
+    gitStatusOutput = await executor.executeCommand("git status --porcelain", {
+      workdir: absoluteRepoDir,
+      timeout: TIMEOUT_SEC,
+      localMode: true,
+    });
+  } else {
+    // Sandbox mode: use sandbox.process
+    gitStatusOutput = await sandbox.process.executeCommand(
+      "git status --porcelain",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+  }
 
   if (gitStatusOutput.exitCode !== 0) {
     logger.error(`Failed to get changed files status`, {
@@ -139,9 +175,23 @@ export async function getChangedFilesStatus(
 
 export async function stashAndClearChanges(
   absoluteRepoDir: string,
-  sandbox: Sandbox,
+  sandbox: Sandbox | null,
+  config?: GraphConfig,
 ): Promise<ExecuteResponse | false> {
+  // In local mode, we don't want to stash and clear changes
+  if (config && isLocalMode(config)) {
+    logger.info("Skipping stash and clear changes in local mode");
+    return {
+      exitCode: 0,
+      result: "Skipped stash and clear in local mode",
+    };
+  }
+
   try {
+    // Sandbox mode: use existing sandbox logic
+    if (!sandbox) {
+      throw new Error("Sandbox is required in non-local mode");
+    }
     const gitStashOutput = await sandbox.process.executeCommand(
       "git add -A && git stash && git reset --hard",
       absoluteRepoDir,
@@ -156,6 +206,7 @@ export async function stashAndClearChanges(
     }
     return gitStashOutput;
   } catch (e) {
+    // Sandbox mode error handling
     const errorFields = getSandboxErrorFields(e);
     logger.error(`Failed to stash and clear changes`, {
       ...(errorFields && { errorFields }),
@@ -167,6 +218,16 @@ export async function stashAndClearChanges(
     });
     return errorFields ?? false;
   }
+}
+
+function constructCommitMessage(): string {
+  const baseCommitMessage = "Apply patch";
+  const skipCiString = "[skip ci]";
+  const vercelSkipCi = process.env.SKIP_CI_UNTIL_LAST_COMMIT === "true";
+  if (vercelSkipCi) {
+    return `${baseCommitMessage} ${skipCiString}`;
+  }
+  return baseCommitMessage;
 }
 
 export async function checkoutBranchAndCommit(
@@ -203,7 +264,12 @@ export async function checkoutBranchAndCommit(
   }
   const userName = `${botAppName}[bot]`;
   const userEmail = `${botAppName}@users.noreply.github.com`;
-  await sandbox.git.commit(absoluteRepoDir, "Apply patch", userName, userEmail);
+  await sandbox.git.commit(
+    absoluteRepoDir,
+    constructCommitMessage(),
+    userName,
+    userEmail,
+  );
 
   // Push the changes using the git API so it handles authentication for us.
   const pushRes = await withRetry(
@@ -218,14 +284,45 @@ export async function checkoutBranchAndCommit(
   );
 
   if (pushRes instanceof Error) {
-    logger.info("Failed to push changes, attempting to pull and push again");
+    const errorFields =
+      pushRes instanceof Error
+        ? {
+            message: pushRes.message,
+            name: pushRes.name,
+          }
+        : pushRes;
+
+    logger.error("Failed to push changes, attempting to pull and push again", {
+      ...errorFields,
+    });
+
     // attempt to git pull, then push again
-    await sandbox.git.pull(
-      absoluteRepoDir,
-      "git",
-      options.githubInstallationToken,
+    const pullRes = await withRetry(
+      async () => {
+        return await sandbox.git.pull(
+          absoluteRepoDir,
+          "git",
+          options.githubInstallationToken,
+        );
+      },
+      { retries: 1, delay: 0 },
     );
-    logger.info("Successfully pulled changes. Pushing again.");
+
+    if (pullRes instanceof Error) {
+      const errorFields =
+        pullRes instanceof Error
+          ? {
+              message: pullRes.message,
+              name: pullRes.name,
+            }
+          : pullRes;
+      logger.error("Failed to pull changes after a push failed.", {
+        ...errorFields,
+      });
+    } else {
+      logger.info("Successfully pulled changes. Pushing again.");
+    }
+
     const pushRes2 = await withRetry(
       async () => {
         return await sandbox.git.push(
@@ -236,6 +333,7 @@ export async function checkoutBranchAndCommit(
       },
       { retries: 3, delay: 0 },
     );
+
     if (pushRes2 instanceof Error) {
       const gitStatus = await sandbox.git.status(absoluteRepoDir);
       const errorFields = {
@@ -299,6 +397,71 @@ export async function checkoutBranchAndCommit(
   });
 
   return { branchName, updatedTaskPlan };
+}
+
+export async function pushEmptyCommit(
+  targetRepository: TargetRepository,
+  sandbox: Sandbox,
+  options: {
+    githubInstallationToken: string;
+  },
+) {
+  const botAppName = process.env.GITHUB_APP_NAME;
+  if (!botAppName) {
+    logger.error("GITHUB_APP_NAME environment variable is not set.");
+    throw new Error("GITHUB_APP_NAME environment variable is not set.");
+  }
+  const userName = `${botAppName}[bot]`;
+  const userEmail = `${botAppName}@users.noreply.github.com`;
+
+  try {
+    const absoluteRepoDir = getRepoAbsolutePath(targetRepository);
+    const setGitConfigRes = await sandbox.process.executeCommand(
+      `git config user.name "${userName}" && git config user.email "${userEmail}"`,
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+    if (setGitConfigRes.exitCode !== 0) {
+      logger.error(`Failed to set git config`, {
+        exitCode: setGitConfigRes.exitCode,
+        result: setGitConfigRes.result,
+      });
+      return;
+    }
+
+    const emptyCommitRes = await sandbox.process.executeCommand(
+      "git commit --allow-empty -m 'Empty commit to trigger CI'",
+      absoluteRepoDir,
+      undefined,
+      TIMEOUT_SEC,
+    );
+    if (emptyCommitRes.exitCode !== 0) {
+      logger.error(`Failed to push empty commit`, {
+        exitCode: emptyCommitRes.exitCode,
+        result: emptyCommitRes.result,
+      });
+      return;
+    }
+
+    await sandbox.git.push(
+      absoluteRepoDir,
+      "git",
+      options.githubInstallationToken,
+    );
+
+    logger.info("Successfully pushed empty commit");
+  } catch (e) {
+    const errorFields = getSandboxErrorFields(e);
+    logger.error(`Failed to push empty commit`, {
+      ...(errorFields && { errorFields }),
+      ...(e instanceof Error && {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      }),
+    });
+  }
 }
 
 export async function pullLatestChanges(
