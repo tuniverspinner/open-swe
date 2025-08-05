@@ -1,18 +1,6 @@
-import { GraphConfig, EnvVarConfig } from "@open-swe/shared/open-swe/types";
+import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { decryptSecret } from "@open-swe/shared/crypto";
-
-/**
- * Checks if a given object is a valid EnvVarConfig.
- */
-function isEnvVarConfig(obj: any): obj is EnvVarConfig {
-  return (
-    typeof obj === "object" &&
-    obj !== null &&
-    "name" in obj &&
-    "api_key" in obj &&
-    "allowed_in_dev" in obj
-  );
-}
+import { isEnvVarConfig } from "@open-swe/shared/env-config";
 
 /**
  * Extracts user environment variables from GraphConfig and returns them as a Record

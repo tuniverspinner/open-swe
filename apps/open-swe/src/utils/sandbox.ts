@@ -8,6 +8,9 @@ import { FAILED_TO_GENERATE_TREE_MESSAGE, getCodebaseTree } from "./tree.js";
 import { getUserEnvironmentVariables } from "./user-environment.js";
 import { createHash } from "crypto";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { getConfig } from "@langchain/langgraph";
+import { decryptSecret } from "@open-swe/shared/crypto";
+import { isEnvVarConfig } from "@open-swe/shared/env-config";
 
 const logger = createLogger(LogLevel.INFO, "Sandbox");
 
@@ -34,7 +37,33 @@ function createEnvFingerprint(envVars: Record<string, string>): string {
  */
 export function daytonaClient(): Daytona {
   if (!daytonaInstance) {
-    daytonaInstance = new Daytona();
+    let daytonaApiKey;
+
+    // Try to get Daytona API key from LangGraph config (when running inside a graph)
+    try {
+      const config = getConfig();
+      if (!config) throw new Error("No LangGraph config found");
+
+      const apiKeys = config.configurable?.apiKeys;
+      if (apiKeys && typeof apiKeys === "object") {
+        const daytonaConfig = apiKeys.daytona;
+        if (isEnvVarConfig(daytonaConfig)) {
+          const secretsEncryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
+          if (secretsEncryptionKey) {
+            daytonaApiKey = decryptSecret(
+              daytonaConfig.api_key,
+              secretsEncryptionKey,
+            );
+          }
+        }
+      }
+      daytonaInstance = new Daytona({
+        apiKey: daytonaApiKey,
+      });
+      return daytonaInstance;
+    } catch {
+      daytonaInstance = new Daytona();
+    }
   }
   return daytonaInstance;
 }

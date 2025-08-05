@@ -52,9 +52,9 @@ const API_KEY_SECTIONS: Record<string, Omit<ApiKeySection, "keys">> = {
   llms: {
     title: "LLMs",
   },
-  // infrastructure: {
-  //   title: "Infrastructure",
-  // },
+  infrastructure: {
+    title: "Infrastructure",
+  },
   custom: {
     title: "Add More Environment Variables",
   },
@@ -66,13 +66,13 @@ const PROVIDER_DEFINITIONS = {
     { id: "openai", name: "OPENAI_API_KEY", description: "" },
     { id: "google-genai", name: "GOOGLE_API_KEY", description: "" },
   ],
-  // infrastructure: [
-  //   {
-  //     id: "daytona",
-  //     name: "DAYTONA_API_KEY",
-  //     description: "Users not required to set this if using the demo",
-  //   },
-  // ],
+  infrastructure: [
+    {
+      id: "daytona",
+      name: "DAYTONA_API_KEY",
+      description: "Users not required to set this if using the demo",
+    },
+  ],
   custom: [],
 };
 
@@ -105,12 +105,26 @@ export function APIKeysTab() {
   ) => {
     const currentApiKeys = config.apiKeys || {};
     const keyData = currentApiKeys[id] || {};
+
+    // Ensure required fields exist for predefined providers
+    const predefinedProvider = [
+      ...PROVIDER_DEFINITIONS.llms,
+      ...PROVIDER_DEFINITIONS.infrastructure,
+    ].find((p) => p.id === id);
+
+    const updatedKeyData = { ...keyData, ...updates };
+    if (predefinedProvider) {
+      if (!updatedKeyData.name) {
+        updatedKeyData.name = predefinedProvider.name;
+      }
+      if (updatedKeyData.allowed_in_dev === undefined) {
+        updatedKeyData.allowed_in_dev = false;
+      }
+    }
+
     updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", {
       ...currentApiKeys,
-      [id]: {
-        ...keyData,
-        ...updates,
-      },
+      [id]: { ...keyData, ...updatedKeyData },
     });
   };
 
@@ -175,7 +189,7 @@ export function APIKeysTab() {
 
     const predefinedEnvVarIds = [
       ...PROVIDER_DEFINITIONS.llms.map((p) => p.id),
-      // ...PROVIDER_DEFINITIONS.infrastructure.map(p => p.id),
+      ...PROVIDER_DEFINITIONS.infrastructure.map((p) => p.id),
     ];
 
     const customEnvVars = Object.entries(currentApiKeys)
