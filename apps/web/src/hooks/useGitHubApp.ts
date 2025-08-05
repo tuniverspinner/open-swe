@@ -422,11 +422,12 @@ export function useGitHubApp(): UseGitHubAppReturn {
       !isLoading &&
       !error &&
       isInstalled === true &&
-      repositories.length > 0
+      repositories.length > 0 &&
+      currentInstallationId
     ) {
       hasCheckedLocalStorageRef.current = true;
 
-      const storedRepo = getRepositoryFromLocalStorage();
+      const storedRepo = getRepositoryFromLocalStorage(currentInstallationId);
       if (storedRepo) {
         const existsInResponse = repositories.some(
           (repo) => repo.full_name === `${storedRepo.owner}/${storedRepo.repo}`,
@@ -452,7 +453,7 @@ export function useGitHubApp(): UseGitHubAppReturn {
                   repo: firstRepo.full_name.split("/")[1],
                 };
                 setSelectedRepository(targetRepo);
-                saveRepositoryToLocalStorage(targetRepo);
+                saveRepositoryToLocalStorage(targetRepo, currentInstallationId);
                 hasAutoSelectedRef.current = true;
               }
             } catch (error) {
@@ -463,7 +464,7 @@ export function useGitHubApp(): UseGitHubAppReturn {
                 repo: firstRepo.full_name.split("/")[1],
               };
               setSelectedRepository(targetRepo);
-              saveRepositoryToLocalStorage(targetRepo);
+              saveRepositoryToLocalStorage(targetRepo, currentInstallationId);
               hasAutoSelectedRef.current = true;
             }
           };
@@ -479,6 +480,7 @@ export function useGitHubApp(): UseGitHubAppReturn {
     error,
     isInstalled,
     setSelectedRepository,
+    currentInstallationId,
   ]);
 
   // Auto-select first repository on initial page load
@@ -582,5 +584,6 @@ export function useGitHubApp(): UseGitHubAppReturn {
     defaultBranch,
   };
 }
+
 
 
