@@ -3,6 +3,7 @@ import {
   isAIMessage,
   isToolMessage,
   ToolMessage,
+  AIMessage,
 } from "@langchain/core/messages";
 import {
   createInstallDependenciesTool,
@@ -23,8 +24,8 @@ import {
   checkoutBranchAndCommit,
   getChangedFilesStatus,
 } from "../../../utils/github/git.js";
-import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { getSandboxWithErrorHandling } from "../../../utils/sandbox.js";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 import { Command } from "@langchain/langgraph";
 import { shouldDiagnoseError } from "../../../utils/tool-message-error.js";
 import { filterHiddenMessages } from "../../../utils/message/filter-hidden.js";
@@ -33,6 +34,8 @@ import { createScratchpadTool } from "../../../tools/scratchpad.js";
 import { getActiveTask } from "@open-swe/shared/open-swe/tasks";
 import { createPullRequestToolCallMessage } from "../../../utils/message/create-pr-message.js";
 import { createViewTool } from "../../../tools/builtin-tools/view.js";
+import { filterUnsafeCommands } from "../../../utils/command-evaluation.js";
+import { getRepoAbsolutePath } from "@open-swe/shared/git";
 
 const logger = createLogger(LogLevel.INFO, "TakeReviewAction");
 
@@ -65,9 +68,25 @@ export async function takeReviewerActions(
     allTools.map((tool) => [tool.name, tool]),
   );
 
-  const toolCalls = lastMessage.tool_calls;
+  let toolCalls = lastMessage.tool_calls;
   if (!toolCalls?.length) {
     throw new Error("No tool calls found.");
+  }
+
+  // Filter out unsafe commands only in local mode
+  let modifiedMessage: AIMessage | undefined;
+  let wasFiltered = false;
+  if (isLocalMode(config)) {
+    const filterResult = await filterUnsafeCommands(toolCalls, config);
+
+    if (filterResult.wasFiltered) {
+      wasFiltered = true;
+      modifiedMessage = new AIMessage({
+        ...lastMessage,
+        tool_calls: filterResult.filteredToolCalls,
+      });
+      toolCalls = filterResult.filteredToolCalls;
+    }
   }
 
   const { sandbox, codebaseTree, dependenciesInstalled } =
@@ -104,9 +123,8 @@ export async function takeReviewerActions(
         // @ts-expect-error tool.invoke types are weird here...
         (await tool.invoke({
           ...toolCall.args,
-          // Pass in the existing/new sandbox session ID to the tool call.
-          // use `x` prefix to avoid name conflicts with tool args.
-          xSandboxSessionId: sandbox.id,
+          // Only pass sandbox session ID in sandbox mode, not local mode
+          ...(isLocalMode(config) ? {} : { xSandboxSessionId: sandbox.id }),
         })) as {
           result: string;
           status: "success" | "error";
@@ -154,34 +172,38 @@ export async function takeReviewerActions(
   });
 
   const toolCallResults = await Promise.all(toolCallResultsPromise);
-  const repoPath = getRepoAbsolutePath(state.targetRepository);
-  const changedFiles = await getChangedFilesStatus(repoPath, sandbox);
 
   let branchName: string | undefined = state.branchName;
   let pullRequestNumber: number | undefined;
   let updatedTaskPlan: TaskPlan | undefined;
 
-  if (changedFiles.length > 0) {
-    logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
-      changedFiles,
-    });
-    const { githubInstallationToken } = getGitHubTokensFromConfig(config);
-    const result = await checkoutBranchAndCommit(
-      config,
-      state.targetRepository,
-      sandbox,
-      {
-        branchName,
-        githubInstallationToken,
-        taskPlan: state.taskPlan,
-        githubIssueId: state.githubIssueId,
-      },
-    );
-    branchName = result.branchName;
-    pullRequestNumber = result.updatedTaskPlan
-      ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
-      : undefined;
-    updatedTaskPlan = result.updatedTaskPlan;
+  if (!isLocalMode(config)) {
+    const repoPath = getRepoAbsolutePath(state.targetRepository, config);
+    const changedFiles = await getChangedFilesStatus(repoPath, sandbox, config);
+
+    if (changedFiles.length > 0) {
+      logger.info(`Has ${changedFiles.length} changed files. Committing.`, {
+        changedFiles,
+      });
+
+      const { githubInstallationToken } = getGitHubTokensFromConfig(config);
+      const result = await checkoutBranchAndCommit(
+        config,
+        state.targetRepository,
+        sandbox,
+        {
+          branchName,
+          githubInstallationToken,
+          taskPlan: state.taskPlan,
+          githubIssueId: state.githubIssueId,
+        },
+      );
+      branchName = result.branchName;
+      pullRequestNumber = result.updatedTaskPlan
+        ? getActiveTask(result.updatedTaskPlan)?.pullRequestNumber
+        : undefined;
+      updatedTaskPlan = result.updatedTaskPlan;
+    }
   }
 
   let wereDependenciesInstalled: boolean | null = null;
@@ -216,9 +238,16 @@ export async function takeReviewerActions(
         )
       : []),
   ];
+
+  // Include the modified message if it was filtered
+  const reviewerMessagesUpdate =
+    wasFiltered && modifiedMessage
+      ? [modifiedMessage, ...toolCallResults]
+      : toolCallResults;
+
   const commandUpdate: ReviewerGraphUpdate = {
     messages: userFacingMessagesUpdate,
-    reviewerMessages: toolCallResults,
+    reviewerMessages: reviewerMessagesUpdate,
     ...(branchName && { branchName }),
     ...(updatedTaskPlan && {
       taskPlan: updatedTaskPlan,
