@@ -237,14 +237,16 @@ export function useGitHubApp(): UseGitHubAppReturn {
     (repo: TargetRepository | null) => {
       setSelectedRepositoryParam(repo ? `${repo.owner}/${repo.repo}` : null);
       // Persist to localStorage whenever repository is selected
-      saveRepositoryToLocalStorage(repo);
+      if (currentInstallationId) {
+        saveRepositoryToLocalStorage(repo, currentInstallationId);
+      }
 
       setSelectedBranchParam(null);
       setBranches([]);
       setBranchesPage(1);
       setBranchesHasMore(false);
     },
-    [setSelectedRepositoryParam, setSelectedBranchParam],
+    [setSelectedRepositoryParam, setSelectedBranchParam, currentInstallationId],
   );
 
   const setSelectedBranch = (branch: string | null) => {
@@ -584,6 +586,7 @@ export function useGitHubApp(): UseGitHubAppReturn {
     defaultBranch,
   };
 }
+
 
 
 
