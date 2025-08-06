@@ -105,11 +105,19 @@ export const PlannerGraphStateObj = MessagesZodState.extend({
   }),
   tokenData: withLangGraph(z.custom<ModelTokenData[]>().optional(), {
     reducer: {
-      schema: z.custom<ModelTokenData[]>().optional(),
-      fn: tokenDataReducer,
+      schema: z.custom<ModelTokenData[] | { data: ModelTokenData[]; replaceMode: boolean }>().optional(),
+      fn: (state, update) => {
+        // Check if update contains a replace flag
+        if (update && typeof update === 'object' && 'replaceMode' in update && 'data' in update) {
+          return tokenDataReducer(state, update.data, update.replaceMode);
+        }
+        // Default behavior - merge mode
+        return tokenDataReducer(state, update as ModelTokenData[]);
+      },
     },
   }),
 });
 
 export type PlannerGraphState = z.infer<typeof PlannerGraphStateObj>;
 export type PlannerGraphUpdate = Partial<PlannerGraphState>;
+
