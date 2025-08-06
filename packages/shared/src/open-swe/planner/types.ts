@@ -137,4 +137,11 @@ export const PlannerGraphStateObj = MessagesZodState.extend({
 });
 
 export type PlannerGraphState = z.infer<typeof PlannerGraphStateObj>;
-export type PlannerGraphUpdate = Partial<PlannerGraphState>;
+
+// Custom update type that supports the special tokenData format
+export type PlannerGraphUpdate = Partial<
+  Omit<PlannerGraphState, "tokenData">
+> & {
+  tokenData?: ModelTokenData[] | { data: ModelTokenData[]; replaceMode: boolean };
+};
+
