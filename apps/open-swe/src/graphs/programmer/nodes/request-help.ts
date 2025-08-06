@@ -6,7 +6,7 @@ import {
   GraphUpdate,
 } from "@open-swe/shared/open-swe/types";
 import { HumanInterrupt, HumanResponse } from "@langchain/langgraph/prebuilt";
-import { END, interrupt, Command } from "@langchain/langgraph";
+import { interrupt, Command } from "@langchain/langgraph";
 import {
   DO_NOT_RENDER_ID_PREFIX,
   GITHUB_USER_LOGIN_HEADER,
@@ -171,4 +171,5 @@ Please check the Open SWE interface to respond to this request.`;
     `Invalid interrupt response type. Must be one of 'ignore' or 'response'. Received: ${interruptRes.type}`,
   );
 }
+
 
