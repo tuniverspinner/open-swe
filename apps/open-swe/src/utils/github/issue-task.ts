@@ -298,5 +298,36 @@ export async function addTaskPlanToIssue(
   });
 }
 
+export async function addTokenDataToIssue(
+  input: GetIssueTaskPlanInput,
+  config: GraphConfig,
+  tokenData: ModelTokenData[],
+): Promise<void> {
+  const issue = await getIssue({
+    owner: input.targetRepository.owner,
+    repo: input.targetRepository.repo,
+    issueNumber: input.githubIssueId,
+    githubInstallationToken:
+      getGitHubTokensFromConfig(config).githubInstallationToken,
+  });
+
+  if (!issue || !issue.body) {
+    throw new Error("No issue found when attempting to add token data to issue");
+  }
+
+  const tokenDataString = JSON.stringify(tokenData, null, 2);
+  const newBody = insertPlanToIssueBody(issue.body, tokenDataString, "tokenData");
+
+  await updateIssue({
+    owner: input.targetRepository.owner,
+    repo: input.targetRepository.repo,
+    issueNumber: input.githubIssueId,
+    githubInstallationToken:
+      getGitHubTokensFromConfig(config).githubInstallationToken,
+    body: newBody,
+  });
+}
+
+
 
 
