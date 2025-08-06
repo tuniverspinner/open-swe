@@ -2,6 +2,9 @@ import { GraphConfig, GraphState } from "@open-swe/shared/open-swe/types";
 import { addTokenDataToIssue } from "../../../utils/github/issue-task.js";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 import { Command, END } from "@langchain/langgraph";
+import { createLogger, LogLevel } from "../../../utils/logger.js";
+
+const logger = createLogger(LogLevel.INFO, "UpdateIssueTokenData");
 
 export async function updateIssueTokenData(
   state: GraphState,
@@ -40,4 +43,5 @@ export async function updateIssueTokenData(
     });
   }
 }
+
 
