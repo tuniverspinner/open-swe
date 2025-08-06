@@ -8,4 +8,6 @@ export * from "./request-help.js";
 export * from "./update-plan.js";
 export * from "./summarize-history.js";
 export * from "./initialize-token-data.js";
+export * from "./update-issue-token-data.js";
+
 
