@@ -162,8 +162,8 @@ export type CustomRules = {
 
 export interface EnvVarConfig {
   name: string;
-  api_key: string;
-  allowed_in_dev: boolean;
+  apiKey: string;
+  allowedInDev: boolean;
 }
 
 export const GraphAnnotation = MessagesZodState.extend({
@@ -629,8 +629,8 @@ export const GraphConfiguration = z.object({
         z.string(),
         z.object({
           name: z.string(),
-          api_key: z.string(),
-          allowed_in_dev: z.boolean().optional().default(false),
+          apiKey: z.string(),
+          allowedInDev: z.boolean().optional().default(false),
         }),
       )
       .optional(),

@@ -77,11 +77,11 @@ const providerToApiKey = (
 ): string => {
   switch (providerName) {
     case "openai":
-      return apiKeys.openai.api_key;
+      return apiKeys.openai.apiKey;
     case "anthropic":
-      return apiKeys.anthropic.api_key;
+      return apiKeys.anthropic.apiKey;
     case "google-genai":
-      return apiKeys["google-genai"].api_key;
+      return apiKeys["google-genai"].apiKey;
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }

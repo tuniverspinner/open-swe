@@ -38,7 +38,7 @@ interface ApiKey {
   name: string;
   description?: string;
   value: string;
-  allowed_in_dev: boolean;
+  allowedInDev: boolean;
   isVisible: boolean;
   lastUsed?: string;
 }
@@ -107,8 +107,8 @@ export function APIKeysTab() {
     id: string,
     updates: Partial<{
       name: string;
-      api_key: string;
-      allowed_in_dev: boolean;
+      apiKey: string;
+      allowedInDev: boolean;
     }>,
   ) => {
     const currentApiKeys = config.apiKeys || {};
@@ -125,8 +125,8 @@ export function APIKeysTab() {
       if (!updatedKeyData.name) {
         updatedKeyData.name = predefinedProvider.name;
       }
-      if (updatedKeyData.allowed_in_dev === undefined) {
-        updatedKeyData.allowed_in_dev = false;
+      if (updatedKeyData.allowedInDev === undefined) {
+        updatedKeyData.allowedInDev = false;
       }
     }
 
@@ -145,7 +145,7 @@ export function APIKeysTab() {
 
   const addCustomEnvVar = () => {
     const id = crypto.randomUUID();
-    updateEnvVarProperty(id, { name: "", api_key: "", allowed_in_dev: false });
+    updateEnvVarProperty(id, { name: "", apiKey: "", allowedInDev: false });
   };
 
   const updateCustomKeyName = (id: string, newName: string) => {
@@ -169,14 +169,14 @@ export function APIKeysTab() {
             newApiKeys[currentId] = {
               ...newApiKeys[currentId],
               name: envVar.name,
-              api_key: envVar.value,
+              apiKey: envVar.value,
             };
           } else {
             const id = crypto.randomUUID();
             newApiKeys[id] = {
               name: envVar.name,
-              api_key: envVar.value,
-              allowed_in_dev: false,
+              apiKey: envVar.value,
+              allowedInDev: false,
             };
           }
         });
@@ -226,8 +226,8 @@ export function APIKeysTab() {
             id: providerDef.id,
             name: providerData.name || providerDef.name,
             description: providerDef.description,
-            value: providerData.api_key || "",
-            allowed_in_dev: providerData.allowed_in_dev || false,
+            value: providerData.apiKey || "",
+            allowedInDev: providerData.allowedInDev || false,
             isVisible: visibilityState[providerDef.id] || false,
             lastUsed: providerData.lastUsed,
           };
@@ -243,7 +243,7 @@ export function APIKeysTab() {
   // Get all keys that are exposed to dev server
   const exposedKeys = Object.values(apiKeySections)
     .flatMap((section) => section.keys)
-    .filter((key) => key.allowed_in_dev && key.value)
+    .filter((key) => key.allowedInDev && key.value)
     .map((key) => key.name);
 
   return (
@@ -402,7 +402,7 @@ export function APIKeysTab() {
                           value={apiKey.value}
                           onChange={(e) =>
                             updateEnvVarProperty(apiKey.id, {
-                              api_key: e.target.value,
+                              apiKey: e.target.value,
                             })
                           }
                           placeholder={
@@ -471,10 +471,10 @@ export function APIKeysTab() {
                     </div>
                     <Switch
                       id={`${apiKey.id}-devserver`}
-                      checked={apiKey.allowed_in_dev}
+                      checked={apiKey.allowedInDev}
                       onCheckedChange={(enabled) =>
                         updateEnvVarProperty(apiKey.id, {
-                          allowed_in_dev: enabled,
+                          allowedInDev: enabled,
                         })
                       }
                       disabled={!apiKey.value}

@@ -51,7 +51,7 @@ export function daytonaClient(): Daytona {
           const secretsEncryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
           if (secretsEncryptionKey) {
             daytonaApiKey = decryptSecret(
-              daytonaConfig.api_key,
+              daytonaConfig.apiKey,
               secretsEncryptionKey,
             );
           }
