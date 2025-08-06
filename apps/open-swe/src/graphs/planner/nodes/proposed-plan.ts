@@ -194,6 +194,8 @@ export async function interruptProposedPlan(
   const userRequest = getInitialUserRequest(state.messages);
   const userFollowupRequest = getRecentUserRequest(state.messages);
   const userTaskRequest = userFollowupRequest || userRequest;
+  // Explicitly exclude tokenData from runInput to prevent it from being passed to the programmer graph
+  // Token data should be read from the issue at the start of each graph run
   const runInput: GraphUpdate = {
     contextGatheringNotes: state.contextGatheringNotes,
     branchName: state.branchName,
@@ -376,6 +378,7 @@ export async function interruptProposedPlan(
     ],
   });
 }
+
 
 
 
