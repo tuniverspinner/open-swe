@@ -58,6 +58,9 @@ export async function prepareGraphState(
     throw new Error(`Issue not found. Issue ID: ${state.githubIssueId}`);
   }
 
+  // Extract token data from the issue body
+  const tokenData = issue.body ? extractTokenDataFromIssueContent(issue.body) : null;
+
   // Ensure the main issue & all comments are included in the state;
 
   // If the messages state is empty, we can just include all comments as human messages.
@@ -128,4 +131,5 @@ export async function prepareGraphState(
     goto: "initialize-sandbox",
   });
 }
+
 
