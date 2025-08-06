@@ -98,18 +98,11 @@ Given all of this, please respond with the concise conclusion. Do not include an
     tokenData: trackCachePerformance(response, modelName),
   };
 
-  // Route based on mode: END for local mode, open-pr for sandbox mode
-  if (isLocalMode(config)) {
-    logger.info("Local mode: routing to END");
-    return new Command({
-      update: graphUpdate,
-      goto: END,
-    });
-  } else {
-    logger.info("Sandbox mode: routing to open-pr");
-    return new Command({
-      update: graphUpdate,
-      goto: "open-pr",
-    });
-  }
+  // Route to update-issue-token-data which will then route to END or open-pr
+  logger.info("Routing to update-issue-token-data");
+  return new Command({
+    update: graphUpdate,
+    goto: "update-issue-token-data",
+  });
 }
+
