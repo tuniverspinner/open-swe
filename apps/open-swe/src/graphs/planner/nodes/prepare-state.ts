@@ -21,6 +21,7 @@ import {
 import { filterHiddenMessages } from "../../../utils/message/filter-hidden.js";
 import { DO_NOT_RENDER_ID_PREFIX } from "@open-swe/shared/constants";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { extractTokenDataFromIssueContent } from "../../../utils/github/issue-task.js";
 
 export async function prepareGraphState(
   state: PlannerGraphState,
@@ -127,3 +128,4 @@ export async function prepareGraphState(
     goto: "initialize-sandbox",
   });
 }
+
