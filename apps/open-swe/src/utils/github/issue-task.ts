@@ -176,12 +176,20 @@ export async function getPlansFromIssue(
 function insertPlanToIssueBody(
   issueBody: string,
   planString: string,
-  planType: "taskPlan" | "proposedPlan",
+  planType: "taskPlan" | "proposedPlan" | "tokenData",
 ) {
   const openingPlanTag =
-    planType === "taskPlan" ? TASK_OPEN_TAG : PROPOSED_PLAN_OPEN_TAG;
+    planType === "taskPlan" 
+      ? TASK_OPEN_TAG 
+      : planType === "proposedPlan"
+      ? PROPOSED_PLAN_OPEN_TAG
+      : TOKEN_DATA_OPEN_TAG;
   const closingPlanTag =
-    planType === "taskPlan" ? TASK_CLOSE_TAG : PROPOSED_PLAN_CLOSE_TAG;
+    planType === "taskPlan" 
+      ? TASK_CLOSE_TAG 
+      : planType === "proposedPlan"
+      ? PROPOSED_PLAN_CLOSE_TAG
+      : TOKEN_DATA_CLOSE_TAG;
 
   const wrappedPlan = `${openingPlanTag}
 ${planString}
@@ -327,6 +335,7 @@ export async function addTokenDataToIssue(
     body: newBody,
   });
 }
+
 
 
 
