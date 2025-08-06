@@ -5,6 +5,9 @@ import {
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import { addTokenDataToIssue } from "../../../utils/github/issue-task.js";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { createLogger, LogLevel } from "../../../utils/logger.js";
+
+const logger = createLogger(LogLevel.INFO, "UpdateIssueTokenData");
 
 export async function updateIssueTokenData(
   state: PlannerGraphState,
@@ -42,3 +45,4 @@ export async function updateIssueTokenData(
 
   return {};
 }
+
