@@ -41,6 +41,10 @@
           {
             "group": "FAQ",
             "pages": ["faq"]
+          },
+          {
+            "group": "Security",
+            "pages": ["security"]
           }
         ]
       }
