@@ -28,7 +28,13 @@ export async function updateIssueTokenData(
       );
     } catch (error) {
       // Log error but don't fail the graph execution
-      console.error("Failed to update token data in issue:", error);
+      logger.error("Failed to update token data in issue", {
+        ...(error instanceof Error && {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        }),
+      });
     }
   }
 
@@ -43,5 +49,6 @@ export async function updateIssueTokenData(
     });
   }
 }
+
 
 
