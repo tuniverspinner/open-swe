@@ -88,7 +88,8 @@ export async function prepareGraphState(
         ),
       ],
       ...(tokenData && {
-        tokenData: tokenData.map(td => ({ ...td, replaceMode: true }))
+        tokenData,
+        tokenDataReplaceMode: true
       }),
     };
     return new Command({
@@ -137,6 +138,7 @@ export async function prepareGraphState(
     goto: "initialize-sandbox",
   });
 }
+
 
 
 
