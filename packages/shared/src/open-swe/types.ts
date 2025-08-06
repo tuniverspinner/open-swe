@@ -327,7 +327,11 @@ export const GraphAnnotation = MessagesZodState.extend({
 });
 
 export type GraphState = z.infer<typeof GraphAnnotation>;
-export type GraphUpdate = Partial<GraphState>;
+
+// Custom update type that supports the special tokenData format
+export type GraphUpdate = Partial<Omit<GraphState, "tokenData">> & {
+  tokenData?: ModelTokenData[] | { data: ModelTokenData[]; replaceMode: boolean };
+};
 
 export const GraphConfigurationMetadata: {
   [key: string]: {
@@ -715,3 +719,4 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
