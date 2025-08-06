@@ -145,10 +145,13 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
     ],
   })
   .addNode("generate-conclusion", generateConclusion, {
+    ends: ["update-issue-token-data"],
+  })
+  .addNode("update-issue-token-data", updateIssueTokenData, {
     ends: ["open-pr", END],
   })
   .addNode("request-help", requestHelp, {
-    ends: ["generate-action", END],
+    ends: ["generate-action", "update-issue-token-data"],
   })
   .addNode("route-to-review-or-conclusion", routeToReviewOrConclusion, {
     ends: ["generate-conclusion", "reviewer-subgraph"],
@@ -180,6 +183,7 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
 // Zod types are messed up
 export const graph = workflow.compile() as any;
 graph.name = "Open SWE - Programmer";
+
 
 
 
