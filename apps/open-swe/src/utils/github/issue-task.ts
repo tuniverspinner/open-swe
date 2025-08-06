@@ -2,6 +2,7 @@ import {
   GraphConfig,
   TargetRepository,
   TaskPlan,
+  ModelTokenData,
 } from "@open-swe/shared/open-swe/types";
 import { getIssue, updateIssue } from "./api.js";
 import { getGitHubTokensFromConfig } from "../github-tokens.js";
@@ -14,6 +15,9 @@ export const TASK_CLOSE_TAG = "</open-swe-do-not-edit-task-plan>";
 
 export const PROPOSED_PLAN_OPEN_TAG = "<open-swe-do-not-edit-proposed-plan>";
 export const PROPOSED_PLAN_CLOSE_TAG = "</open-swe-do-not-edit-proposed-plan>";
+
+export const TOKEN_DATA_OPEN_TAG = "<open-swe-do-not-edit-token-data>";
+export const TOKEN_DATA_CLOSE_TAG = "</open-swe-do-not-edit-token-data>";
 
 export const DETAILS_OPEN_TAG = "<details>";
 export const DETAILS_CLOSE_TAG = "</details>";
@@ -246,3 +250,4 @@ export async function addTaskPlanToIssue(
     body: newBody,
   });
 }
+
