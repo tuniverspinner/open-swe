@@ -47,9 +47,16 @@ export async function initializeTokenData(
     }
   } catch (error) {
     // Log error but don't fail the graph execution
-    console.error("Failed to initialize token data from issue:", error);
+    logger.error("Failed to initialize token data from issue", {
+      ...(error instanceof Error && {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      }),
+    });
   }
 
   return {};
 }
+
 
