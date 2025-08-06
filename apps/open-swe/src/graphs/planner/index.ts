@@ -43,8 +43,9 @@ const workflow = new StateGraph(PlannerGraphStateObj, GraphConfiguration)
   .addNode("generate-plan", generatePlan)
   .addNode("notetaker", notetaker)
   .addNode("interrupt-proposed-plan", interruptProposedPlan, {
-    ends: [END, "determine-needs-context"],
+    ends: ["update-issue-token-data", "determine-needs-context"],
   })
+  .addNode("update-issue-token-data", updateIssueTokenData)
   .addNode("determine-needs-context", determineNeedsContext, {
     ends: ["generate-plan-context-action", "generate-plan"],
   })
@@ -62,4 +63,5 @@ const workflow = new StateGraph(PlannerGraphStateObj, GraphConfiguration)
 
 export const graph = workflow.compile();
 graph.name = "Open SWE - Planner";
+
 
