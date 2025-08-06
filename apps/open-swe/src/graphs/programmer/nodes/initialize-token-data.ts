@@ -3,6 +3,9 @@ import { getGitHubTokensFromConfig } from "../../../utils/github-tokens.js";
 import { getIssue } from "../../../utils/github/api.js";
 import { extractTokenDataFromIssueContent } from "../../../utils/github/issue-task.js";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { createLogger, LogLevel } from "../../../utils/logger.js";
+
+const logger = createLogger(LogLevel.INFO, "InitializeTokenData");
 
 export async function initializeTokenData(
   state: GraphUpdate,
@@ -49,3 +52,4 @@ export async function initializeTokenData(
 
   return {};
 }
+
