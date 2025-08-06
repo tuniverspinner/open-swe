@@ -289,10 +289,11 @@ export const GraphAnnotation = MessagesZodState.extend({
       fn: (state, update) => {
         // Check if update contains a replace flag
         if (update && typeof update === 'object' && 'replaceMode' in update && 'data' in update) {
-          return tokenDataReducer(state, update.data, update.replaceMode);
+          const typedUpdate = update as { data: ModelTokenData[]; replaceMode: boolean };
+          return tokenDataReducer(state, typedUpdate.data, typedUpdate.replaceMode);
         }
         // Default behavior - merge mode
-        return tokenDataReducer(state, update as ModelTokenData[]);
+        return tokenDataReducer(state, update as ModelTokenData[] | undefined);
       },
     },
   }),
@@ -697,4 +698,5 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
 
