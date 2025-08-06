@@ -82,6 +82,32 @@ export function extractTasksFromIssueContent(content: string): TaskPlan | null {
   }
 }
 
+export function extractTokenDataFromIssueContent(content: string): ModelTokenData[] | null {
+  if (!content.includes(TOKEN_DATA_OPEN_TAG) || !content.includes(TOKEN_DATA_CLOSE_TAG)) {
+    return null;
+  }
+  const tokenDataString = content
+    .split(TOKEN_DATA_OPEN_TAG)?.[1]
+    ?.split(TOKEN_DATA_CLOSE_TAG)?.[0];
+  try {
+    const parsedTokenData = JSON.parse(tokenDataString.trim());
+    if (!typeNarrowTokenData(parsedTokenData)) {
+      throw new Error("Invalid token data parsed.");
+    }
+    return parsedTokenData;
+  } catch (e) {
+    logger.error("Failed to parse token data", {
+      tokenDataString,
+      ...(e instanceof Error && {
+        name: e.name,
+        message: e.message,
+        stack: e.stack,
+      }),
+    });
+    return null;
+  }
+}
+
 function extractProposedPlanFromIssueContent(content: string): string[] | null {
   if (
     !content.includes(PROPOSED_PLAN_OPEN_TAG) ||
@@ -271,5 +297,6 @@ export async function addTaskPlanToIssue(
     body: newBody,
   });
 }
+
 
 
