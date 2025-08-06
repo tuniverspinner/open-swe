@@ -291,6 +291,173 @@ export async function initializeSandbox(
     { retries: 0, delay: 0 },
   );
 
+  // Check if the error is due to an empty repository
+  if (
+    cloneRepoRes instanceof Error &&
+    cloneRepoRes.message.includes("remote repository is empty")
+  ) {
+    logger.info("Detected empty repository. Initializing with default files.");
+    
+    try {
+      // Step 1: Create the repository directory
+      const mkdirResult = await sandbox.process.executeCommand(
+        `mkdir -p ${absoluteRepoDir}`,
+        "/",
+      );
+      
+      if (mkdirResult.exitCode !== 0) {
+        throw new Error(`Failed to create directory: ${mkdirResult.result}`);
+      }
+      
+      // Step 2: Initialize git repository
+      const gitInitResult = await sandbox.process.executeCommand(
+        "git init",
+        absoluteRepoDir,
+      );
+      
+      if (gitInitResult.exitCode !== 0) {
+        throw new Error(`Failed to initialize git repository: ${gitInitResult.result}`);
+      }
+      
+      // Step 3: Add remote origin
+      const remoteUrl = `https://github.com/${targetRepository.owner}/${targetRepository.repo}.git`;
+      const addRemoteResult = await sandbox.process.executeCommand(
+        `git remote add origin ${remoteUrl}`,
+        absoluteRepoDir,
+      );
+      
+      if (addRemoteResult.exitCode !== 0) {
+        throw new Error(`Failed to add remote origin: ${addRemoteResult.result}`);
+      }
+      
+      // Step 4: Set main branch
+      const setBranchResult = await sandbox.process.executeCommand(
+        "git branch -M main",
+        absoluteRepoDir,
+      );
+      
+      if (setBranchResult.exitCode !== 0) {
+        throw new Error(`Failed to set main branch: ${setBranchResult.result}`);
+      }
+      
+      // Step 5: Create .gitignore file
+      const gitignorePath = `${absoluteRepoDir}/.gitignore`;
+      const writeResult = await writeFile({
+        sandbox,
+        filePath: gitignorePath,
+        content: DEFAULT_GITIGNORE,
+        workDir: "/",
+      });
+      
+      if (!writeResult.success) {
+        throw new Error(`Failed to create .gitignore file: ${writeResult.output}`);
+      }
+      
+      // Step 6: Stage the .gitignore file
+      await sandbox.git.add(absoluteRepoDir, [".gitignore"]);
+      
+      // Step 7: Commit changes
+      const botAppName = process.env.GITHUB_APP_NAME;
+      if (!botAppName) {
+        throw new Error("GITHUB_APP_NAME environment variable is not set.");
+      }
+      const userName = `${botAppName}[bot]`;
+      const userEmail = `${botAppName}@users.noreply.github.com`;
+      
+      await sandbox.git.commit(
+        absoluteRepoDir,
+        "Initial commit with .gitignore",
+        userName,
+        userEmail,
+      );
+      
+      // Step 8: Push to remote
+      const pushResult = await withRetry(
+        async () => {
+          return await sandbox.git.push(
+            absoluteRepoDir,
+            "git",
+            githubInstallationToken,
+          );
+        },
+        { retries: 3, delay: 1000 },
+      );
+      
+      if (pushResult instanceof Error) {
+        throw new Error(`Failed to push initial commit: ${pushResult.message}`);
+      }
+      
+      // Step 9: Set branch name and emit success
+      const newBranchName = "main";
+      emitStepEvent(baseCloneRepoAction, "success");
+      logger.info("Successfully initialized empty repository with default files.");
+      
+      // Continue with the normal flow - skip to after the branch name assignment
+      // Checking out branch
+      const checkoutBranchActionId = uuidv4();
+      const baseCheckoutBranchAction: CustomNodeEvent = {
+        nodeId: INITIALIZE_NODE_ID,
+        createdAt: new Date().toISOString(),
+        actionId: checkoutBranchActionId,
+        action: "Checking out branch",
+        data: {
+          status: "pending",
+          sandboxSessionId: sandbox.id,
+          branch: newBranchName,
+          repo: repoName,
+        },
+      };
+      emitStepEvent(baseCheckoutBranchAction, "success");
+
+      // Generating codebase tree
+      const generateCodebaseTreeActionId = uuidv4();
+      const baseGenerateCodebaseTreeAction: CustomNodeEvent = {
+        nodeId: INITIALIZE_NODE_ID,
+        createdAt: new Date().toISOString(),
+        actionId: generateCodebaseTreeActionId,
+        action: "Generating codebase tree",
+        data: {
+          status: "pending",
+          sandboxSessionId: sandbox.id,
+          branch: newBranchName,
+          repo: repoName,
+        },
+      };
+      emitStepEvent(baseGenerateCodebaseTreeAction, "pending");
+      let codebaseTree: string | undefined;
+      try {
+        codebaseTree = await getCodebaseTree(sandbox.id, undefined, config);
+        emitStepEvent(baseGenerateCodebaseTreeAction, "success");
+      } catch (_) {
+        emitStepEvent(
+          baseGenerateCodebaseTreeAction,
+          "error",
+          "Failed to generate codebase tree.",
+        );
+      }
+
+      return {
+        sandboxSessionId: sandbox.id,
+        targetRepository,
+        codebaseTree,
+        messages: createEventsMessage(),
+        dependenciesInstalled: false,
+        customRules: await getCustomRules(sandbox, absoluteRepoDir, config),
+        branchName: newBranchName,
+      };
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      emitStepEvent(
+        baseCloneRepoAction,
+        "error",
+        `Failed to initialize empty repository: ${errorMessage}`,
+      );
+      logger.error("Failed to initialize empty repository", { error: errorMessage });
+      throw new Error(`Failed to initialize empty repository: ${errorMessage}`);
+    }
+  }
+  
   if (
     cloneRepoRes instanceof Error &&
     !cloneRepoRes.message.includes("repository already exists")
@@ -480,4 +647,5 @@ async function initializeSandboxLocal(
     branchName: branchName,
   };
 }
+
 
