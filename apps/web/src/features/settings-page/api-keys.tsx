@@ -273,9 +273,22 @@ export function APIKeysTab() {
                 {index < exposedKeys.length - 1 && ", "}
               </span>
             ))}
-            Your API keys will be readable by LLMs and any code running in the
-            sandbox environment. We only recommend enabling this feature if you
-            understand the security vulnerabilities.
+            <p>
+              Your API keys will be readable by LLMs and any code running in the
+              sandbox environment. We only recommend enabling this feature if
+              you understand the security implications.
+            </p>
+            <p>
+              For more information, see our{" "}
+              <a
+                href="https://docs.langchain.com/labs/swe/security#sandbox-environment-variables"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                security docs
+              </a>
+              .
+            </p>
           </AlertDescription>
         </Alert>
       )}
@@ -292,7 +305,7 @@ export function APIKeysTab() {
             </CardTitle>
             <CardDescription>
               {sectionKey === "custom"
-                ? "Add custom environment variables for development server monitoring"
+                ? "Add custom environment variables for use in the development sandbox"
                 : `Manage API keys for ${section.title.toLowerCase()} services`}
             </CardDescription>
           </CardHeader>
@@ -446,11 +459,11 @@ export function APIKeysTab() {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
-                              Make this{" "}
+                              Expose this{" "}
                               {sectionKey === "custom"
                                 ? "environment variable"
                                 : "API key"}{" "}
-                              available when monitoring development servers
+                              in the development sandbox
                             </p>
                           </TooltipContent>
                         </Tooltip>
