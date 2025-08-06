@@ -130,6 +130,7 @@ function routeToReviewOrConclusion(
 
 const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
   .addNode("initialize", initializeSandbox)
+  .addNode("initialize-token-data", initializeTokenData)
   .addNode("generate-action", generateAction)
   .addNode("take-action", takeAction, {
     ends: ["generate-action", "diagnose-error"],
@@ -177,4 +178,5 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
 // Zod types are messed up
 export const graph = workflow.compile() as any;
 graph.name = "Open SWE - Programmer";
+
 
