@@ -161,7 +161,7 @@ async function startProgrammerRun(input: {
   }
 
   return new Command({
-    goto: END,
+    goto: "update-issue-token-data",
     update: {
       programmerSession: {
         threadId: programmerThreadId,
@@ -376,3 +376,4 @@ export async function interruptProposedPlan(
     ],
   });
 }
+
