@@ -59,9 +59,11 @@ const workflow = new StateGraph(PlannerGraphStateObj, GraphConfiguration)
   )
   .addEdge("diagnose-error", "generate-plan-context-action")
   .addEdge("generate-plan", "notetaker")
-  .addEdge("notetaker", "interrupt-proposed-plan");
+  .addEdge("notetaker", "interrupt-proposed-plan")
+  .addEdge("update-issue-token-data", END);
 
 export const graph = workflow.compile();
 graph.name = "Open SWE - Planner";
+
 
 
