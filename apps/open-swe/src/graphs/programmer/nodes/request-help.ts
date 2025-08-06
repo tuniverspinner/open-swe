@@ -171,5 +171,3 @@ Please check the Open SWE interface to respond to this request.`;
     `Invalid interrupt response type. Must be one of 'ignore' or 'response'. Received: ${interruptRes.type}`,
   );
 }
-
-

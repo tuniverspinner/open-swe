@@ -64,6 +64,3 @@ const workflow = new StateGraph(PlannerGraphStateObj, GraphConfiguration)
 
 export const graph = workflow.compile();
 graph.name = "Open SWE - Planner";
-
-
-

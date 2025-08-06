@@ -35,7 +35,9 @@ function typeNarrowTaskPlan(taskPlan: unknown): taskPlan is TaskPlan {
   );
 }
 
-function typeNarrowTokenData(tokenData: unknown): tokenData is ModelTokenData[] {
+function typeNarrowTokenData(
+  tokenData: unknown,
+): tokenData is ModelTokenData[] {
   return !!(
     Array.isArray(tokenData) &&
     tokenData.every(
@@ -51,7 +53,7 @@ function typeNarrowTokenData(tokenData: unknown): tokenData is ModelTokenData[] 
         "inputTokens" in item &&
         typeof item.inputTokens === "number" &&
         "outputTokens" in item &&
-        typeof item.outputTokens === "number"
+        typeof item.outputTokens === "number",
     )
   );
 }
@@ -82,8 +84,13 @@ export function extractTasksFromIssueContent(content: string): TaskPlan | null {
   }
 }
 
-export function extractTokenDataFromIssueContent(content: string): ModelTokenData[] | null {
-  if (!content.includes(TOKEN_DATA_OPEN_TAG) || !content.includes(TOKEN_DATA_CLOSE_TAG)) {
+export function extractTokenDataFromIssueContent(
+  content: string,
+): ModelTokenData[] | null {
+  if (
+    !content.includes(TOKEN_DATA_OPEN_TAG) ||
+    !content.includes(TOKEN_DATA_CLOSE_TAG)
+  ) {
     return null;
   }
   const tokenDataString = content
@@ -179,17 +186,17 @@ function insertPlanToIssueBody(
   planType: "taskPlan" | "proposedPlan" | "tokenData",
 ) {
   const openingPlanTag =
-    planType === "taskPlan" 
-      ? TASK_OPEN_TAG 
+    planType === "taskPlan"
+      ? TASK_OPEN_TAG
       : planType === "proposedPlan"
-      ? PROPOSED_PLAN_OPEN_TAG
-      : TOKEN_DATA_OPEN_TAG;
+        ? PROPOSED_PLAN_OPEN_TAG
+        : TOKEN_DATA_OPEN_TAG;
   const closingPlanTag =
-    planType === "taskPlan" 
-      ? TASK_CLOSE_TAG 
+    planType === "taskPlan"
+      ? TASK_CLOSE_TAG
       : planType === "proposedPlan"
-      ? PROPOSED_PLAN_CLOSE_TAG
-      : TOKEN_DATA_CLOSE_TAG;
+        ? PROPOSED_PLAN_CLOSE_TAG
+        : TOKEN_DATA_CLOSE_TAG;
 
   const wrappedPlan = `${openingPlanTag}
 ${planString}
@@ -320,11 +327,17 @@ export async function addTokenDataToIssue(
   });
 
   if (!issue || !issue.body) {
-    throw new Error("No issue found when attempting to add token data to issue");
+    throw new Error(
+      "No issue found when attempting to add token data to issue",
+    );
   }
 
   const tokenDataString = JSON.stringify(tokenData, null, 2);
-  const newBody = insertPlanToIssueBody(issue.body, tokenDataString, "tokenData");
+  const newBody = insertPlanToIssueBody(
+    issue.body,
+    tokenDataString,
+    "tokenData",
+  );
 
   await updateIssue({
     owner: input.targetRepository.owner,
@@ -335,8 +348,3 @@ export async function addTokenDataToIssue(
     body: newBody,
   });
 }
-
-
-
-
-

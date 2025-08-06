@@ -59,7 +59,9 @@ export async function prepareGraphState(
   }
 
   // Extract token data from the issue body
-  const tokenData = issue.body ? extractTokenDataFromIssueContent(issue.body) : null;
+  const tokenData = issue.body
+    ? extractTokenDataFromIssueContent(issue.body)
+    : null;
 
   // Ensure the main issue & all comments are included in the state;
 
@@ -88,7 +90,7 @@ export async function prepareGraphState(
         ),
       ],
       ...(tokenData && {
-        tokenData: { data: tokenData, replaceMode: true }
+        tokenData: { data: tokenData, replaceMode: true },
       }),
     };
     return new Command({
@@ -128,7 +130,7 @@ export async function prepareGraphState(
     // Reset plan context summary as it's now included in the messages array.
     contextGatheringNotes: "",
     ...(tokenData && {
-      tokenData: { data: tokenData, replaceMode: true }
+      tokenData: { data: tokenData, replaceMode: true },
     }),
   };
 
@@ -137,11 +139,3 @@ export async function prepareGraphState(
     goto: "initialize-sandbox",
   });
 }
-
-
-
-
-
-
-
-

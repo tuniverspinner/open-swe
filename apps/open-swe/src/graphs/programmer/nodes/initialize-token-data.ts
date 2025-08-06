@@ -22,7 +22,7 @@ export async function initializeTokenData(
   }
 
   const { githubInstallationToken } = getGitHubTokensFromConfig(config);
-  
+
   try {
     // Fetch the issue to get the latest token data
     const issue = await getIssue({
@@ -42,7 +42,7 @@ export async function initializeTokenData(
     if (tokenData) {
       // Return token data with replace flag to reset the state
       return {
-        tokenData: { data: tokenData, replaceMode: true }
+        tokenData: { data: tokenData, replaceMode: true },
       };
     }
   } catch (error) {
@@ -58,5 +58,3 @@ export async function initializeTokenData(
 
   return {};
 }
-
-

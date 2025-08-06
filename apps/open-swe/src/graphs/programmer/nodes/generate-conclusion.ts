@@ -105,5 +105,3 @@ Given all of this, please respond with the concise conclusion. Do not include an
     goto: "update-issue-token-data",
   });
 }
-
-

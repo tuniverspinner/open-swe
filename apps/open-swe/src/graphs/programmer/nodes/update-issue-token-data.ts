@@ -11,11 +11,13 @@ export async function updateIssueTokenData(
   config: GraphConfig,
 ): Promise<Command> {
   // Update token data if available and not in local mode
-  if (!isLocalMode(config) && 
-      state.tokenData && 
-      state.tokenData.length > 0 && 
-      state.githubIssueId && 
-      state.targetRepository) {
+  if (
+    !isLocalMode(config) &&
+    state.tokenData &&
+    state.tokenData.length > 0 &&
+    state.githubIssueId &&
+    state.targetRepository
+  ) {
     try {
       // Update the GitHub issue with the current token data
       await addTokenDataToIssue(
@@ -49,6 +51,3 @@ export async function updateIssueTokenData(
     });
   }
 }
-
-
-
