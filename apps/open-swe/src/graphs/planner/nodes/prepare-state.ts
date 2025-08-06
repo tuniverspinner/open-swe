@@ -127,6 +127,9 @@ export async function prepareGraphState(
     ],
     // Reset plan context summary as it's now included in the messages array.
     contextGatheringNotes: "",
+    ...(tokenData && {
+      tokenData: tokenData.map(td => ({ ...td, replaceMode: true }))
+    }),
   };
 
   return new Command({
@@ -134,6 +137,7 @@ export async function prepareGraphState(
     goto: "initialize-sandbox",
   });
 }
+
 
 
 
