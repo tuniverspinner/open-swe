@@ -302,7 +302,7 @@ export async function interruptProposedPlan(
   if (humanResponse.type === "ignore") {
     // Plan was ignored, end the process.
     return new Command({
-      goto: END,
+      goto: "update-issue-token-data",
     });
   }
 
@@ -376,4 +376,5 @@ export async function interruptProposedPlan(
     ],
   });
 }
+
 
