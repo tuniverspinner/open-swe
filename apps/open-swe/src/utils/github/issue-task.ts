@@ -35,6 +35,27 @@ function typeNarrowTaskPlan(taskPlan: unknown): taskPlan is TaskPlan {
   );
 }
 
+function typeNarrowTokenData(tokenData: unknown): tokenData is ModelTokenData[] {
+  return !!(
+    Array.isArray(tokenData) &&
+    tokenData.every(
+      (item) =>
+        typeof item === "object" &&
+        item &&
+        "model" in item &&
+        typeof item.model === "string" &&
+        "cacheCreationInputTokens" in item &&
+        typeof item.cacheCreationInputTokens === "number" &&
+        "cacheReadInputTokens" in item &&
+        typeof item.cacheReadInputTokens === "number" &&
+        "inputTokens" in item &&
+        typeof item.inputTokens === "number" &&
+        "outputTokens" in item &&
+        typeof item.outputTokens === "number"
+    )
+  );
+}
+
 export function extractTasksFromIssueContent(content: string): TaskPlan | null {
   if (!content.includes(TASK_OPEN_TAG) || !content.includes(TASK_CLOSE_TAG)) {
     return null;
@@ -250,4 +271,5 @@ export async function addTaskPlanToIssue(
     body: newBody,
   });
 }
+
 
