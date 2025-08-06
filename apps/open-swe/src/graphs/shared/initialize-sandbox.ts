@@ -28,6 +28,8 @@ import {
   isLocalMode,
   getLocalWorkingDirectory,
 } from "@open-swe/shared/open-swe/local-mode";
+import { DEFAULT_GITIGNORE } from "../../utils/default-gitignore.js";
+import { writeFile } from "../../utils/read-write.js";
 
 const logger = createLogger(LogLevel.INFO, "InitializeSandbox");
 
@@ -478,3 +480,4 @@ async function initializeSandboxLocal(
     branchName: branchName,
   };
 }
+
