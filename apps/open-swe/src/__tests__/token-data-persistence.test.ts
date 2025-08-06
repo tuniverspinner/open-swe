@@ -1,23 +1,10 @@
 import { 
   extractTokenDataFromIssueContent, 
-  addTokenDataToIssue,
   TOKEN_DATA_OPEN_TAG,
   TOKEN_DATA_CLOSE_TAG
 } from "../utils/github/issue-task.js";
 import { ModelTokenData } from "@open-swe/shared/open-swe/types";
 import { tokenDataReducer } from "@open-swe/shared/caching";
-
-// Mock the GitHub API functions
-jest.mock("../utils/github/api.js", () => ({
-  getIssue: jest.fn(),
-  updateIssue: jest.fn(),
-}));
-
-jest.mock("../utils/github-tokens.js", () => ({
-  getGitHubTokensFromConfig: jest.fn(() => ({
-    githubInstallationToken: "mock-token",
-  })),
-}));
 
 describe("Token Data Persistence End-to-End", () => {
   const mockTokenData: ModelTokenData[] = [
@@ -344,3 +331,4 @@ ${TOKEN_DATA_CLOSE_TAG}
     });
   });
 });
+
