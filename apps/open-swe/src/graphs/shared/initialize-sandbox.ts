@@ -297,49 +297,53 @@ export async function initializeSandbox(
     cloneRepoRes.message.includes("remote repository is empty")
   ) {
     logger.info("Detected empty repository. Initializing with default files.");
-    
+
     try {
       // Step 1: Create the repository directory
       const mkdirResult = await sandbox.process.executeCommand(
         `mkdir -p ${absoluteRepoDir}`,
         "/",
       );
-      
+
       if (mkdirResult.exitCode !== 0) {
         throw new Error(`Failed to create directory: ${mkdirResult.result}`);
       }
-      
+
       // Step 2: Initialize git repository
       const gitInitResult = await sandbox.process.executeCommand(
         "git init",
         absoluteRepoDir,
       );
-      
+
       if (gitInitResult.exitCode !== 0) {
-        throw new Error(`Failed to initialize git repository: ${gitInitResult.result}`);
+        throw new Error(
+          `Failed to initialize git repository: ${gitInitResult.result}`,
+        );
       }
-      
+
       // Step 3: Add remote origin
       const remoteUrl = `https://github.com/${targetRepository.owner}/${targetRepository.repo}.git`;
       const addRemoteResult = await sandbox.process.executeCommand(
         `git remote add origin ${remoteUrl}`,
         absoluteRepoDir,
       );
-      
+
       if (addRemoteResult.exitCode !== 0) {
-        throw new Error(`Failed to add remote origin: ${addRemoteResult.result}`);
+        throw new Error(
+          `Failed to add remote origin: ${addRemoteResult.result}`,
+        );
       }
-      
+
       // Step 4: Set main branch
       const setBranchResult = await sandbox.process.executeCommand(
         "git branch -M main",
         absoluteRepoDir,
       );
-      
+
       if (setBranchResult.exitCode !== 0) {
         throw new Error(`Failed to set main branch: ${setBranchResult.result}`);
       }
-      
+
       // Step 5: Create .gitignore file
       const gitignorePath = `${absoluteRepoDir}/.gitignore`;
       const writeResult = await writeFile({
@@ -348,14 +352,16 @@ export async function initializeSandbox(
         content: DEFAULT_GITIGNORE,
         workDir: "/",
       });
-      
+
       if (!writeResult.success) {
-        throw new Error(`Failed to create .gitignore file: ${writeResult.output}`);
+        throw new Error(
+          `Failed to create .gitignore file: ${writeResult.output}`,
+        );
       }
-      
+
       // Step 6: Stage the .gitignore file
       await sandbox.git.add(absoluteRepoDir, [".gitignore"]);
-      
+
       // Step 7: Commit changes
       const botAppName = process.env.GITHUB_APP_NAME;
       if (!botAppName) {
@@ -363,14 +369,14 @@ export async function initializeSandbox(
       }
       const userName = `${botAppName}[bot]`;
       const userEmail = `${botAppName}@users.noreply.github.com`;
-      
+
       await sandbox.git.commit(
         absoluteRepoDir,
         "Initial commit with .gitignore",
         userName,
         userEmail,
       );
-      
+
       // Step 8: Push to remote
       const pushResult = await withRetry(
         async () => {
@@ -382,16 +388,18 @@ export async function initializeSandbox(
         },
         { retries: 3, delay: 1000 },
       );
-      
+
       if (pushResult instanceof Error) {
         throw new Error(`Failed to push initial commit: ${pushResult.message}`);
       }
-      
+
       // Step 9: Set branch name and emit success
       const newBranchName = "main";
       emitStepEvent(baseCloneRepoAction, "success");
-      logger.info("Successfully initialized empty repository with default files.");
-      
+      logger.info(
+        "Successfully initialized empty repository with default files.",
+      );
+
       // Continue with the normal flow - skip to after the branch name assignment
       // Checking out branch
       const checkoutBranchActionId = uuidv4();
@@ -445,19 +453,21 @@ export async function initializeSandbox(
         customRules: await getCustomRules(sandbox, absoluteRepoDir, config),
         branchName: newBranchName,
       };
-      
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       emitStepEvent(
         baseCloneRepoAction,
         "error",
         `Failed to initialize empty repository: ${errorMessage}`,
       );
-      logger.error("Failed to initialize empty repository", { error: errorMessage });
+      logger.error("Failed to initialize empty repository", {
+        error: errorMessage,
+      });
       throw new Error(`Failed to initialize empty repository: ${errorMessage}`);
     }
   }
-  
+
   if (
     cloneRepoRes instanceof Error &&
     !cloneRepoRes.message.includes("repository already exists")
@@ -647,5 +657,3 @@ async function initializeSandboxLocal(
     branchName: branchName,
   };
 }
-
-
