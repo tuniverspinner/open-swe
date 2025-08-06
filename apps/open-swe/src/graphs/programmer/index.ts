@@ -157,7 +157,8 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
   .addNode("diagnose-error", diagnoseError)
   .addNode("summarize-history", summarizeHistory)
   .addEdge(START, "initialize")
-  .addEdge("initialize", "generate-action")
+  .addEdge("initialize", "initialize-token-data")
+  .addEdge("initialize-token-data", "generate-action")
   .addConditionalEdges("generate-action", routeGeneratedAction, [
     "take-action",
     "request-help",
@@ -178,5 +179,6 @@ const workflow = new StateGraph(GraphAnnotation, GraphConfiguration)
 // Zod types are messed up
 export const graph = workflow.compile() as any;
 graph.name = "Open SWE - Programmer";
+
 
 
