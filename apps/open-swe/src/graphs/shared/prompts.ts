@@ -1,3 +1,5 @@
+import { createDevServerToolFields } from "@open-swe/shared/open-swe/tools";
+
 export const GITHUB_WORKFLOWS_PERMISSIONS_PROMPT = `
 IMPORTANT: You do not have permissions to EDIT or DELETE files inside the GitHub workflows directory (commonly found at .github/workflows/).
   - If you need to modify or create a workflow, ensure you always do so inside a 'tmp-workflows' directory.
@@ -5,8 +7,12 @@ IMPORTANT: You do not have permissions to EDIT or DELETE files inside the GitHub
   - Notify the user that they will need to manually move the workflow file from the 'tmp-workflows' directory to the .github/workflows/ directory since you do not have permissions to do so.
 `;
 
+const dummyDevServerToolFields = createDevServerToolFields({
+  owner: "dummy",
+  repo: "dummy",
+});
 export const DEV_SERVER_USAGE_PROMPT = `### Dev server tool
-The \`dev_server\` tool allows Claude to start development servers and test them during development.
+The \`${dummyDevServerToolFields.name}\` tool allows Claude to start development servers and test them during development.
 **IMPORTANT: You MUST use this tool whenever you implement web applications, APIs, or services that can be run locally.**
 This is a critical validation step - code that looks correct may still have runtime issues.
 
