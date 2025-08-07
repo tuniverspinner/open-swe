@@ -300,6 +300,7 @@ export async function initializeSandbox(
       sandbox,
       absoluteRepoDir,
       targetRepository,
+      branchName,
       config,
       emitStepEvent,
       createEventsMessage,
@@ -502,6 +503,7 @@ async function initializeSandboxEmptyRepo(inputs: {
   absoluteRepoDir: string;
   targetRepository: TargetRepository;
   config: GraphConfig;
+  branchName: string;
   emitStepEvent: (
     event: CustomNodeEvent,
     status: "pending" | "success" | "error" | "skipped",
@@ -517,6 +519,7 @@ async function initializeSandboxEmptyRepo(inputs: {
     config,
     emitStepEvent,
     createEventsMessage,
+    branchName,
     baseCloneRepoAction,
   } = inputs;
   const repoName = `${targetRepository.owner}/${targetRepository.repo}`;
@@ -527,8 +530,8 @@ async function initializeSandboxEmptyRepo(inputs: {
     // Step 1: Create the repository directory
     const mkdirResult = await sandbox.process.executeCommand(
       `mkdir -p ${absoluteRepoDir}`,
-      "/",
     );
+    logger.info("Created repository directory.");
 
     if (mkdirResult.exitCode !== 0) {
       throw new Error(`Failed to create directory: ${mkdirResult.result}`);
@@ -539,6 +542,7 @@ async function initializeSandboxEmptyRepo(inputs: {
       "git init",
       absoluteRepoDir,
     );
+    logger.info("Initialized git repository.");
 
     if (gitInitResult.exitCode !== 0) {
       throw new Error(
@@ -552,28 +556,25 @@ async function initializeSandboxEmptyRepo(inputs: {
       `git remote add origin ${remoteUrl}`,
       absoluteRepoDir,
     );
+    logger.info("Added remote origin.");
 
     if (addRemoteResult.exitCode !== 0) {
       throw new Error(`Failed to add remote origin: ${addRemoteResult.result}`);
     }
 
-    // Step 4: Set main branch
-    const setBranchResult = await sandbox.process.executeCommand(
-      "git branch -M main",
-      absoluteRepoDir,
-    );
-
-    if (setBranchResult.exitCode !== 0) {
-      throw new Error(`Failed to set main branch: ${setBranchResult.result}`);
-    }
+    // Step 4: Checkout branch
+    await sandbox.git.createBranch(absoluteRepoDir, branchName);
+    logger.info("Created branch.");
+    await sandbox.git.checkoutBranch(absoluteRepoDir, branchName);
+    logger.info("Checked out branch.");
 
     // Step 5: Create .gitignore file
-    const gitignorePath = `${absoluteRepoDir}/.gitignore`;
+    const gitignoreFileName = ".gitignore";
     const writeResult = await writeFile({
       sandbox,
-      filePath: gitignorePath,
+      filePath: gitignoreFileName,
       content: DEFAULT_GITIGNORE,
-      workDir: "/",
+      workDir: absoluteRepoDir,
     });
 
     if (!writeResult.success) {
@@ -581,9 +582,11 @@ async function initializeSandboxEmptyRepo(inputs: {
         `Failed to create .gitignore file: ${writeResult.output}`,
       );
     }
+    logger.info("Created .gitignore file.");
 
     // Step 6: Stage the .gitignore file
-    await sandbox.git.add(absoluteRepoDir, [".gitignore"]);
+    await sandbox.git.add(absoluteRepoDir, [gitignoreFileName]);
+    logger.info("Staged .gitignore file.");
 
     // Step 7: Commit changes
     const botAppName = process.env.GITHUB_APP_NAME;
@@ -599,6 +602,7 @@ async function initializeSandboxEmptyRepo(inputs: {
       userName,
       userEmail,
     );
+    logger.info("Committed changes.");
 
     const { githubInstallationToken } = getGitHubTokensFromConfig(config);
 
@@ -617,6 +621,7 @@ async function initializeSandboxEmptyRepo(inputs: {
     if (pushResult instanceof Error) {
       throw new Error(`Failed to push initial commit: ${pushResult.message}`);
     }
+    logger.info("Pushed initial commit.");
 
     // Step 9: Set branch name and emit success
     const newBranchName = "main";
