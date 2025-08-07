@@ -624,9 +624,7 @@ export const GraphConfiguration = z.object({
    * User defined API keys to use
    */
   apiKeys: withLangGraph(
-    z
-      .record(z.string(), z.custom<EnvVarConfig>())
-      .optional(),
+    z.record(z.string(), z.custom<EnvVarConfig>()).optional(),
     {
       reducer: {
         schema: z.record(z.string(), z.custom<EnvVarConfig>()).optional(),

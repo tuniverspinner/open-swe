@@ -125,7 +125,7 @@ async function createSandbox(
       labels: {
         ...DEFAULT_SANDBOX_CREATE_PARAMS.labels,
 
-        OPENSWE_ENV_FINGERPRINT: envFingerprint,
+        envFingerprint: envFingerprint,
       },
       envVars: {
         ...DEFAULT_SANDBOX_CREATE_PARAMS.envVars,
@@ -193,8 +193,7 @@ export async function getSandboxWithErrorHandling(
     // Check if environment variables have changed
     const currentUserEnvs = getUserEnvironmentVariables(config);
     const currentEnvFingerprint = createEnvFingerprint(currentUserEnvs);
-    const sandboxEnvFingerprint =
-      sandbox.labels?.["OPENSWE_ENV_FINGERPRINT"] || null;
+    const sandboxEnvFingerprint = sandbox.labels?.["envFingerprint"] || null;
 
     if (sandboxEnvFingerprint !== currentEnvFingerprint) {
       logger.info("Environment variables changed, forcing sandbox recreation", {

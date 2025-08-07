@@ -662,11 +662,9 @@ export function createWriteDefaultTsConfigToolFields(
     schema: writeDefaultTsConfigToolSchema,
   };
 }
-export function createDevServerToolFields(
-  targetRepository: TargetRepository,
-) {
+export function createDevServerToolFields(targetRepository: TargetRepository) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
-  const devServerToolSchema =  z.object({
+  const devServerToolSchema = z.object({
     serverConfig: z.object({
       command: z
         .array(z.string())

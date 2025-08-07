@@ -7,7 +7,7 @@ import {
   createTextEditorTool,
   createShellTool,
   createSearchDocumentForTool,
-  createDevServerTool,  
+  createDevServerTool,
   createWriteDefaultTsConfigTool,
 } from "../../../tools/index.js";
 import {
