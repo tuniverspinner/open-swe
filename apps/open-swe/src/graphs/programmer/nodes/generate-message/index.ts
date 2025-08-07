@@ -60,6 +60,7 @@ import {
   HumanMessage,
 } from "@langchain/core/messages";
 import { BindToolsInput } from "@langchain/core/language_models/chat_models";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 
 const logger = createLogger(LogLevel.INFO, "GenerateMessageNode");
 
@@ -173,6 +174,7 @@ async function createToolsAndPrompt(
   providerTools: Record<Provider, BindToolsInput[]>;
   providerMessages: Record<Provider, BaseMessageLike[]>;
 }> {
+  const isLocal = isLocalMode(config);
   const mcpTools = await getMcpTools(config);
   const sharedTools = [
     createGrepTool(state, config),
@@ -183,7 +185,7 @@ async function createToolsAndPrompt(
     createInstallDependenciesTool(state, config),
     createMarkTaskCompletedToolFields(),
     createSearchDocumentForTool(state, config),
-    createDevServerTool(state),
+    ...(isLocal ? [] : [createDevServerTool(state)]),
     createWriteDefaultTsConfigTool(state, config),
     ...mcpTools,
   ];

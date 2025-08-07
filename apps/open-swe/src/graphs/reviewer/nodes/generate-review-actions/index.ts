@@ -38,6 +38,7 @@ import {
 import { createScratchpadTool } from "../../../../tools/scratchpad.js";
 import { createViewTool } from "../../../../tools/builtin-tools/view.js";
 import { BindToolsInput } from "@langchain/core/language_models/chat_models";
+import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
 
 const logger = createLogger(LogLevel.INFO, "GenerateReviewActionsNode");
 
@@ -128,6 +129,7 @@ function createToolsAndPrompt(
   providerTools: Record<Provider, BindToolsInput[]>;
   providerMessages: Record<Provider, BaseMessageLike[]>;
 } {
+  const isLocal = isLocalMode(config);
   const tools = [
     createGrepTool(state, config),
     createShellTool(state, config),
@@ -136,7 +138,7 @@ function createToolsAndPrompt(
     createScratchpadTool(
       "when generating a final review, after all context gathering and reviewing is complete",
     ),
-    createDevServerTool(state),
+    ...(isLocal ? [] : [createDevServerTool(state)]),
   ];
   const anthropicTools = tools;
   anthropicTools[anthropicTools.length - 1] = {

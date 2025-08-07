@@ -5,6 +5,7 @@ import { getSandboxErrorFields } from "../utils/sandbox-error-fields.js";
 import { TIMEOUT_SEC } from "@open-swe/shared/constants";
 import { createDevServerToolFields } from "@open-swe/shared/open-swe/tools";
 import { getSandboxSessionOrThrow } from "./utils/get-sandbox-id.js";
+import { sleep } from "../utils/sleep.js";
 
 const DEFAULT_ENV = {
   // Prevents corepack from showing a y/n download prompt which causes the command to hang
@@ -41,10 +42,15 @@ export function createDevServerTool(
           sessionId,
           {
             command: `cd ${serverWorkdir} && ${command.join(" ")}`,
-            async: true,
+            runAsync: true,
           },
         );
-        await new Promise((resolve) => setTimeout(resolve, waitTime * 1000));
+
+        if (!startResponse.cmdId) {
+          throw new Error("Failed to start dev server");
+        }
+
+        await sleep(waitTime * 1000);
 
         logger.info(`Sending test request: ${testCommand.join(" ")}`);
 
@@ -57,24 +63,27 @@ export function createDevServerTool(
 
         const logsResponse = await sandbox.process.getSessionCommandLogs(
           sessionId,
-          startResponse.cmdId!,
+          startResponse.cmdId,
         );
         logger.info(`Logs retrieved:`, { logsLength: logsResponse.length });
 
         await sandbox.process.deleteSession(sessionId);
 
         const resultParts = [];
-        resultParts.push("MONITOR DEV SERVER RESULTS:");
-        resultParts.push(`Command: ${command.join(" ")}`);
-        resultParts.push(`Request: ${testCommand.join(" ")}`);
+        resultParts.push("<run_dev_server_results>");
+        resultParts.push(`<command>${command.join(" ")}</command>`);
+        resultParts.push(`<request>${testCommand.join(" ")}</request>`);
         resultParts.push("");
-        resultParts.push("REQUEST RESPONSE:");
+        resultParts.push("<request_response>");
         resultParts.push(
           testResponse.result || `Exit code: ${testResponse.exitCode}`,
         );
+        resultParts.push("</request_response>");
         resultParts.push("");
-        resultParts.push("SERVER LOGS:");
+        resultParts.push("<server_logs>");
         resultParts.push(logsResponse);
+        resultParts.push("</server_logs>");
+        resultParts.push("</run_dev_server_results>");
 
         logger.info("Monitor dev server completed", {
           sessionId,

@@ -55,6 +55,8 @@ export async function takeAction(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
+  const isLocal = isLocalMode(config);
+
   const applyPatchTool = createApplyPatchTool(state, config);
   const shellTool = createShellTool(state, config);
   const searchTool = createGrepTool(state, config);
@@ -85,7 +87,7 @@ export async function takeAction(
     getURLContentTool,
     searchDocumentForTool,
     writeDefaultTsConfigTool,
-    devServerTool,
+    ...(isLocal ? [] : [devServerTool]),
     ...mcpTools,
   ];
   const toolsMap = Object.fromEntries(
@@ -100,7 +102,7 @@ export async function takeAction(
   // Filter out unsafe commands only in local mode
   let modifiedMessage: AIMessage | undefined;
   let wasFiltered = false;
-  if (isLocalMode(config)) {
+  if (isLocal) {
     const filterResult = await filterUnsafeCommands(toolCalls, config);
 
     if (filterResult.wasFiltered) {
@@ -143,7 +145,7 @@ export async function takeAction(
         await tool.invoke({
           ...toolCall.args,
           // Only pass sandbox session ID in sandbox mode, not local mode
-          ...(isLocalMode(config) ? {} : { xSandboxSessionId: sandbox.id }),
+          ...(isLocal ? {} : { xSandboxSessionId: sandbox.id }),
         });
       if (typeof toolResult === "string") {
         result = toolResult;
@@ -232,7 +234,7 @@ export async function takeAction(
   let pullRequestNumber: number | undefined;
   let updatedTaskPlan: TaskPlan | undefined;
 
-  if (!isLocalMode(config)) {
+  if (!isLocal) {
     const repoPath = getRepoAbsolutePath(state.targetRepository);
     const changedFiles = await getChangedFilesStatus(repoPath, sandbox, config);
 
