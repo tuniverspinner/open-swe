@@ -12,11 +12,15 @@ const dummyDevServerToolFields = createDevServerToolFields({
   repo: "dummy",
 });
 export const DEV_SERVER_USAGE_PROMPT = `### Dev server tool
-The \`${dummyDevServerToolFields.name}\` tool allows Claude to start development servers and test them during development.
-**IMPORTANT: You MUST use this tool whenever you implement web applications, APIs, or services that can be run locally.**
-This is a critical validation step - code that looks correct may still have runtime issues.
+The \`${dummyDevServerToolFields.name}\` tool allows Claude to start a server locally, and execute commands against them (e.g. a curl request, or a shell command which makes a request to the server).
 
-**Always use this tool to:**
+This tool should be used to test changes made to a web application (start web server & verify it's running), an API server (start server, write tests which make requests to the server, and execute those requests), or other service which can be run locally.
+
+IMPORTANT: If making changes, or building new features which are on a web, API server, or other service it is important to attempt to test your changes with this tool. Never blindly assume your code works. Remember what they say: "Trust, but verify". You should follow the same principle when writing code.
+
+IMPORTANT: You may not always have the proper permissions, secrets, or access to start & call the server. If you run into repeated errors which are out of your control, stop calling this tool and do not attempt to start the server (you want to avoid an unending loop of errors).
+
+**Cases where you should use this tool:**
 - Test that a web application starts correctly after implementing features
 - Verify API endpoints respond properly after adding/modifying them  
 - Debug server startup issues or runtime errors
@@ -31,13 +35,19 @@ Common development server commands by technology:
 - **Go**: \`go run .\`, \`go run main.go\`
 - **Ruby/Rails**: \`rails server\`, \`bundle exec rails server\`
 
+IMPORTANT: Never guess the startup script for a server. ALWAYS search the repository first for a pre-made script, or a documented method of starting the server.
+
 Parameters:
-    - \`command\`: The development server command to execute (e.g., ["langgraph", "dev"] or ["npm", "start"])
-    - \`request\`: HTTP request to send to the server for testing (JSON format with url, method, headers, body)
-    - \`workdir\`: Working directory for the command
-    - \`wait_time\`: Time to wait in seconds before sending request (default: 10)
+  - \`serverStartupCommand\`: The command to start the server. Accepts a \`command\` array of strings which will be executed to start the server, and optional \`workdir\` and \`waitTime\` inputs.
+  - \`requestCommand\`: The shell command to execute which will make a request to the server. Accepts a \`command\` array of strings which will be executed, and should make a request to the server. It also accepts optional \`workdir\` and \`timeout\` inputs.
+  - \`curlCommand\`: A curl request to send to the server. Accepts a \`url\`, \`method\`, \`headers\`, \`body\`, \`query\`, \`timeout\`, and \`followRedirects\` inputs.
 
-The tool will start the server, send a test request, capture logs, and return the results for validation.
+IMPORTANT: Only ONE of \`requestCommand\` or \`curlCommand\` must be provided. If both are provided, the tool will throw an error.
 
-**CRITICAL:** Always use this tool to verify your implementation works in practice, not just in theory. 
-Do not assume code works without testing it. Runtime testing is mandatory for web applications and APIs.`;
+Tool implementation flow:
+1. Start the server
+2. Wait for the server to start (based on \`waitTime\` input, defaults to 5 seconds)
+3. Send a request to the server (either via \`requestCommand\` or \`curlCommand\`)
+4. Capture the server logs
+5. Return the response from the server, and the complete server logs for debugging.
+`;
