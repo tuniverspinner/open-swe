@@ -662,39 +662,49 @@ export function createWriteDefaultTsConfigToolFields(
     schema: writeDefaultTsConfigToolSchema,
   };
 }
-export function createMonitorDevServerToolFields(
+export function createDevServerToolFields(
   targetRepository: TargetRepository,
 ) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
-  const monitorDevServerToolSchema = z.object({
-    command: z
-      .array(z.string())
-      .describe(
-        "The command to start the development server. Examples: ['npm', 'run', 'dev'], ['yarn', 'dev'], ['python', 'app.py'], ['node', 'server.js']. Ensure the command is properly formatted with arguments in the correct order.",
-      ),
-    request: z
-      .string()
-      .describe(
-        "The HTTP request command to test the server. Should be a complete curl command that will be executed after the server starts. Examples: 'curl -s http://localhost:3000', 'curl -X POST -H \"Content-Type: application/json\" -d '{\"test\":true}' http://localhost:3000/api/test', 'curl -I http://localhost:8080/health'.",
-      ),
-    workdir: z
-      .string()
-      .default(repoRoot)
-      .describe(
-        `The working directory where the server command should be executed. Defaults to the root of the repository (${repoRoot}).`,
-      ),
-    wait_time: z
-      .number()
-      .optional()
-      .default(5)
-      .describe(
-        "Time in seconds to wait for server startup before sending the test request, and also time to wait after sending the request before capturing logs. Increase for slower servers like React/Next.js (8-10s) or decrease for simple servers (2-3s). This allows the server to process the request and generate log output.",
-      ),
+  const devServerToolSchema =  z.object({
+    serverConfig: z.object({
+      command: z
+        .array(z.string())
+        .describe(
+          "The command to start the development server. Examples: ['langgraph', 'dev'], ['npm', 'run', 'dev'], ['yarn', 'dev'], ['python', 'app.py'], ['node', 'server.js']. Ensure the command is properly formatted with arguments in the correct order.",
+        ),
+      workdir: z
+        .string()
+        .default(repoRoot)
+        .describe(
+          `The working directory where the server command should be executed. Defaults to the root of the repository (${repoRoot}).`,
+        ),
+    }),
+    requestConfig: z.object({
+      testCommand: z
+        .array(z.string())
+        .describe(
+          "The HTTP request command to test the server. Should be a complete command that will be executed after the server starts. Examples: ['curl', '-s', 'http://localhost:3000'], ['curl', '-X', 'POST', '-H', '\"Content-Type: application/json\"', '-d', '{\"test\":true}', 'http://localhost:3000/api/test'], ['curl', '-I', 'http://localhost:8080/health'].",
+        ),
+      workdir: z
+        .string()
+        .default(repoRoot)
+        .describe(
+          `The working directory where the test command should be executed. Defaults to the root of the repository (${repoRoot}).`,
+        ),
+      waitTime: z
+        .number()
+        .optional()
+        .default(5)
+        .describe(
+          "Time in seconds to wait for server startup before sending the test request. Increase for slower servers like React/Next.js (8-10s) or decrease for simple servers (2-3s).",
+        ),
+    }),
   });
   return {
-    name: "monitor_dev_server",
+    name: "dev_server",
     description:
-      "Starts a development server in the background using tmux, waits for startup, sends a test HTTP request, captures all server logs including the request processing, then cleanly stops the server. The function should be used for testing if your server implementation works correctly and debugging issues. The fuction returns a string containing the HTTP response and complete server logs for debugging.",
-    schema: monitorDevServerToolSchema,
+      "Starts a development server in the background, waits for startup, sends a test HTTP request, captures all server logs including the request processing, then cleanly stops the server. The function should be used for testing if your server implementation works correctly and debugging issues. The fuction returns a string containing the response and complete server logs for debugging.",
+    schema: devServerToolSchema,
   };
 }

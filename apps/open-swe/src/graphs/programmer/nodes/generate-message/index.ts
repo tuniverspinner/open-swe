@@ -19,7 +19,7 @@ import {
   createUpdatePlanToolFields,
   createGetURLContentTool,
   createSearchDocumentForTool,
-  createMonitorDevServerTool,
+  createDevServerTool,
   createWriteDefaultTsConfigTool,
 } from "../../../../tools/index.js";
 import { formatPlanPrompt } from "../../../../utils/plan-prompt.js";
@@ -183,7 +183,7 @@ async function createToolsAndPrompt(
     createInstallDependenciesTool(state, config),
     createMarkTaskCompletedToolFields(),
     createSearchDocumentForTool(state, config),
-    createMonitorDevServerTool(state),
+    createDevServerTool(state),
     createWriteDefaultTsConfigTool(state, config),
     ...mcpTools,
   ];

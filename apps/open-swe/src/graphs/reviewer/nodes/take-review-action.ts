@@ -8,7 +8,7 @@ import {
 import {
   createInstallDependenciesTool,
   createShellTool,
-  createMonitorDevServerTool,
+  createDevServerTool,
 } from "../../../tools/index.js";
 import { GraphConfig, TaskPlan } from "@open-swe/shared/open-swe/types";
 import {
@@ -55,14 +55,14 @@ export async function takeReviewerActions(
   const viewTool = createViewTool(state, config);
   const installDependenciesTool = createInstallDependenciesTool(state, config);
   const scratchpadTool = createScratchpadTool("");
-  const monitorDevServerTool = createMonitorDevServerTool(state);
+  const devServerTool = createDevServerTool(state);
   const allTools = [
     shellTool,
     searchTool,
     viewTool,
     installDependenciesTool,
     scratchpadTool,
-    monitorDevServerTool,
+    devServerTool,
   ];
   const toolsMap = Object.fromEntries(
     allTools.map((tool) => [tool.name, tool]),

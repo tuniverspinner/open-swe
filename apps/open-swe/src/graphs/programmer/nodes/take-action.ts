@@ -7,7 +7,7 @@ import {
   createTextEditorTool,
   createShellTool,
   createSearchDocumentForTool,
-  createMonitorDevServerTool,
+  createDevServerTool,  
   createWriteDefaultTsConfigTool,
 } from "../../../tools/index.js";
 import {
@@ -62,7 +62,7 @@ export async function takeAction(
   const installDependenciesTool = createInstallDependenciesTool(state, config);
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
-  const monitorDevServerTool = createMonitorDevServerTool(state);
+  const devServerTool = createDevServerTool(state);
   const mcpTools = await getMcpTools(config);
   const writeDefaultTsConfigTool = createWriteDefaultTsConfigTool(
     state,
@@ -85,7 +85,7 @@ export async function takeAction(
     getURLContentTool,
     searchDocumentForTool,
     writeDefaultTsConfigTool,
-    monitorDevServerTool,
+    devServerTool,
     ...mcpTools,
   ];
   const toolsMap = Object.fromEntries(

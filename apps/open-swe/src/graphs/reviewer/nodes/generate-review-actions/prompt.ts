@@ -143,8 +143,8 @@ By reviewing these actions, and comparing them to the plan and original user req
         Parameters:
             - \`scratchpad\`: A list of strings containing the text to write to the scratchpad.
 
-    ### Monitor dev server tool
-        The \`monitor_dev_server\` tool allows you to start development servers and monitor their behavior for debugging purposes.
+    ### Dev server tool
+        The \`dev_server\` tool allows you to start development servers and monitor their behavior for debugging purposes.
         **IMPORTANT: You SHOULD use this tool when reviewing any changes to web applications, APIs, or services.**
         Static code review is insufficient - you must verify runtime behavior.
         

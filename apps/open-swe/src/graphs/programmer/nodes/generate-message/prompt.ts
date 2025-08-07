@@ -189,8 +189,8 @@ ${CORE_BEHAVIOR_PROMPT}
             Parameters:
                 - \`completed_task_summary\`: A summary of the completed task. This summary should include high level context about the actions you took to complete the task, and any other context which would be useful to another developer reviewing the actions you took. Ensure this is properly formatted using markdown.
 
-        ### Monitor dev server tool
-            The \`monitor_dev_server\` tool allows Claude to start development servers and test them during development.
+        ### Dev server tool
+            The \`dev_server\` tool allows Claude to start development servers and test them during development.
             **IMPORTANT: You MUST use this tool whenever you implement web applications, APIs, or services that can be run locally.**
             This is a critical validation step - code that looks correct may still have runtime issues.
             

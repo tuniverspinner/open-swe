@@ -12,7 +12,7 @@ import {
   createGetURLContentTool,
   createShellTool,
   createSearchDocumentForTool,
-  createMonitorDevServerTool,
+  createDevServerTool,
 } from "../../../tools/index.js";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import {
@@ -60,7 +60,7 @@ export async function takeActions(
   const scratchpadTool = createScratchpadTool("");
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
-  const monitorDevServerTool = createMonitorDevServerTool(state);
+  const devServerTool = createDevServerTool(state);
   const mcpTools = await getMcpTools(config);
 
   const higherContextLimitToolNames = [
@@ -76,7 +76,7 @@ export async function takeActions(
     scratchpadTool,
     getURLContentTool,
     searchDocumentForTool,
-    monitorDevServerTool,
+    devServerTool,
     ...mcpTools,
   ];
   const toolsMap = Object.fromEntries(
