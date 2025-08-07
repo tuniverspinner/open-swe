@@ -64,7 +64,7 @@ const PROVIDER_DEFINITIONS = {
   llms: [
     { id: "anthropic", name: "ANTHROPIC_API_KEY", description: "" },
     { id: "openai", name: "OPENAI_API_KEY", description: "" },
-    { id: "google-genai", name: "GOOGLE_API_KEY", description: "" },
+    { id: "google", name: "GOOGLE_API_KEY", description: "" },
   ],
   infrastructure: [
     {

@@ -81,7 +81,7 @@ const providerToApiKey = (
     case "anthropic":
       return apiKeys.anthropic.apiKey;
     case "google-genai":
-      return apiKeys["google-genai"].apiKey;
+      return apiKeys.google.apiKey;
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
