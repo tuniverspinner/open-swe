@@ -20,23 +20,27 @@ export function createMonitorDevServerTool(
     async (input): Promise<{ result: string; status: "success" | "error" }> => {
       try {
         const sandbox = await getSandboxSessionOrThrow(input);
-        const { command, request, workdir, wait_time } = input;
+        const {
+          server_config: { command, workdir: serverWorkdir },
+          request_config: { test_command, workdir: requestWorkdir, wait_time },
+        } = input;
 
         const waitTime = wait_time;
         const sessionId = `monitor-${Date.now()}`;
 
         logger.info("Starting monitor dev server", {
           command: command.join(" "),
-          request,
-          workdir,
+          serverWorkdir,
+          test_command,
+          requestWorkdir,
           waitTime,
           sessionId,
         });
 
-        const startCommand = `tmux new-session -d -s "${sessionId}" -c "${workdir}" "${command.join(" ")}"`;
+        const startCommand = `tmux new-session -d -s "${sessionId}" -c "${serverWorkdir}" "${command.join(" ")}"`;
         const startResponse = await sandbox.process.executeCommand(
           startCommand,
-          workdir,
+          serverWorkdir,
           DEFAULT_ENV,
           TIMEOUT_SEC,
         );
@@ -52,10 +56,10 @@ export function createMonitorDevServerTool(
         logger.info(`Waiting ${waitTime}s for server startup...`);
         await new Promise((resolve) => setTimeout(resolve, waitTime * 1000));
 
-        logger.info(`Sending request: ${request}`);
+        logger.info(`Sending request: ${test_command}`);
         const httpResponse = await sandbox.process.executeCommand(
-          request,
-          workdir,
+          test_command,
+          requestWorkdir,
           DEFAULT_ENV,
           TIMEOUT_SEC,
         );
@@ -67,7 +71,7 @@ export function createMonitorDevServerTool(
         const logsCommand = `tmux capture-pane -S - -p -t "${sessionId}"`;
         const logsResponse = await sandbox.process.executeCommand(
           logsCommand,
-          workdir,
+          serverWorkdir,
           DEFAULT_ENV,
           10,
         );
@@ -76,7 +80,7 @@ export function createMonitorDevServerTool(
         const stopCommand = `tmux kill-session -t "${sessionId}"`;
         await sandbox.process.executeCommand(
           stopCommand,
-          workdir,
+          serverWorkdir,
           DEFAULT_ENV,
           10,
         );
@@ -86,7 +90,7 @@ export function createMonitorDevServerTool(
         const resultParts = [];
         resultParts.push("MONITOR DEV SERVER RESULTS: ");
         resultParts.push(`Command: ${command.join(" ")}`);
-        resultParts.push(`Request: ${request}`);
+        resultParts.push(`Request: ${test_command}`);
         resultParts.push("");
         resultParts.push("REQUEST RESPONSE: ");
         resultParts.push(

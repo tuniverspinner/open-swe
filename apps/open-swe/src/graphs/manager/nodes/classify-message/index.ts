@@ -309,7 +309,7 @@ export async function classifyMessage(
                 [LOCAL_MODE_HEADER]: "true",
               }),
             },
-          }
+          },
         },
       );
       newPlannerId = newPlannerRun.run_id;

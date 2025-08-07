@@ -667,29 +667,39 @@ export function createMonitorDevServerToolFields(
 ) {
   const repoRoot = getRepoAbsolutePath(targetRepository);
   const monitorDevServerToolSchema = z.object({
-    command: z
-      .array(z.string())
-      .describe(
-        "The command to start the development server. Examples: ['npm', 'run', 'dev'], ['yarn', 'dev'], ['python', 'app.py'], ['node', 'server.js']. Ensure the command is properly formatted with arguments in the correct order.",
-      ),
-    request: z
-      .string()
-      .describe(
-        "The HTTP request command to test the server. Should be a complete curl command that will be executed after the server starts. Examples: 'curl -s http://localhost:3000', 'curl -X POST -H \"Content-Type: application/json\" -d '{\"test\":true}' http://localhost:3000/api/test', 'curl -I http://localhost:8080/health'.",
-      ),
-    workdir: z
-      .string()
-      .default(repoRoot)
-      .describe(
-        `The working directory where the server command should be executed. Defaults to the root of the repository (${repoRoot}).`,
-      ),
-    wait_time: z
-      .number()
-      .optional()
-      .default(5)
-      .describe(
-        "Time in seconds to wait for server startup before sending the test request, and also time to wait after sending the request before capturing logs. Increase for slower servers like React/Next.js (8-10s) or decrease for simple servers (2-3s). This allows the server to process the request and generate log output.",
-      ),
+    server_config: z.object({
+      command: z
+        .array(z.string())
+        .describe(
+          "The command to start the development server. Examples: ['langgraph', 'dev'], ['npm', 'run', 'dev'], ['yarn', 'dev'], ['python', 'app.py'], ['node', 'server.js']. Ensure the command is properly formatted with arguments in the correct order.",
+        ),
+      workdir: z
+        .string()
+        .default(repoRoot)
+        .describe(
+          `The working directory where the server command should be executed. Defaults to the root of the repository (${repoRoot}).`,
+        ),
+    }),
+    request_config: z.object({
+      test_command: z
+        .string()
+        .describe(
+          "The HTTP request command to test the server. Should be a complete command that will be executed after the server starts. Examples: 'curl -s http://localhost:3000', 'curl -X POST -H \"Content-Type: application/json\" -d '{\"test\":true}' http://localhost:3000/api/test', 'curl -I http://localhost:8080/health'.",
+        ),
+      workdir: z
+        .string()
+        .default(repoRoot)
+        .describe(
+          `The working directory where the test command should be executed. Defaults to the root of the repository (${repoRoot}).`,
+        ),
+      wait_time: z
+        .number()
+        .optional()
+        .default(5)
+        .describe(
+          "Time in seconds to wait for server startup before sending the test request, and also time to wait after sending the request before capturing logs. Increase for slower servers like React/Next.js (8-10s) or decrease for simple servers (2-3s).",
+        ),
+    }),
   });
   return {
     name: "monitor_dev_server",
