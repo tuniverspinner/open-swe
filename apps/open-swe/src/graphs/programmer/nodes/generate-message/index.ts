@@ -61,6 +61,7 @@ import {
 } from "@langchain/core/messages";
 import { BindToolsInput } from "@langchain/core/language_models/chat_models";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { DEV_SERVER_USAGE_PROMPT } from "../../../shared/prompts.js";
 
 const logger = createLogger(LogLevel.INFO, "GenerateMessageNode");
 
@@ -88,19 +89,26 @@ const formatDynamicContextPrompt = (state: GraphState) => {
 
 const formatStaticInstructionsPrompt = (
   state: GraphState,
+  config: GraphConfig,
   isAnthropicModel: boolean,
 ) => {
+  const isLocal = isLocalMode(config);
   return (
     isAnthropicModel
       ? STATIC_ANTHROPIC_SYSTEM_INSTRUCTIONS
       : STATIC_SYSTEM_INSTRUCTIONS
   )
     .replaceAll("{REPO_DIRECTORY}", getRepoAbsolutePath(state.targetRepository))
-    .replaceAll("{CUSTOM_RULES}", formatCustomRulesPrompt(state.customRules));
+    .replaceAll("{CUSTOM_RULES}", formatCustomRulesPrompt(state.customRules))
+    .replaceAll(
+      "{DEV_SERVER_USAGE_PROMPT}",
+      isLocal ? "" : DEV_SERVER_USAGE_PROMPT,
+    );
 };
 
 const formatCacheablePrompt = (
   state: GraphState,
+  config: GraphConfig,
   args?: {
     isAnthropicModel?: boolean;
     excludeCacheControl?: boolean;
@@ -112,7 +120,11 @@ const formatCacheablePrompt = (
     // Cache Breakpoint 2: Static Instructions
     {
       type: "text",
-      text: formatStaticInstructionsPrompt(state, !!args?.isAnthropicModel),
+      text: formatStaticInstructionsPrompt(
+        state,
+        config,
+        !!args?.isAnthropicModel,
+      ),
       ...(!args?.excludeCacheControl
         ? { cache_control: { type: "ephemeral" } }
         : {}),
@@ -226,6 +238,7 @@ async function createToolsAndPrompt(
           ...state,
           taskPlan: options.latestTaskPlan ?? state.taskPlan,
         },
+        config,
         {
           isAnthropicModel: true,
           excludeCacheControl: false,
@@ -244,6 +257,7 @@ async function createToolsAndPrompt(
           ...state,
           taskPlan: options.latestTaskPlan ?? state.taskPlan,
         },
+        config,
         {
           isAnthropicModel: false,
           excludeCacheControl: true,

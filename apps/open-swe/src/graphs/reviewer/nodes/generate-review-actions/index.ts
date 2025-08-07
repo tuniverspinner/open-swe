@@ -39,12 +39,17 @@ import { createScratchpadTool } from "../../../../tools/scratchpad.js";
 import { createViewTool } from "../../../../tools/builtin-tools/view.js";
 import { BindToolsInput } from "@langchain/core/language_models/chat_models";
 import { isLocalMode } from "@open-swe/shared/open-swe/local-mode";
+import { DEV_SERVER_USAGE_PROMPT } from "../../../shared/prompts.js";
 
 const logger = createLogger(LogLevel.INFO, "GenerateReviewActionsNode");
 
-function formatSystemPrompt(state: ReviewerGraphState): string {
+function formatSystemPrompt(
+  state: ReviewerGraphState,
+  config: GraphConfig,
+): string {
   const activePlan = getActivePlanItems(state.taskPlan);
   const tasksString = formatPlanPromptWithSummaries(activePlan);
+  const isLocal = isLocalMode(config);
 
   return SYSTEM_PROMPT.replaceAll(
     "{CODEBASE_TREE}",
@@ -65,11 +70,16 @@ function formatSystemPrompt(state: ReviewerGraphState): string {
     .replaceAll(
       "{USER_REQUEST_PROMPT}",
       formatUserRequestPrompt(state.messages),
+    )
+    .replaceAll(
+      "{DEV_SERVER_USAGE_PROMPT}",
+      isLocal ? "" : DEV_SERVER_USAGE_PROMPT,
     );
 }
 
 const formatCacheablePrompt = (
   state: ReviewerGraphState,
+  config: GraphConfig,
   args?: {
     excludeCacheControl?: boolean;
   },
@@ -79,7 +89,7 @@ const formatCacheablePrompt = (
   const segments: CacheablePromptSegment[] = [
     {
       type: "text",
-      text: formatSystemPrompt(state),
+      text: formatSystemPrompt(state, config),
       ...(!args?.excludeCacheControl
         ? { cache_control: { type: "ephemeral" } }
         : {}),
@@ -150,7 +160,9 @@ function createToolsAndPrompt(
   const anthropicMessages = [
     {
       role: "system",
-      content: formatCacheablePrompt(state, { excludeCacheControl: false }),
+      content: formatCacheablePrompt(state, config, {
+        excludeCacheControl: false,
+      }),
     },
     {
       role: "user",
@@ -163,7 +175,9 @@ function createToolsAndPrompt(
   const nonAnthropicMessages = [
     {
       role: "system",
-      content: formatCacheablePrompt(state, { excludeCacheControl: true }),
+      content: formatCacheablePrompt(state, config, {
+        excludeCacheControl: true,
+      }),
     },
     {
       role: "user",
