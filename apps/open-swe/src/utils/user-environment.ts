@@ -4,7 +4,7 @@ import { isEnvVarConfig } from "@open-swe/shared/env-config";
 
 /**
  * Extracts user environment variables from GraphConfig and returns them as a Record
- * Only includes keys that are marked as allowed_in_dev
+ * Only includes keys that are marked as allowedInDev
  */
 export function getUserEnvironmentVariables(
   config: GraphConfig,
@@ -22,10 +22,10 @@ export function getUserEnvironmentVariables(
   }
 
   for (const envVarConfig of Object.values(apiKeys)) {
-    if (isEnvVarConfig(envVarConfig) && envVarConfig.allowed_in_dev) {
+    if (isEnvVarConfig(envVarConfig) && envVarConfig.allowedInDev) {
       try {
         const decryptedKey = decryptSecret(
-          envVarConfig.api_key,
+          envVarConfig.apiKey,
           secretsEncryptionKey,
         );
         if (decryptedKey && envVarConfig.name) {

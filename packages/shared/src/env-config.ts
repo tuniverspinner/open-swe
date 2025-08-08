@@ -8,8 +8,8 @@ export function isEnvVarConfig(obj: any): obj is EnvVarConfig {
     typeof obj === "object" &&
     obj !== null &&
     "name" in obj &&
-    "api_key" in obj &&
-    "allowed_in_dev" in obj &&
-    typeof obj.api_key === "string"
+    "apiKey" in obj &&
+    "allowedInDev" in obj &&
+    typeof obj.apiKey === "string"
   );
 }

@@ -39,7 +39,7 @@ export const { GET, POST, PUT, PATCH, DELETE, OPTIONS, runtime } =
           if (isEnvVarConfig(envVarConfig)) {
             encryptedApiKeys[envVarId] = {
               ...envVarConfig,
-              api_key: encryptSecret(envVarConfig.api_key, encryptionKey),
+              apiKey: encryptSecret(envVarConfig.apiKey, encryptionKey),
             };
           } else {
             encryptedApiKeys[envVarId] = envVarConfig;

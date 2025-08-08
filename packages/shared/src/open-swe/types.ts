@@ -160,11 +160,11 @@ export type CustomRules = {
   pullRequestFormatting?: string;
 };
 
-export interface EnvVarConfig {
+export type EnvVarConfig = {
   name: string;
-  api_key: string;
-  allowed_in_dev: boolean;
-}
+  apiKey: string;
+  allowedInDev: boolean;
+};
 
 export const GraphAnnotation = MessagesZodState.extend({
   /**
@@ -624,17 +624,12 @@ export const GraphConfiguration = z.object({
    * User defined API keys to use
    */
   apiKeys: withLangGraph(
-    z
-      .record(
-        z.string(),
-        z.object({
-          name: z.string(),
-          api_key: z.string(),
-          allowed_in_dev: z.boolean().optional().default(false),
-        }),
-      )
-      .optional(),
+    z.record(z.string(), z.custom<EnvVarConfig>()).optional(),
     {
+      reducer: {
+        schema: z.record(z.string(), z.custom<EnvVarConfig>()).optional(),
+        fn: (state, update) => ({ ...(state || {}), ...(update || {}) }),
+      },
       metadata: GraphConfigurationMetadata.apiKeys,
     },
   ),

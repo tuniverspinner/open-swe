@@ -51,7 +51,7 @@ export function daytonaClient(): Daytona {
           const secretsEncryptionKey = process.env.SECRETS_ENCRYPTION_KEY;
           if (secretsEncryptionKey) {
             daytonaApiKey = decryptSecret(
-              daytonaConfig.api_key,
+              daytonaConfig.apiKey,
               secretsEncryptionKey,
             );
           }
@@ -125,7 +125,7 @@ async function createSandbox(
       labels: {
         ...DEFAULT_SANDBOX_CREATE_PARAMS.labels,
 
-        OPENSWE_ENV_FINGERPRINT: envFingerprint,
+        envFingerprint: envFingerprint,
       },
       envVars: {
         ...DEFAULT_SANDBOX_CREATE_PARAMS.envVars,
@@ -193,8 +193,7 @@ export async function getSandboxWithErrorHandling(
     // Check if environment variables have changed
     const currentUserEnvs = getUserEnvironmentVariables(config);
     const currentEnvFingerprint = createEnvFingerprint(currentUserEnvs);
-    const sandboxEnvFingerprint =
-      sandbox.labels?.["OPENSWE_ENV_FINGERPRINT"] || null;
+    const sandboxEnvFingerprint = sandbox.labels?.["envFingerprint"] || null;
 
     if (sandboxEnvFingerprint !== currentEnvFingerprint) {
       logger.info("Environment variables changed, forcing sandbox recreation", {
@@ -255,9 +254,9 @@ export async function getSandboxWithErrorHandling(
 
     // Get codebase tree
     const codebaseTree = await getCodebaseTree(
+      config,
       sandbox.id,
       targetRepository,
-      config,
     );
     const codebaseTreeToReturn =
       codebaseTree === FAILED_TO_GENERATE_TREE_MESSAGE ? null : codebaseTree;

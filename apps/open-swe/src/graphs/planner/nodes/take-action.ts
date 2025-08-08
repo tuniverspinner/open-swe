@@ -12,7 +12,7 @@ import {
   createGetURLContentTool,
   createShellTool,
   createSearchDocumentForTool,
-  createMonitorDevServerTool,
+  createDevServerTool,
 } from "../../../tools/index.js";
 import { GraphConfig } from "@open-swe/shared/open-swe/types";
 import {
@@ -54,13 +54,15 @@ export async function takeActions(
     throw new Error("Last message is not an AI message with tool calls.");
   }
 
+  const isLocal = isLocalMode(config);
+
   const viewTool = createViewTool(state, config);
   const shellTool = createShellTool(state, config);
   const searchTool = createGrepTool(state, config);
   const scratchpadTool = createScratchpadTool("");
   const getURLContentTool = createGetURLContentTool(state);
   const searchDocumentForTool = createSearchDocumentForTool(state, config);
-  const monitorDevServerTool = createMonitorDevServerTool(state);
+  const devServerTool = createDevServerTool(state);
   const mcpTools = await getMcpTools(config);
 
   const higherContextLimitToolNames = [
@@ -76,7 +78,7 @@ export async function takeActions(
     scratchpadTool,
     getURLContentTool,
     searchDocumentForTool,
-    monitorDevServerTool,
+    ...(isLocal ? [] : [devServerTool]),
     ...mcpTools,
   ];
   const toolsMap = Object.fromEntries(
@@ -123,7 +125,7 @@ export async function takeActions(
         (await tool.invoke({
           ...toolCall.args,
           // Only pass sandbox session ID in sandbox mode, not local mode
-          ...(isLocalMode(config) ? {} : { xSandboxSessionId: sandbox.id }),
+          ...(isLocal ? {} : { xSandboxSessionId: sandbox.id }),
         })) as {
           result: string;
           status: "success" | "error";
@@ -204,8 +206,8 @@ export async function takeActions(
       { documentCache: {} } as { documentCache: Record<string, string> },
     );
 
-  if (!isLocalMode(config)) {
-    const repoPath = isLocalMode(config)
+  if (!isLocal) {
+    const repoPath = isLocal
       ? getLocalWorkingDirectory()
       : getRepoAbsolutePath(state.targetRepository);
     const changedFiles = await getChangedFilesStatus(repoPath, sandbox, config);
