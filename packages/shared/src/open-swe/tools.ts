@@ -711,7 +711,7 @@ export function createDevServerToolFields(targetRepository: TargetRepository) {
         }),
       )
       .describe(
-        "A shell command to execute which makes a request to the server. This is optional, but one of either this (\`requestCommand\`) or the curl command (\`curlCommand\`) must be provided.",
+        "A shell command to execute which makes a request to the server. This is optional, but one of either this (`requestCommand`) or the curl command (`curlCommand`) must be provided.",
       ),
     curlCommand: z
       .optional(
@@ -754,14 +754,14 @@ export function createDevServerToolFields(targetRepository: TargetRepository) {
         }),
       )
       .describe(
-        "A curl request to send to the server. This is optional, but one of either this (\`curlCommand\`) or the request script (\`requestCommand\`) must be provided.",
+        "A curl request to send to the server. This is optional, but one of either this (`curlCommand`) or the request script (`requestCommand`) must be provided.",
       ),
   });
   return {
     name: "dev_server",
     description:
-      "This tool will start a server (e.g. a development API server, or a web application via the \`serverStartupCommand\`) and send a network request (either triggered via a shell command: \`requestCommand\` or a via curl request: \`curlCommand\`) to the server.\n" +
-      "IMPORTANT: Only one of \`requestCommand\` or \`curlCommand\` must be provided.\n" +
+      "This tool will start a server (e.g. a development API server, or a web application via the `serverStartupCommand`) and send a network request (either triggered via a shell command: `requestCommand` or a via curl request: `curlCommand`) to the server.\n" +
+      "IMPORTANT: Only one of `requestCommand` or `curlCommand` must be provided.\n" +
       "It will then return the response from the server, and the complete server logs for debugging.\n" +
       "This tool should be used when making changes to a web application, API server, or other service which can be run locally.",
     schema: devServerToolSchema,
@@ -772,13 +772,12 @@ function shellEscape(str: string): string {
   return `'${str.replace(/'/g, `'\\''`)}'`;
 }
 
-const dummyDevServerToolSchema = createDevServerToolFields({
-  owner: "dummy",
-  repo: "dummy",
-}).schema;
+type DevServerToolSchema = ReturnType<
+  typeof createDevServerToolFields
+>["schema"];
 
 export function formatCurlCommand(
-  request: z.infer<typeof dummyDevServerToolSchema>["curlCommand"],
+  request: z.infer<DevServerToolSchema>["curlCommand"],
 ): string {
   if (!request) {
     throw new Error("No curl command provided");
