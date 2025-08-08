@@ -107,7 +107,8 @@ export function TerminalInput({
     let defaultConfig = getConfig(DEFAULT_CONFIG_KEY);
     if (hasOldFormatApiKeys(defaultConfig)) {
       defaultConfig = migrateApiKeys(defaultConfig);
-      if (defaultConfig.apiKeys) { // persist in local storage
+      if (defaultConfig.apiKeys) {
+        // persist in local storage
         updateConfig(DEFAULT_CONFIG_KEY, "apiKeys", defaultConfig.apiKeys);
       }
     }
