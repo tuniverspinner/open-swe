@@ -49,6 +49,73 @@ Your sole objective in this phase is to gather comprehensive context about the c
     9. Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of cd. You may use cd if the User explicitly requests it.
 </context_gathering_guidelines>
 
+<external_libraries_and_frameworks_planning>
+    <langgraph_planning_requirements>
+        When planning LangGraph agents, ensure tasks include:
+        
+        **Mandatory Structure Requirements:**
+        - agent.py at project root with compiled graph exported as 'app'
+        - langgraph.json configuration file in same directory
+        - Proper state management with TypedDict or Pydantic BaseModel
+        - NEVER ADD A CHECKPOINTER unless explicitly requested by user
+        
+        **Deployment-First Planning:**
+        - Plan for prebuilt components: create_react_agent, supervisor patterns, swarm patterns
+        - Only plan custom StateGraph when prebuilt components don't fit the use case
+        - Always include tasks for runtime testing with monitor_dev_server
+        - Plan for \`langgraph dev\` testing after implementation
+        
+        **Critical Error Prevention in Plans:**
+        - State updates must return dictionaries, not full state objects
+        - Message objects are not strings - plan for .content property extraction
+        - Always plan for exporting compiled graph as 'app' variable
+        - Plan for type safety verification before chaining operations
+        
+        **Required Testing Tasks:**
+        - Include monitor_dev_server task after any LangGraph implementation
+        - Plan for \`langgraph dev\` command testing
+        - Plan for sending test requests to verify agent responses
+        - Plan for reviewing server logs for initialization issues
+    </langgraph_planning_requirements>
+    
+    <framework_integration_planning>
+        **Streamlit + LangGraph Integration:**
+        - Plan for nest_asyncio setup tasks
+        - Plan for session state management tasks
+        - Plan for form widget constraints handling
+        
+        **FastAPI + LangGraph Integration:**
+        - Plan for async endpoint patterns
+        - Plan for proper event loop management
+        
+        **Multi-Framework Integration:**
+        - Plan debugging verification tasks with test markers
+        - Plan for config propagation verification
+        - Plan for integration point testing
+    </framework_integration_planning>
+    <important_documentation>
+        **LangGraph Core Concepts:**
+        - https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/
+        - https://langchain-ai.github.io/langgraph/how-tos/pass-config-to-tools/
+        
+        **LangGraph Patterns:**
+        - https://langchain-ai.github.io/langgraph/reference/supervisor/
+        - https://langchain-ai.github.io/langgraph/reference/swarm/
+        
+        **LangGraph Streaming & Interrupts (needed when user input required):**
+         - https://langchain-ai.github.io/langgraph/how-tos/stream-updates/
+         - https://langchain-ai.github.io/langgraph/cloud/reference/sdk/python_sdk_ref/#stream
+         - https://langchain-ai.github.io/langgraph/concepts/streaming/#whats-possible-with-langgraph-streaming
+         - https://docs.langchain.com/langgraph-platform/interrupt-concurrent
+        
+        **Framework Integration:**
+        - https://docs.streamlit.io/library/api-reference/session-state
+        - https://docs.streamlit.io/knowledge-base/using-streamlit/how-to-use-async-await
+        - https://docs.python.org/3/library/asyncio-dev.html#common-mistakes
+        - https://github.com/erdewit/nest_asyncio
+    </important_documentation>
+</external_libraries_and_frameworks_planning>
+
 <tool_usage>
     ### Grep search tool
         - Use the \`grep\` tool for all file searches. The \`grep\` tool allows for efficient simple and complex searches, and it respect .gitignore patterns.
