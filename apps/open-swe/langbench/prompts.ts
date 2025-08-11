@@ -9,7 +9,9 @@ export function createPRFixPrompt(prData: PRData): string {
   The PR has the following description:
   ${prData.body}
 
-  The PR has the following test files:
-  ${prData.testFiles.join("\n")}
+  The implementation of the PR should result in these tests passing: 
+  ${Object.entries(prData.tests).map(([file, tests]) => `${file}: ${tests.join(", ")}`).join("\n  ")}
+
+  </request>
   `;
 }

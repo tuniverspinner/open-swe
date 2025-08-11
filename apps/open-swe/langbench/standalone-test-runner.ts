@@ -48,8 +48,7 @@ function loadPRsData(): PRData[] {
     body: pr.body,
     createdAt: pr.created_at,
     mergedAt: pr.merged_at,
-    testFiles: pr.test_files || [],
-    testNames: pr.test_names || [],
+    tests: pr.tests || {},
   }));
 }
 
@@ -61,8 +60,8 @@ async function runStandaloneTest(prData: PRData, useSpecificTests: boolean = fal
     prNumber: prData.prNumber,
     repoName: prData.repoName,
     success: false,
-    testFiles: prData.testFiles || [],
-    testNames: prData.testNames || [],
+    testFiles: Object.keys(prData.tests),
+    testNames: Object.values(prData.tests).flat(),
     mergeCommitSha: prData.mergeCommitSha,
   };
 
@@ -113,7 +112,7 @@ async function runStandaloneTest(prData: PRData, useSpecificTests: boolean = fal
 
     // Run tests if test files are available
     if (result.testFiles.length > 0) {
-      const testNamesToUse = useSpecificTests && prData.testNames?.length ? prData.testNames : undefined;
+      const testNamesToUse = useSpecificTests && result.testNames?.length ? result.testNames : undefined;
       const testNamesInfo = testNamesToUse 
         ? ` (specific tests: ${testNamesToUse.join(', ')})`
         : '';

@@ -46,8 +46,7 @@ const prsData: PRData[] = rawPrsData.map((pr: any) => ({
   body: pr.body,
   createdAt: pr.created_at,
   mergedAt: pr.merged_at,
-  testFiles: pr.test_files || [],
-  testNames: pr.test_names || [],
+  tests: pr.tests || {},
 }));
 
 const DATASET = prsData.map((pr) => ({ inputs: pr }));
@@ -316,8 +315,9 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
   try {
     logger.info(`Processing PR #${prData.prNumber}: ${prData.title}`);
 
-    // Use test files from PR data (already fetched and stored)
-    const testFiles = prData.testFiles || [];
+    // Extract test files from the tests structure
+    const testFiles = Object.keys(prData.tests);
+    const testNames = Object.values(prData.tests).flat();
     result.testFiles = testFiles;
     // Create sandbox
     sandbox = await daytona.create(DEFAULT_SANDBOX_CREATE_PARAMS);
@@ -421,7 +421,7 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
         testFiles,
         repoDir,
         timeoutSec: 300,
-        testNames: prData.testNames,
+        testNames: testNames,
       });
       result.testResults = testResults;
 

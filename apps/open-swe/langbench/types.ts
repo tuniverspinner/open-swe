@@ -14,8 +14,7 @@ export interface PRData {
   body: string;
   createdAt: string;
   mergedAt: string;
-  testFiles: string[];
-  testNames?: string[];
+  tests: Record<string, string[]>;
 }
 
 export interface TestResults {
