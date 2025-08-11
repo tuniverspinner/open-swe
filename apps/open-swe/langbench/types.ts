@@ -15,6 +15,7 @@ export interface PRData {
   createdAt: string;
   mergedAt: string;
   testFiles: string[];
+  testNames?: string[];
 }
 
 export interface TestResults {
@@ -72,4 +73,5 @@ export interface RunPytestOptions {
   testFiles: string[];
   repoDir: string;
   timeoutSec?: number;
+  testNames?: string[];
 }

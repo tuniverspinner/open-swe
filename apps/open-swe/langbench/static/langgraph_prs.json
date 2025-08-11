@@ -13,6 +13,7 @@
     "created_at": "2024-06-25T21:38:27Z",
     "merged_at": "2024-06-26T23:24:59Z",
     "pre_merge_commit_sha": "6ae59581643b51751731ae64c609a8bc21779714",
-    "test_files": ["libs/langgraph/tests/test_pregel.py"]
+    "test_files": ["libs/langgraph/tests/test_pregel.py"],
+    "test_names": ["test_callable_in_conditional_edges_with_no_path_map", "test_function_in_conditional_edges_with_no_path_map"]
   }
 ]

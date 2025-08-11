@@ -61,7 +61,7 @@ const LANGGRAPH_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install -e ./libs/langgrap
 export async function runPytestOnFiles(
   options: RunPytestOptions,
 ): Promise<TestResults> {
-  const { sandbox, testFiles, repoDir, timeoutSec = 300 } = options;
+  const { sandbox, testFiles, repoDir, timeoutSec = 300, testNames } = options;
   if (testFiles.length === 0) {
     logger.warn("No test files provided, skipping pytest execution");
     return {
@@ -78,10 +78,15 @@ export async function runPytestOnFiles(
     testFiles,
   });
 
-  // Join test files for pytest command
-  const testFilesArg = testFiles.join(" ");
-  const command = `${RUN_PYTHON_IN_VENV} -m pytest ${testFilesArg} -v --tb=short --json-report --json-report-file=/tmp/pytest_report.json`;
-  logger.info("Running pytest command", { command });
+  // Join test files for pytest command, optionally filter by specific test names
+  let testArgs = testFiles.join(" ");
+  if (testNames && testNames.length > 0) {
+    // Use -k flag to run only specific test names
+    const testNamesPattern = testNames.join(" or ");
+    testArgs += ` -k "${testNamesPattern}"`;
+  }
+  const command = `${RUN_PYTHON_IN_VENV} -m pytest ${testArgs} -v --tb=short --json-report --json-report-file=/tmp/pytest_report.json`;
+  logger.info("Running pytest command", { command, testNames });
 
   logger.info(
     "Installing pytest, pytest-mock, pytest-asyncio, syrupy, pytest-json-report, and langgraph in virtual environment...",
@@ -140,6 +145,25 @@ export async function runPytestOnFiles(
       undefined,
       timeoutSec,
     );
+
+    // If no tests were selected and we were filtering by test names, list available tests
+    if (execution.exitCode === 5 && testNames && testNames.length > 0) {
+      logger.warn(`No tests matched the pattern "${testNames.join(' or ')}". Listing available tests...`);
+      
+      // Run pytest --collect-only to see all available tests
+      const collectCommand = `${RUN_PYTHON_IN_VENV} -m pytest ${testFiles.join(' ')} --collect-only -q`;
+      const collectResult = await sandbox.process.executeCommand(
+        collectCommand,
+        repoDir,
+        undefined,
+        30000, // 30 second timeout for collection
+      );
+      
+      logger.info("Available tests in the file:", {
+        collectOutput: collectResult.result?.slice(0, 2000), // First 2000 chars
+        exitCode: collectResult.exitCode,
+      });
+    }
 
     // Read the JSON report file
     let parsed: Omit<TestResults, "success" | "error">;

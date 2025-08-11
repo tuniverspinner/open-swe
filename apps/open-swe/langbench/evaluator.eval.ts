@@ -47,6 +47,7 @@ const prsData: PRData[] = rawPrsData.map((pr: any) => ({
   createdAt: pr.created_at,
   mergedAt: pr.merged_at,
   testFiles: pr.test_files || [],
+  testNames: pr.test_names || [],
 }));
 
 const DATASET = prsData.map((pr) => ({ inputs: pr }));
@@ -420,6 +421,7 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
         testFiles,
         repoDir,
         timeoutSec: 300,
+        testNames: prData.testNames,
       });
       result.testResults = testResults;
 
@@ -444,8 +446,15 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
       }
     }
 
-    result.success = true;
-    logger.info(`Successfully processed PR #${prData.prNumber}`);
+    // Only set success to true if all tests pass (or if no tests were run due to no test files)
+    if (result.testResults) {
+      result.success = result.testResults.success;
+      logger.info(`PR #${prData.prNumber} processing completed - tests ${result.testResults.success ? 'passed' : 'failed'}`);
+    } else {
+      // No tests were run, consider it successful only if openSWE was successful
+      result.success = openSWEResults.success;
+      logger.info(`PR #${prData.prNumber} processing completed - no tests run, openSWE ${openSWEResults.success ? 'successful' : 'failed'}`);
+    }
   } catch (error) {
     result.error = error instanceof Error ? error.message : String(error);
     logger.error(`Failed to process PR #${prData.prNumber}:`, { error });
