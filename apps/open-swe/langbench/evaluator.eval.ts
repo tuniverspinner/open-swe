@@ -3,7 +3,8 @@ import dotenv from "dotenv";
 import { Daytona, Sandbox } from "@daytonaio/sdk";
 import { createLogger, LogLevel } from "../src/utils/logger.js";
 import { DEFAULT_SANDBOX_CREATE_PARAMS } from "../src/constants.js";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync, mkdirSync } from "fs";
+import path from "path";
 import {
   cloneRepo,
   checkoutFilesFromCommit,
@@ -26,6 +27,14 @@ import { withRetry } from "../src/utils/retry.js";
 dotenv.config();
 
 const logger = createLogger(LogLevel.INFO, "PR Processor");
+
+// Create results directory if it doesn't exist
+const RESULTS_DIR = "langbench/results";
+try {
+  mkdirSync(RESULTS_DIR, { recursive: true });
+} catch (error) {
+  // Directory might already exist, that's fine
+}
 
 // Load PRs data and transform snake_case to camelCase
 const rawPrsData = JSON.parse(
@@ -53,6 +62,44 @@ const DATASET = prsData.map((pr) => ({ inputs: pr }));
 const DATASET_NAME = "langgraph-prs";
 
 logger.info(`Starting evals over ${DATASET.length} PRs...`);
+
+/**
+ * Save test results to a JSON file
+ */
+function saveTestResultsToFile(prData: PRData, result: PRProcessResult): void {
+  try {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `pr-${prData.prNumber}-${prData.repoName}-${timestamp}.json`;
+    const filepath = path.join(RESULTS_DIR, filename);
+    
+    const resultData = {
+      timestamp: new Date().toISOString(),
+      prNumber: prData.prNumber,
+      repoName: prData.repoName,
+      repoOwner: prData.repoOwner,
+      title: prData.title,
+      htmlUrl: prData.htmlUrl,
+      mergeCommitSha: prData.mergeCommitSha,
+      preMergeCommitSha: prData.preMergeCommitSha,
+      result: {
+        success: result.success,
+        evalsFound: result.evalsFound,
+        evalsFiles: result.evalsFiles,
+        testFiles: result.testFiles,
+        workspaceId: result.workspaceId,
+        preMergeSha: result.preMergeSha,
+        error: result.error,
+        testResults: result.testResults,
+        openSWEResults: result.openSWEResults
+      }
+    };
+    
+    writeFileSync(filepath, JSON.stringify(resultData, null, 2));
+    logger.info(`Test results saved to: ${filepath}`);
+  } catch (error) {
+    logger.error(`Failed to save test results to file:`, { error });
+  }
+}
 
 /**
  * Format inputs for the open-swe system
@@ -486,6 +533,9 @@ ls.describe(DATASET_NAME, () => {
         logger.info(`Processing PR #${inputs.prNumber}: ${inputs.title}`);
         
         const result = await processPR(inputs);
+        
+        // Save test results to JSON file
+        saveTestResultsToFile(inputs, result);
         
         // Log results for visibility
         logger.info(`PR #${inputs.prNumber} processing completed`, {
