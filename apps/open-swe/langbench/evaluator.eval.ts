@@ -4,7 +4,11 @@ import { Daytona, Sandbox } from "@daytonaio/sdk";
 import { createLogger, LogLevel } from "../src/utils/logger.js";
 import { DEFAULT_SANDBOX_CREATE_PARAMS } from "../src/constants.js";
 import { readFileSync } from "fs";
-import { cloneRepo, checkoutFilesFromCommit, pushEmptyCommit } from "../src/utils/github/git.js";
+import {
+  cloneRepo,
+  checkoutFilesFromCommit,
+  pushEmptyCommit,
+} from "../src/utils/github/git.js";
 import { GraphState, TargetRepository } from "@open-swe/shared/open-swe/types";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 import { setupEnv } from "../src/utils/env-setup.js";
@@ -271,7 +275,7 @@ async function addCommitAndPush(
   sandbox: Sandbox,
   repoDir: string,
   targetRepository: TargetRepository,
-  githubToken: string
+  githubToken: string,
 ): Promise<void> {
   const status = await sandbox.process.executeCommand(
     `git status`,
@@ -282,12 +286,7 @@ async function addCommitAndPush(
   logger.info(`Git status: ${status.result}`);
 
   logger.info("Adding checked-out test files to the branch");
-  await sandbox.process.executeCommand(
-    `git add .`,
-    repoDir,
-    undefined,
-    60000,
-  );
+  await sandbox.process.executeCommand(`git add .`, repoDir, undefined, 60000);
 
   logger.info("Committing and pushing test files to remote branch");
   await pushEmptyCommit(targetRepository, sandbox, {
@@ -348,12 +347,12 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
     if (!githubToken) {
       throw new Error("GITHUB_PAT environment variable is required");
     }
-    
+
     await cloneRepo(sandbox, targetRepository, {
       githubInstallationToken: githubToken,
     });
 
-    logger.info('starting to push pre-merge state to a test branch')
+    logger.info("starting to push pre-merge state to a test branch");
 
     // Push the pre-merge state to a test branch
     const preMergeBranch = `pre-merge-test-${Date.now()}`;
@@ -363,11 +362,7 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
       undefined,
       120000,
     );
-    await sandbox.git.push(
-      repoDir,
-      "git",
-      githubToken,
-    );
+    await sandbox.git.push(repoDir, "git", githubToken);
 
     logger.info("Pushed pre-merge state to a test branch", {
       branch: preMergeBranch,
