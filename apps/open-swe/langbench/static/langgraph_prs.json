@@ -16,5 +16,23 @@
     "tests": {
       "libs/langgraph/tests/test_pregel.py": ["test_callable_in_conditional_edges_with_no_path_map", "test_function_in_conditional_edges_with_no_path_map"]
     }
+  },
+  {
+    "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/2848",
+    "html_url": "https://github.com/langchain-ai/langgraph/pull/2848",
+    "diff_url": "https://github.com/langchain-ai/langgraph/pull/2848.diff",
+    "patch_url": "https://github.com/langchain-ai/langgraph/pull/2848.patch",
+    "repo_owner": "Palashio",
+    "repo_name": "langgraph",
+    "pr_number": 2848,
+    "merge_commit_sha": "10d46acc60d19db426b6508b8b81de96aa1bab6d",
+    "title": "langgraph: add structured output to create_react_agent",
+    "body": "```python\r\nclass WeatherResponse(BaseModel):\r\n    \"\"\"Respond to the user with this\"\"\"\r\n\r\n    temperature: float = Field(description=\"The temperature in fahrenheit\")\r\n    wind_direction: str = Field(\r\n        description=\"The direction of the wind in abbreviated form\"\r\n    )\r\n    wind_speed: float = Field(description=\"The speed of the wind in mph\")\r\n\r\n@tool\r\ndef get_weather(city: Literal[\"nyc\", \"sf\"]):\r\n    \"\"\"Use this to get weather information.\"\"\"\r\n    if city == \"nyc\":\r\n        return \"It is cloudy in NYC, with 5 mph winds in the North-East direction and a temperature of 70 degrees\"\r\n    elif city == \"sf\":\r\n        return \"It is 75 degrees and sunny in SF, with 3 mph winds in the South-East direction\"\r\n    else:\r\n        raise AssertionError(\"Unknown city\")\r\n\r\nmodel = ChatOpenAI()\r\ntools = [get_weather]\r\nagent_with_structured_output = create_react_agent(model, tools, response_format=WeatherResponse)\r\nagent_with_structured_output.invoke({\"messages\": [(\"user\", \"what's the weather in nyc?\")]})\r\n```\r\n\r\n```pycon\r\n{\r\n    'messages': [...],\r\n    'structured_response': WeatherResponse(temperature=70.0, wind_directon='NE', wind_speed=5.0)\r\n}\r\n```",
+    "created_at": "2024-12-20T20:31:20Z",
+    "merged_at": "2025-01-10T16:06:59Z",
+    "pre_merge_commit_sha": "35c3ba0104804bee045675ee8bce754deccacfc2",
+    "tests": {
+      "libs/langgraph/tests/test_prebuilt.py": ["test_react_agent_with_structured_response"]
+    }
   }
 ]

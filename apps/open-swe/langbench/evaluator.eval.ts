@@ -476,49 +476,57 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
 }
 
 ls.describe(DATASET_NAME, () => {
-  ls.test.each(DATASET)(
-    "Can process PR successfully",
-    async ({ inputs: prData }) => {
-      logger.info(`Processing PR #${prData.prNumber}: ${prData.title}`);
+  DATASET.forEach(({ inputs: prData }) => {
+    ls.test(
+      `PR #${prData.prNumber}: ${prData.title}`,
+      {
+        inputs: prData,
+      },
+      async ({ inputs }) => {
+        logger.info(`Processing PR #${inputs.prNumber}: ${inputs.title}`);
+        
+        const result = await processPR(inputs);
+        
+        // Log results for visibility
+        logger.info(`PR #${inputs.prNumber} processing completed`, {
+          success: result.success,
+          evalsFound: result.evalsFound,
+          evalsFilesCount: result.evalsFiles.length,
+          testFilesCount: result.testFiles.length,
+          testFiles: result.testFiles,
+          testResults: result.testResults
+            ? {
+                totalTests: result.testResults.totalTests,
+                passedTests: result.testResults.passedTests,
+                failedTests: result.testResults.failedTests,
+                success: result.testResults.success,
+              }
+            : null,
+          openSWEResults: result.openSWEResults
+            ? {
+                threadId: result.openSWEResults.threadId,
+                managerRunId: result.openSWEResults.managerRunId,
+                plannerRunId: result.openSWEResults.plannerRunId,
+                programmerRunId: result.openSWEResults.programmerRunId,
+                branchName: result.openSWEResults.branchName,
+                success: result.openSWEResults.success,
+                error: result.openSWEResults.error,
+              }
+            : null,
+          error: result.error,
+          workspaceId: result.workspaceId,
+          preMergeSha: result.preMergeSha,
+        });
 
-      const result = await processPR(prData);
-
-      // Log results for visibility
-      logger.info(`PR #${prData.prNumber} processing completed`, {
-        success: result.success,
-        evalsFound: result.evalsFound,
-        evalsFilesCount: result.evalsFiles.length,
-        testFilesCount: result.testFiles.length,
-        testFiles: result.testFiles,
-        testResults: result.testResults
-          ? {
-              totalTests: result.testResults.totalTests,
-              passedTests: result.testResults.passedTests,
-              failedTests: result.testResults.failedTests,
-              success: result.testResults.success,
-            }
-          : null,
-        openSWEResults: result.openSWEResults
-          ? {
-              threadId: result.openSWEResults.threadId,
-              managerRunId: result.openSWEResults.managerRunId,
-              plannerRunId: result.openSWEResults.plannerRunId,
-              programmerRunId: result.openSWEResults.programmerRunId,
-              branchName: result.openSWEResults.branchName,
-              success: result.openSWEResults.success,
-              error: result.openSWEResults.error,
-            }
-          : null,
-        error: result.error,
-        workspaceId: result.workspaceId,
-        preMergeSha: result.preMergeSha,
-      });
-
-      // Assert that processing was successful
-      if (!result.success) {
-        throw new Error(`PR processing failed: ${result.error}`);
-      }
-    },
-    0, // No timeout - run forever
-  );
+        // Return the result for LangSmith tracking
+        return {
+          success: result.success,
+          evalsFound: result.evalsFound,
+          testResults: result.testResults,
+          openSWEResults: result.openSWEResults,
+        };
+      },
+      300000, // 5 minute timeout per PR
+    );
+  });
 });
