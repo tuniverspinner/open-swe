@@ -528,6 +528,28 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
   return result;
 }
 
+// Create a shared promise for parallel processing
+let processingPromise: Promise<Map<number, PRProcessResult>> | null = null;
+
+function getOrStartParallelProcessing(): Promise<Map<number, PRProcessResult>> {
+  if (!processingPromise) {
+    processingPromise = Promise.all(
+      prsData.map(async (prData) => {
+        logger.info(`Processing PR #${prData.prNumber}: ${prData.title}`);
+        const result = await processPR(prData);
+        return { prNumber: prData.prNumber, result };
+      })
+    ).then(results => {
+      const resultMap = new Map<number, PRProcessResult>();
+      results.forEach(({ prNumber, result }) => {
+        resultMap.set(prNumber, result);
+      });
+      return resultMap;
+    });
+  }
+  return processingPromise;
+}
+
 ls.describe(DATASET_NAME, () => {
   DATASET.forEach(({ inputs: prData }) => {
     ls.test(
@@ -536,9 +558,15 @@ ls.describe(DATASET_NAME, () => {
         inputs: prData,
       },
       async ({ inputs }) => {
-        logger.info(`Processing PR #${inputs.prNumber}: ${inputs.title}`);
+        logger.info(`Getting result for PR #${inputs.prNumber}: ${inputs.title}`);
         
-        const result = await processPR(inputs);
+        // Get the result from the shared parallel processing
+        const resultsMap = await getOrStartParallelProcessing();
+        const result = resultsMap.get(inputs.prNumber);
+        
+        if (!result) {
+          throw new Error(`No result found for PR #${inputs.prNumber}`);
+        }
         
         // Log results for visibility
         logger.info(`PR #${inputs.prNumber} processing completed`, {
@@ -571,12 +599,27 @@ ls.describe(DATASET_NAME, () => {
           preMergeSha: result.preMergeSha,
         });
 
-        // Return the result for LangSmith tracking
+        // Return the result for LangSmith tracking - flatten for experiment display
         return {
           success: result.success,
-          evalsFound: result.evalsFound,
-          testResults: result.testResults,
-          openSWEResults: result.openSWEResults,
+          testFilesCount: result.testFiles.length,
+          workspaceId: result.workspaceId,
+          preMergeSha: result.preMergeSha,
+          error: result.error || null,
+          // Test results
+          testsRan: result.testResults ? true : false,
+          totalTests: result.testResults?.totalTests || 0,
+          passedTests: result.testResults?.passedTests || 0,
+          failedTests: result.testResults?.failedTests || 0,
+          testSuccess: result.testResults?.success || false,
+          // OpenSWE results
+          openSWEThreadId: result.openSWEResults?.threadId || null,
+          openSWEManagerRunId: result.openSWEResults?.managerRunId || null,
+          openSWEPlannerRunId: result.openSWEResults?.plannerRunId || null,
+          openSWEProgrammerRunId: result.openSWEResults?.programmerRunId || null,
+          openSWEBranchName: result.openSWEResults?.branchName || null,
+          openSWESuccess: result.openSWEResults?.success || false,
+          openSWEError: result.openSWEResults?.error || null,
         };
       },
       3600000, // 60 minute timeout per PR

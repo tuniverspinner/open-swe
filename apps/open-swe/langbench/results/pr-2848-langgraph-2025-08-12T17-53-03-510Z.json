@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-08-12T17:53:03.511Z",
+  "prNumber": 2848,
+  "repoName": "langgraph",
+  "repoOwner": "Palashio",
+  "title": "langgraph: add structured output to create_react_agent",
+  "htmlUrl": "https://github.com/langchain-ai/langgraph/pull/2848",
+  "mergeCommitSha": "10d46acc60d19db426b6508b8b81de96aa1bab6d",
+  "preMergeCommitSha": "35c3ba0104804bee045675ee8bce754deccacfc2",
+  "result": {
+    "success": false,
+    "evalsFound": false,
+    "evalsFiles": [],
+    "testFiles": [
+      "libs/langgraph/tests/test_prebuilt.py"
+    ],
+    "workspaceId": "42a346c8-67bf-4be5-8c28-01ecddd0baeb",
+    "preMergeSha": "35c3ba0104804bee045675ee8bce754deccacfc2",
+    "testResults": {
+      "success": false,
+      "error": "Failed to parse JSON report. JSON Error: Pytest failed to create JSON report. Exit code: 4. Output: ImportError while loading conftest '/home/daytona/langgraph/libs/langgraph/tests/conftest.py'.\nlibs/langgraph/tests/conftest.py:9: in <module>\n    from psycopg import AsyncConnection, Connection\nE   ModuleNotFoundError: No module named 'psycopg'\n. Pytest output: ImportError while loading conftest '/home/daytona/langgraph/libs/langgraph/tests/conftest.py'.\nlibs/langgraph/tests/conftest.py:9: in <module>\n    from psycopg import AsyncConnection, Connection\nE   ModuleNotFoundError: No module named 'psycopg'\n",
+      "totalTests": 0,
+      "passedTests": 0,
+      "failedTests": 0,
+      "testDetails": []
+    },
+    "openSWEResults": {
+      "success": true,
+      "threadId": "33ccb61e-4bac-485c-a1ad-3e3f89c8b6fd",
+      "plannerRunId": "2cc2e8f2-7faf-458b-9e9f-9f15bdd91303",
+      "programmerRunId": "b54f5c67-abf0-445c-83ce-6c659dcda737",
+      "branchName": "pre-merge-test-1755019672088"
+    }
+  }
+}

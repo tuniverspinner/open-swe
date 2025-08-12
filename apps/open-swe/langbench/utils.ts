@@ -56,9 +56,9 @@ function isLangGraphTestFile(filePath: string): boolean {
 const { RUN_PYTHON_IN_VENV, RUN_PIP_IN_VENV } = ENV_CONSTANTS;
 
 // Installation commands for pytest and dependencies
-const PIP_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install pytest pytest-mock pytest-asyncio syrupy pytest-json-report`;
+const PIP_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install pytest pytest-mock pytest-asyncio syrupy pytest-json-report psycopg psycopg_pool`;
 const LANGGRAPH_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install -e ./libs/langgraph`;
-
+const CHECKPOINT_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install -e ./libs/checkpoint-sqlite -e ./libs/checkpoint-duckdb -e ./libs/checkpoint-postgres`;
 /**
  * Run pytest on specific test files in a fresh sandbox with the specified branch
  */
@@ -107,9 +107,14 @@ export async function runPytestOnFiles(
       throw new Error("GITHUB_PAT environment variable is required");
     }
 
-    // Clone the repository
-    await cloneRepo(sandbox, targetRepository, {
+    // Clone the repository from main branch (not baseCommit) to access pushed test branches
+    const testTargetRepository = {
+      ...targetRepository,
+      baseCommit: undefined, // Remove baseCommit to clone from main branch
+    };
+    await cloneRepo(sandbox, testTargetRepository, {
       githubInstallationToken: githubToken,
+      stateBranchName: branchName,
     });
 
     // Checkout the specific branch created by open-swe
@@ -178,6 +183,28 @@ export async function runPytestOnFiles(
       });
     }
 
+    // Install checkpoint
+    logger.info("Installing checkpoint...");
+    const checkpointInstallResult = await sandbox.process.executeCommand(
+      CHECKPOINT_INSTALL_COMMAND,
+      repoDir,
+      undefined,
+      timeoutSec * 2,
+    );
+
+    logger.info(`Checkpoint install completed`, {
+      exitCode: checkpointInstallResult.exitCode,
+      output: checkpointInstallResult.result?.slice(0, 500),
+    });
+
+    if (checkpointInstallResult.exitCode !== 0) {
+      logger.error(`Checkpoint install failed`, {
+        command: CHECKPOINT_INSTALL_COMMAND,
+        exitCode: checkpointInstallResult.exitCode,
+        output: checkpointInstallResult.result,
+      });
+    }
+
     // Build pytest command
     let testArgs = testFiles.join(" ");
     if (testNames && testNames.length > 0) {
@@ -228,10 +255,14 @@ export async function runPytestOnFiles(
         parsed = parsePytestJsonReport(jsonReport);
         logger.debug("Successfully parsed JSON report", { jsonReport });
       } else {
-        throw new Error(`Failed to read JSON report: ${jsonReportResult.output}`);
+        // JSON report doesn't exist - show the actual pytest error
+        const pytestError = `Pytest failed to create JSON report. Exit code: ${execution.exitCode}. Output: ${execution.result}`;
+        throw new Error(pytestError);
       }
     } catch (jsonError) {
-      throw new Error("Failed to parse JSON report", { cause: jsonError });
+      // If we can't parse JSON, show both the JSON error and pytest output
+      const fullError = `Failed to parse JSON report. JSON Error: ${jsonError instanceof Error ? jsonError.message : String(jsonError)}. Pytest output: ${execution.result}`;
+      throw new Error(fullError);
     }
 
     logger.info("Pytest execution completed", {
