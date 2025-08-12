@@ -1,23 +1,5 @@
 [
   {
-    "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/809",
-    "html_url": "https://github.com/langchain-ai/langgraph/pull/809",
-    "diff_url": "https://github.com/langchain-ai/langgraph/pull/809.diff",
-    "patch_url": "https://github.com/langchain-ai/langgraph/pull/809.patch",
-    "repo_owner": "Palashio",
-    "repo_name": "langgraph",
-    "pr_number": 809,
-    "merge_commit_sha": "8e611b42aa35a7032c81ad2fd264d3192d47c911",
-    "title": "Fix bug in add_conditional_edges when no path_map is provided",
-    "body": "When an instance of a callable class is passed as the path arg to add_conditional_edges but no path_map is provided, get_type_hints(path) is called, which raises a TypeError (since get_type_hints only accepts a module, class, method, or function).\r\n\r\nThis patch fixes the error by trying to get type hints from path.\\_\\_call\\_\\_ first, which should work for instances of callable classes.\r\n\r\nTested: Added a test that raises TypeError without the fix in this patch but passes with the fix.",
-    "created_at": "2024-06-25T21:38:27Z",
-    "merged_at": "2024-06-26T23:24:59Z",
-    "pre_merge_commit_sha": "6ae59581643b51751731ae64c609a8bc21779714",
-    "tests": {
-      "libs/langgraph/tests/test_pregel.py": ["test_callable_in_conditional_edges_with_no_path_map", "test_function_in_conditional_edges_with_no_path_map"]
-    }
-  },
-  {
     "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/2848",
     "html_url": "https://github.com/langchain-ai/langgraph/pull/2848",
     "diff_url": "https://github.com/langchain-ai/langgraph/pull/2848.diff",

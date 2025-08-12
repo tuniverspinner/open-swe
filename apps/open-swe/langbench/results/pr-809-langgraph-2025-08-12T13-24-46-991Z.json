@@ -1,0 +1,52 @@
+{
+  "timestamp": "2025-08-12T13:24:46.992Z",
+  "prNumber": 809,
+  "repoName": "langgraph",
+  "repoOwner": "Palashio",
+  "title": "Fix bug in add_conditional_edges when no path_map is provided",
+  "htmlUrl": "https://github.com/langchain-ai/langgraph/pull/809",
+  "mergeCommitSha": "8e611b42aa35a7032c81ad2fd264d3192d47c911",
+  "preMergeCommitSha": "6ae59581643b51751731ae64c609a8bc21779714",
+  "result": {
+    "success": false,
+    "evalsFound": false,
+    "evalsFiles": [],
+    "testFiles": [
+      "libs/langgraph/tests/test_pregel.py"
+    ],
+    "workspaceId": "ffa277c5-0411-4256-a84c-31779f0e205f",
+    "preMergeSha": "6ae59581643b51751731ae64c609a8bc21779714",
+    "testResults": {
+      "success": false,
+      "error": "Exit code: 1",
+      "totalTests": 2,
+      "passedTests": 1,
+      "failedTests": 1,
+      "testDetails": [
+        "tests/test_pregel.py::test_callable_in_conditional_edges_with_no_path_map FAILED",
+        "tests/test_pregel.py::test_function_in_conditional_edges_with_no_path_map PASSED"
+      ]
+    },
+    "openSWEResults": {
+      "success": true,
+      "threadId": "491cf383-163b-4890-a680-62c461b8a9b2",
+      "plannerRunId": "47232950-bb8b-4d85-94e9-82ce922877f5",
+      "programmerRunId": "07f4c0f7-70c2-4cb8-a176-8080ab39f320",
+      "branchName": "pre-merge-test-1755004504095"
+    },
+    "claudeCodeResult": {
+      "branchName": "claudeCode-809",
+      "testResults": {
+        "success": false,
+        "error": "Exit code: 1",
+        "totalTests": 2,
+        "passedTests": 2,
+        "failedTests": 0,
+        "testDetails": [
+          "tests/test_pregel.py::test_callable_in_conditional_edges_with_no_path_map PASSED",
+          "tests/test_pregel.py::test_function_in_conditional_edges_with_no_path_map PASSED"
+        ]
+      },
+    }
+  }
+}

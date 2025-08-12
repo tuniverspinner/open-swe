@@ -502,6 +502,9 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
       result.success = openSWEResults.success;
       logger.info(`PR #${prData.prNumber} processing completed - no tests run, openSWE ${openSWEResults.success ? 'successful' : 'failed'}`);
     }
+
+    // Save test results to JSON file before cleanup
+    saveTestResultsToFile(prData, result);
   } catch (error) {
     result.error = error instanceof Error ? error.message : String(error);
     logger.error(`Failed to process PR #${prData.prNumber}:`, { error });
@@ -533,9 +536,6 @@ ls.describe(DATASET_NAME, () => {
         logger.info(`Processing PR #${inputs.prNumber}: ${inputs.title}`);
         
         const result = await processPR(inputs);
-        
-        // Save test results to JSON file
-        saveTestResultsToFile(inputs, result);
         
         // Log results for visibility
         logger.info(`PR #${inputs.prNumber} processing completed`, {
@@ -576,7 +576,7 @@ ls.describe(DATASET_NAME, () => {
           openSWEResults: result.openSWEResults,
         };
       },
-      300000, // 5 minute timeout per PR
+      1800000, // 30 minute timeout per PR
     );
   });
 });
