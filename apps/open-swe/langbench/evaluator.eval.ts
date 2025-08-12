@@ -611,6 +611,7 @@ ls.describe(DATASET_NAME, () => {
           totalTests: result.testResults?.totalTests || 0,
           passedTests: result.testResults?.passedTests || 0,
           failedTests: result.testResults?.failedTests || 0,
+          allTestsPassed: result.testResults?.success && result.testResults?.totalTests === result.testResults?.passedTests,
           testSuccess: result.testResults?.success || false,
           // OpenSWE results
           openSWEThreadId: result.openSWEResults?.threadId || null,
