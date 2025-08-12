@@ -119,9 +119,9 @@ async function runStandaloneTest(prData: PRData, useSpecificTests: boolean = fal
       logger.info(`Running tests on ${result.testFiles.length} test files${testNamesInfo}`);
       
       const testResults = await runPytestOnFiles({
-        sandbox,
+        targetRepository,
+        branchName: prData.mergeCommitSha,
         testFiles: result.testFiles,
-        repoDir,
         timeoutSec: 300,
         testNames: testNamesToUse,
       });

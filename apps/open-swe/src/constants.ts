@@ -4,7 +4,7 @@ import { CreateSandboxFromSnapshotParams } from "@daytonaio/sdk";
 export const DEFAULT_SANDBOX_CREATE_PARAMS: CreateSandboxFromSnapshotParams = {
   user: "daytona",
   snapshot: DAYTONA_SNAPSHOT_NAME,
-  autoDeleteInterval: 15, // delete after 15 minutes
+  autoDeleteInterval: 120, // delete after 120 minutes (2 hours) to allow for long-running evaluations
 };
 
 export const LANGGRAPH_USER_PERMISSIONS = [

@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-08-12T15:08:27.197Z",
+  "prNumber": 2848,
+  "repoName": "langgraph",
+  "repoOwner": "Palashio",
+  "title": "langgraph: add structured output to create_react_agent",
+  "htmlUrl": "https://github.com/langchain-ai/langgraph/pull/2848",
+  "mergeCommitSha": "10d46acc60d19db426b6508b8b81de96aa1bab6d",
+  "preMergeCommitSha": "35c3ba0104804bee045675ee8bce754deccacfc2",
+  "result": {
+    "success": false,
+    "evalsFound": false,
+    "evalsFiles": [],
+    "testFiles": [
+      "libs/langgraph/tests/test_prebuilt.py"
+    ],
+    "workspaceId": "2eff5a7e-7ecb-4f06-ae8a-e8b31f8b47bc",
+    "preMergeSha": "35c3ba0104804bee045675ee8bce754deccacfc2",
+    "testResults": {
+      "success": false,
+      "error": "Failed to checkout branch pre-merge-test-1755010531914: error: pathspec 'pre-merge-test-1755010531914' did not match any file(s) known to git\n",
+      "totalTests": 0,
+      "passedTests": 0,
+      "failedTests": 0,
+      "testDetails": []
+    },
+    "openSWEResults": {
+      "success": true,
+      "threadId": "7630a83e-c1ec-4a81-99f2-aa4ac04a6701",
+      "plannerRunId": "ddbdcdb8-281e-40b8-a8ee-1c6b6a2225c5",
+      "programmerRunId": "c87353b4-5a07-4af2-96b4-e2da5c3c67c2",
+      "branchName": "pre-merge-test-1755010531914"
+    }
+  }
+}

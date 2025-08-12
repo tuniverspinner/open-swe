@@ -1,7 +1,11 @@
 import { createLogger, LogLevel } from "../src/utils/logger.js";
-import { ENV_CONSTANTS } from "../src/utils/env-setup.js";
+import { ENV_CONSTANTS, setupEnv } from "../src/utils/env-setup.js";
 import { TestResults, PytestJsonReport, RunPytestOptions } from "./types.js";
 import { readFile } from "../src/utils/read-write.js";
+import { Daytona, Sandbox } from "@daytonaio/sdk";
+import { DEFAULT_SANDBOX_CREATE_PARAMS } from "../src/constants.js";
+import { cloneRepo } from "../src/utils/github/git.js";
+import { getRepoAbsolutePath } from "@open-swe/shared/git";
 
 const logger = createLogger(LogLevel.DEBUG, "Langbench Utils");
 
@@ -56,12 +60,13 @@ const PIP_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install pytest pytest-mock pytes
 const LANGGRAPH_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install -e ./libs/langgraph`;
 
 /**
- * Run pytest on specific test files and return structured results
+ * Run pytest on specific test files in a fresh sandbox with the specified branch
  */
 export async function runPytestOnFiles(
   options: RunPytestOptions,
 ): Promise<TestResults> {
-  const { sandbox, testFiles, repoDir, timeoutSec = 300, testNames } = options;
+  const { targetRepository, branchName, testFiles, timeoutSec = 300, testNames } = options;
+  
   if (testFiles.length === 0) {
     logger.warn("No test files provided, skipping pytest execution");
     return {
@@ -74,71 +79,116 @@ export async function runPytestOnFiles(
     };
   }
 
-  logger.info(`Running pytest on ${testFiles.length} test files`, {
+  logger.info(`Creating fresh sandbox for pytest execution on branch: ${branchName}`, {
     testFiles,
+    targetRepository,
   });
 
-  // Join test files for pytest command, optionally filter by specific test names
-  let testArgs = testFiles.join(" ");
-  if (testNames && testNames.length > 0) {
-    // Use -k flag to run only specific test names
-    const testNamesPattern = testNames.join(" or ");
-    testArgs += ` -k "${testNamesPattern}"`;
-  }
-  const command = `${RUN_PYTHON_IN_VENV} -m pytest ${testArgs} -v --tb=short --json-report --json-report-file=/tmp/pytest_report.json`;
-  logger.info("Running pytest command", { command, testNames });
-
-  logger.info(
-    "Installing pytest, pytest-mock, pytest-asyncio, syrupy, pytest-json-report, and langgraph in virtual environment...",
-  );
-
-  // Execute pip install command
-  logger.info(`Running pip install command: ${PIP_INSTALL_COMMAND}`);
-  const pipInstallResult = await sandbox.process.executeCommand(
-    PIP_INSTALL_COMMAND,
-    repoDir,
-    undefined,
-    timeoutSec * 2,
-  );
-
-  logger.info(`Pip install command completed`, {
-    exitCode: pipInstallResult.exitCode,
-    output: pipInstallResult.result?.slice(0, 500),
+  const daytona = new Daytona({
+    organizationId: process.env.DAYTONA_ORGANIZATION_ID,
   });
 
-  if (pipInstallResult.exitCode !== 0) {
-    logger.error(`Pip install command failed`, {
-      command: PIP_INSTALL_COMMAND,
-      exitCode: pipInstallResult.exitCode,
-      output: pipInstallResult.result,
-    });
-  }
-
-  // Execute langgraph install command
-  logger.info(
-    `Running langgraph install command: ${LANGGRAPH_INSTALL_COMMAND}`,
-  );
-  const langgraphInstallResult = await sandbox.process.executeCommand(
-    LANGGRAPH_INSTALL_COMMAND,
-    repoDir,
-    undefined,
-    timeoutSec * 2,
-  );
-
-  logger.info(`Langgraph install command completed`, {
-    exitCode: langgraphInstallResult.exitCode,
-    output: langgraphInstallResult.result?.slice(0, 500),
-  });
-
-  if (langgraphInstallResult.exitCode !== 0) {
-    logger.error(`Langgraph install command failed`, {
-      command: LANGGRAPH_INSTALL_COMMAND,
-      exitCode: langgraphInstallResult.exitCode,
-      output: langgraphInstallResult.result,
-    });
-  }
+  let sandbox: Sandbox | undefined;
 
   try {
+    // Create a fresh sandbox for test execution
+    sandbox = await daytona.create(DEFAULT_SANDBOX_CREATE_PARAMS);
+    
+    if (!sandbox || !sandbox.id) {
+      throw new Error("Failed to create valid test sandbox");
+    }
+
+    logger.info(`Created test sandbox: ${sandbox.id}`);
+
+    const repoDir = getRepoAbsolutePath(targetRepository);
+    const githubToken = process.env.GITHUB_PAT;
+    
+    if (!githubToken) {
+      throw new Error("GITHUB_PAT environment variable is required");
+    }
+
+    // Clone the repository
+    await cloneRepo(sandbox, targetRepository, {
+      githubInstallationToken: githubToken,
+    });
+
+    // Checkout the specific branch created by open-swe
+    logger.info(`Checking out branch: ${branchName}`);
+    const checkoutResult = await sandbox.process.executeCommand(
+      `git checkout ${branchName}`,
+      repoDir,
+      undefined,
+      60000,
+    );
+
+    if (checkoutResult.exitCode !== 0) {
+      throw new Error(`Failed to checkout branch ${branchName}: ${checkoutResult.result}`);
+    }
+
+    logger.info(`Successfully checked out branch: ${branchName}`);
+
+    // Setup Python environment
+    logger.info("Setting up Python environment...");
+    const envSetupSuccess = await setupEnv(sandbox, repoDir);
+    if (!envSetupSuccess) {
+      logger.warn("Failed to setup Python environment, continuing anyway");
+    }
+
+    // Install pytest dependencies
+    logger.info("Installing pytest dependencies...");
+    const pipInstallResult = await sandbox.process.executeCommand(
+      PIP_INSTALL_COMMAND,
+      repoDir,
+      undefined,
+      timeoutSec * 2,
+    );
+
+    logger.info(`Pip install completed`, {
+      exitCode: pipInstallResult.exitCode,
+      output: pipInstallResult.result?.slice(0, 500),
+    });
+
+    if (pipInstallResult.exitCode !== 0) {
+      logger.error(`Pip install failed`, {
+        command: PIP_INSTALL_COMMAND,
+        exitCode: pipInstallResult.exitCode,
+        output: pipInstallResult.result,
+      });
+    }
+
+    // Install langgraph
+    logger.info("Installing langgraph...");
+    const langgraphInstallResult = await sandbox.process.executeCommand(
+      LANGGRAPH_INSTALL_COMMAND,
+      repoDir,
+      undefined,
+      timeoutSec * 2,
+    );
+
+    logger.info(`Langgraph install completed`, {
+      exitCode: langgraphInstallResult.exitCode,
+      output: langgraphInstallResult.result?.slice(0, 500),
+    });
+
+    if (langgraphInstallResult.exitCode !== 0) {
+      logger.error(`Langgraph install failed`, {
+        command: LANGGRAPH_INSTALL_COMMAND,
+        exitCode: langgraphInstallResult.exitCode,
+        output: langgraphInstallResult.result,
+      });
+    }
+
+    // Build pytest command
+    let testArgs = testFiles.join(" ");
+    if (testNames && testNames.length > 0) {
+      const testNamesPattern = testNames.join(" or ");
+      testArgs += ` -k "${testNamesPattern}"`;
+    }
+    
+    const command = `${RUN_PYTHON_IN_VENV} -m pytest ${testArgs} -v --tb=short --json-report --json-report-file=/tmp/pytest_report.json`;
+    logger.info("Running pytest command", { command, testNames });
+
+    // Execute pytest
     const execution = await sandbox.process.executeCommand(
       command,
       repoDir,
@@ -146,26 +196,25 @@ export async function runPytestOnFiles(
       timeoutSec,
     );
 
-    // If no tests were selected and we were filtering by test names, list available tests
+    // Handle case where no tests match the pattern
     if (execution.exitCode === 5 && testNames && testNames.length > 0) {
       logger.warn(`No tests matched the pattern "${testNames.join(' or ')}". Listing available tests...`);
       
-      // Run pytest --collect-only to see all available tests
       const collectCommand = `${RUN_PYTHON_IN_VENV} -m pytest ${testFiles.join(' ')} --collect-only -q`;
       const collectResult = await sandbox.process.executeCommand(
         collectCommand,
         repoDir,
         undefined,
-        30000, // 30 second timeout for collection
+        30000,
       );
       
       logger.info("Available tests in the file:", {
-        collectOutput: collectResult.result?.slice(0, 2000), // First 2000 chars
+        collectOutput: collectResult.result?.slice(0, 2000),
         exitCode: collectResult.exitCode,
       });
     }
 
-    // Read the JSON report file
+    // Read and parse the JSON report
     let parsed: Omit<TestResults, "success" | "error">;
     try {
       const jsonReportResult = await readFile({
@@ -179,9 +228,7 @@ export async function runPytestOnFiles(
         parsed = parsePytestJsonReport(jsonReport);
         logger.debug("Successfully parsed JSON report", { jsonReport });
       } else {
-        throw new Error(
-          `Failed to read JSON report: ${jsonReportResult.output}`,
-        );
+        throw new Error(`Failed to read JSON report: ${jsonReportResult.output}`);
       }
     } catch (jsonError) {
       throw new Error("Failed to parse JSON report", { cause: jsonError });
@@ -194,17 +241,16 @@ export async function runPytestOnFiles(
       failedTests: parsed.failedTests,
       command,
       stdout: execution.result,
-      fullExecution: JSON.stringify(execution, null, 2), // Show full execution object
     });
 
     return {
       success: execution.exitCode === 0,
-      error:
-        execution.exitCode !== 0 ? `Exit code: ${execution.exitCode}` : null,
+      error: execution.exitCode !== 0 ? `Exit code: ${execution.exitCode}` : null,
       ...parsed,
     };
+
   } catch (error) {
-    logger.error("Failed to run pytest", { error });
+    logger.error("Failed to run pytest in isolated sandbox", { error });
     return {
       success: false,
       error: error instanceof Error ? error.message : String(error),
@@ -213,6 +259,16 @@ export async function runPytestOnFiles(
       failedTests: 0,
       testDetails: [],
     };
+  } finally {
+    // Always cleanup the test sandbox
+    if (sandbox) {
+      try {
+        await sandbox.delete();
+        logger.info(`Deleted test sandbox: ${sandbox.id}`);
+      } catch (cleanupError) {
+        logger.warn(`Failed to cleanup test sandbox ${sandbox.id}:`, { cleanupError });
+      }
+    }
   }
 }
 

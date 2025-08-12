@@ -367,7 +367,10 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
     const testNames = Object.values(prData.tests).flat();
     result.testFiles = testFiles;
     // Create sandbox
-    sandbox = await daytona.create(DEFAULT_SANDBOX_CREATE_PARAMS);
+    sandbox = await daytona.create({
+      ...DEFAULT_SANDBOX_CREATE_PARAMS,
+      autoDeleteInterval: 60, // delete after 60 minutes
+    });
 
     // Validate sandbox was created properly
     if (!sandbox || !sandbox.id) {
@@ -460,13 +463,13 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
       testFiles.length > 0
     ) {
       logger.info(
-        `Open-swe completed successfully with branch: ${openSWEResults.branchName}. Running tests on checked out files.`,
+        `Open-swe completed successfully with branch: ${openSWEResults.branchName}. Running tests in fresh sandbox.`,
       );
 
       const testResults = await runPytestOnFiles({
-        sandbox,
+        targetRepository,
+        branchName: openSWEResults.branchName,
         testFiles,
-        repoDir,
         timeoutSec: 300,
         testNames: testNames,
       });
@@ -576,7 +579,7 @@ ls.describe(DATASET_NAME, () => {
           openSWEResults: result.openSWEResults,
         };
       },
-      1800000, // 30 minute timeout per PR
+      3600000, // 60 minute timeout per PR
     );
   });
 });

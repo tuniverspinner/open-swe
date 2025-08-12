@@ -1,4 +1,4 @@
-import { Sandbox } from "@daytonaio/sdk";
+import { TargetRepository } from "@open-swe/shared/open-swe/types";
 
 export interface PRData {
   url: string;
@@ -68,9 +68,9 @@ export interface PRProcessResult {
 }
 
 export interface RunPytestOptions {
-  sandbox: Sandbox;
+  targetRepository: TargetRepository;
+  branchName: string;
   testFiles: string[];
-  repoDir: string;
   timeoutSec?: number;
   testNames?: string[];
 }
