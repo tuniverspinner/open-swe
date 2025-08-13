@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-08-12T20:02:59.007Z",
+  "prNumber": 2848,
+  "repoName": "langgraph",
+  "repoOwner": "Palashio",
+  "title": "langgraph: add structured output to create_react_agent",
+  "htmlUrl": "https://github.com/langchain-ai/langgraph/pull/2848",
+  "mergeCommitSha": "10d46acc60d19db426b6508b8b81de96aa1bab6d",
+  "preMergeCommitSha": "35c3ba0104804bee045675ee8bce754deccacfc2",
+  "result": {
+    "success": false,
+    "evalsFound": false,
+    "evalsFiles": [],
+    "testFiles": [
+      "libs/langgraph/tests/test_prebuilt.py"
+    ],
+    "workspaceId": "bcaccde0-5509-460d-9adf-a7f508014f25",
+    "preMergeSha": "35c3ba0104804bee045675ee8bce754deccacfc2",
+    "testResults": {
+      "success": false,
+      "error": "Exit code: 2",
+      "totalTests": 0,
+      "passedTests": 0,
+      "failedTests": 0,
+      "testDetails": []
+    },
+    "openSWEResults": {
+      "success": true,
+      "threadId": "44296239-99f7-4b36-9c63-e2143d9f58af",
+      "plannerRunId": "208101a9-4214-4e3a-80de-f943a2b1944e",
+      "programmerRunId": "6b90f4c3-d781-4290-a045-85617aa12dae",
+      "branchName": "pre-merge-test-1755028101486"
+    }
+  }
+}

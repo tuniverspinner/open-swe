@@ -4,11 +4,14 @@ import { TestResults, PytestJsonReport, RunPytestOptions } from "./types.js";
 import { readFile } from "../src/utils/read-write.js";
 import { Daytona, Sandbox } from "@daytonaio/sdk";
 import { DEFAULT_SANDBOX_CREATE_PARAMS } from "../src/constants.js";
-import { cloneRepo } from "../src/utils/github/git.js";
+import { cloneRepo, checkoutFilesFromCommit } from "../src/utils/github/git.js";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
 
 const logger = createLogger(LogLevel.DEBUG, "Langbench Utils");
 
+/**
+ * Add and commit files to remote branch
+ */
 /**
  * Fetch diff content from a diff URL and extract test file names, this function is used in one-off situtations to get the test files from the diff url.
  */
@@ -56,7 +59,7 @@ function isLangGraphTestFile(filePath: string): boolean {
 const { RUN_PYTHON_IN_VENV, RUN_PIP_IN_VENV } = ENV_CONSTANTS;
 
 // Installation commands for pytest and dependencies
-const PIP_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install pytest pytest-mock pytest-asyncio syrupy pytest-json-report psycopg psycopg_pool`;
+const PIP_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install pytest pytest-mock pytest-asyncio syrupy pytest-json-report psycopg psycopg_pool pytest-asyncio`;
 const LANGGRAPH_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install -e ./libs/langgraph`;
 const CHECKPOINT_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install -e ./libs/checkpoint-sqlite -e ./libs/checkpoint-duckdb -e ./libs/checkpoint-postgres`;
 /**
@@ -65,7 +68,7 @@ const CHECKPOINT_INSTALL_COMMAND = `${RUN_PIP_IN_VENV} install -e ./libs/checkpo
 export async function runPytestOnFiles(
   options: RunPytestOptions,
 ): Promise<TestResults> {
-  const { targetRepository, branchName, testFiles, timeoutSec = 300, testNames } = options;
+  const { targetRepository, branchName, testFiles, timeoutSec = 300, testNames, mergeCommitSha } = options;
   
   if (testFiles.length === 0) {
     logger.warn("No test files provided, skipping pytest execution");
@@ -131,6 +134,20 @@ export async function runPytestOnFiles(
     }
 
     logger.info(`Successfully checked out branch: ${branchName}`);
+
+    // Checkout test files from merge commit if mergeCommitSha is provided
+    if (mergeCommitSha && testFiles.length > 0) {
+      logger.info(
+        `Checking out test files from merge commit: ${mergeCommitSha}`,
+      );
+      await checkoutFilesFromCommit({
+        sandbox,
+        repoDir,
+        commitSha: mergeCommitSha,
+        filePaths: testFiles,
+      });
+      logger.info(`Successfully checked out ${testFiles.length} test files from merge commit`);
+    }
 
     // Setup Python environment
     logger.info("Setting up Python environment...");

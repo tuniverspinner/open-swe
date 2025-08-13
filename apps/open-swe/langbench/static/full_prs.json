@@ -13,9 +13,7 @@
       "created_at": "2024-12-20T20:31:20Z",
       "merged_at": "2025-01-10T16:06:59Z",
       "pre_merge_commit_sha": "35c3ba0104804bee045675ee8bce754deccacfc2",
-      "tests": {
-        "libs/langgraph/tests/test_prebuilt.py": ["test_react_agent_with_structured_response"]
-      }
+      "test_files": ["libs/langgraph/tests/test_prebuilt.py"]
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/1004",
@@ -31,9 +29,81 @@
       "created_at": "2024-07-12T16:42:14Z",
       "merged_at": "2024-07-12T19:53:17Z",
       "pre_merge_commit_sha": "558a513a1acbc0ae88ae24d6e5cc13325ab00ad1",
-      "tests": {
-        "libs/langgraph/tests/test_interruption.py": ["test_interruption_without_state_updates"]
-      }
+      "test_files": ["libs/langgraph/tests/test_interruption.py"]
+    },
+    {
+      "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/4983",
+      "html_url": "https://github.com/langchain-ai/langgraph/pull/4983",
+      "diff_url": "https://github.com/langchain-ai/langgraph/pull/4983.diff",
+      "patch_url": "https://github.com/langchain-ai/langgraph/pull/4983.patch",
+      "repo_owner": "langchain-ai",
+      "repo_name": "langgraph",
+      "pr_number": 4983,
+      "merge_commit_sha": "b7354521537175aed60c6b8bacac22049ada8ca6",
+      "title": "deprecate `input` and `output` in favor of `input_schema` and `output_schema`",
+      "body": "* rename `input` -> `input_schema`\r\n* rename `output` -> `output_schema`\r\n* make graphs generic on `OutputT` to prep for future type checking\r\n\r\nAll renaming operations are backwards compatible in that we populate old input / output into their respective new schemas!",
+      "created_at": "2025-06-06T18:53:54Z",
+      "merged_at": "2025-06-06T23:44:56Z",
+      "pre_merge_commit_sha": "5920d8aa92fb8a76c7629a65acac5480387de0a5",
+      "test_files": [
+        "libs/langgraph/tests/test_deprecation.py",
+        "libs/langgraph/tests/test_large_cases.py",
+        "libs/langgraph/tests/test_pregel.py",
+        "libs/langgraph/tests/test_pregel_async.py",
+        "libs/langgraph/tests/test_state.py",
+        "libs/langgraph/tests/test_type_checking.py"
+      ]
+    },
+    {
+      "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/3889",
+      "html_url": "https://github.com/langchain-ai/langgraph/pull/3889",
+      "diff_url": "https://github.com/langchain-ai/langgraph/pull/3889.diff",
+      "patch_url": "https://github.com/langchain-ai/langgraph/pull/3889.patch",
+      "repo_owner": "langchain-ai",
+      "repo_name": "langgraph",
+      "pr_number": 3889,
+      "merge_commit_sha": "fc8e6ec64f84f036bbfb8d1da04bfe8a03051bdb",
+      "title": "When using global resume value, ensure subgraphs consume it",
+      "body": "- Previously the global resume value was passed to subgraphs without being consumed\r\n- This would result in two parallel subgraph calls being able to use the same resume value\r\n- Note this behavior can't be implemented over the wire, that will be fixed in future PR\r\n\r\nCloses #3398 ",
+      "created_at": "2025-03-18T03:32:30Z",
+      "merged_at": "2025-03-18T04:26:34Z",
+      "pre_merge_commit_sha": "dd16ae4ba5243b4f0e4228f9a00aac477146c301",
+      "test_files": ["libs/langgraph/tests/test_pregel.py"]
+    },
+    {
+      "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/3110",
+      "html_url": "https://github.com/langchain-ai/langgraph/pull/3110",
+      "diff_url": "https://github.com/langchain-ai/langgraph/pull/3110.diff",
+      "patch_url": "https://github.com/langchain-ai/langgraph/pull/3110.patch",
+      "repo_owner": "langchain-ai",
+      "repo_name": "langgraph",
+      "pr_number": 3110,
+      "merge_commit_sha": "3ec55b008d0f1e802db71635ba7fbb0f8dabab27",
+      "title": "Fix timing issue where a sync task would finish before the other one was registered in futures dict",
+      "body": "\r\n\r\n- this was not possible in async where all done callbacks are called in next tick\r\n- in sync case this would manifest as the first task done callback seeing counter == 1 and thus setting event\r\n- the fix is to unset the event whenever a task is scheduled",
+      "created_at": "2025-01-20T19:41:44Z",
+      "merged_at": "2025-01-21T18:16:10Z",
+      "pre_merge_commit_sha": "d48b25420ba7553a7154d3960fb1bf327d497e9d",
+      "test_files": ["libs/langgraph/tests/test_large_cases.py"]
+    },
+    {
+      "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/1776",
+      "html_url": "https://github.com/langchain-ai/langgraph/pull/1776",
+      "diff_url": "https://github.com/langchain-ai/langgraph/pull/1776.diff",
+      "patch_url": "https://github.com/langchain-ai/langgraph/pull/1776.patch",
+      "repo_owner": "langchain-ai",
+      "repo_name": "langgraph",
+      "pr_number": 1776,
+      "merge_commit_sha": "b03d9ae52c802fef14388a2eb4c2a19fe5550647",
+      "title": "Add stream_mode=custom",
+      "body": "- adds the ability for nodes (including in subgraphs) to emit chunks directly to the output stream, emitted chunks can have any type\r\n- when stream_mode=custom isnt requested by the caller emitted chunks are ignored",
+      "created_at": "2024-09-19T23:46:37Z",
+      "merged_at": "2024-09-20T16:18:51Z",
+      "pre_merge_commit_sha": "531890e35a35f9b381d375167a7b104184378153",
+      "test_files": [
+        "libs/langgraph/tests/test_pregel.py",
+        "libs/langgraph/tests/test_pregel_async.py"
+      ]
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/809",

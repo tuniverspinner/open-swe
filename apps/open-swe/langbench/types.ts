@@ -73,4 +73,5 @@ export interface RunPytestOptions {
   testFiles: string[];
   timeoutSec?: number;
   testNames?: string[];
+  mergeCommitSha?: string;
 }

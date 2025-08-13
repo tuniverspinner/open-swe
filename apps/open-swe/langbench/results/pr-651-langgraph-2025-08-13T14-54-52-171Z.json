@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-08-13T14:54:52.171Z",
+  "prNumber": 651,
+  "repoName": "langgraph",
+  "repoOwner": "Palashio",
+  "title": "langgraph: add support for deleting messages",
+  "htmlUrl": "https://github.com/langchain-ai/langgraph/pull/651",
+  "mergeCommitSha": "6e7265a65950af8d152843e41fef2a73be6ab4cb",
+  "preMergeCommitSha": "5e8aa5d9f2e24b197ffa187c6b7b36602761d1a4",
+  "result": {
+    "success": false,
+    "evalsFound": false,
+    "evalsFiles": [],
+    "testFiles": [
+      "libs/langgraph/tests/test_pregel.py"
+    ],
+    "workspaceId": "dbb624f6-bd15-4f0a-b31f-46f62480ec8f",
+    "preMergeSha": "5e8aa5d9f2e24b197ffa187c6b7b36602761d1a4",
+    "testResults": {
+      "success": false,
+      "error": "Exit code: 5",
+      "totalTests": 0,
+      "passedTests": 0,
+      "failedTests": 0,
+      "testDetails": []
+    },
+    "openSWEResults": {
+      "success": true,
+      "threadId": "e64602ea-8893-4fda-a75d-6bf516d1b49d",
+      "plannerRunId": "4088cfb4-38b4-42e4-b4ea-5c9ab83b5b9e",
+      "programmerRunId": "700bb792-833c-469a-a3c9-e0249da5c751",
+      "branchName": "pre-merge-test-1755095993024"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-08-13T14:12:52.080Z",
+  "prNumber": 1004,
+  "repoName": "langgraph",
+  "repoOwner": "Palashio",
+  "title": "Support multiple interruptions after resuming execution",
+  "htmlUrl": "https://github.com/langchain-ai/langgraph/pull/1004",
+  "mergeCommitSha": "738f725aeacf41d90b0081b3ae79754d1d1823e0",
+  "preMergeCommitSha": "558a513a1acbc0ae88ae24d6e5cc13325ab00ad1",
+  "result": {
+    "success": false,
+    "evalsFound": false,
+    "evalsFiles": [],
+    "testFiles": [
+      "libs/langgraph/tests/test_interruption.py"
+    ],
+    "workspaceId": "bdfd9119-8e53-4112-9af9-4a40ac0f6861",
+    "preMergeSha": "558a513a1acbc0ae88ae24d6e5cc13325ab00ad1",
+    "openSWEResults": {
+      "success": false,
+      "threadId": "ef88fb3e-7f70-4581-9afb-3faeeed04df2"
+    }
+  }
+}

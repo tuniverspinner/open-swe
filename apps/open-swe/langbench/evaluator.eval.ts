@@ -7,8 +7,6 @@ import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import path from "path";
 import {
   cloneRepo,
-  checkoutFilesFromCommit,
-  pushEmptyCommit,
 } from "../src/utils/github/git.js";
 import { GraphState, TargetRepository } from "@open-swe/shared/open-swe/types";
 import { getRepoAbsolutePath } from "@open-swe/shared/git";
@@ -318,29 +316,29 @@ async function runOpenSWEWithStreamTracking(inputs: {
 /**
  * Add and commit files to remote branch
  */
-async function addCommitAndPush(
-  sandbox: Sandbox,
-  repoDir: string,
-  targetRepository: TargetRepository,
-  githubToken: string,
-): Promise<void> {
-  const status = await sandbox.process.executeCommand(
-    `git status`,
-    repoDir,
-    undefined,
-    60000,
-  );
-  logger.info(`Git status: ${status.result}`);
+// async function addCommitAndPush(
+//   sandbox: Sandbox,
+//   repoDir: string,
+//   targetRepository: TargetRepository,
+//   githubToken: string,
+// ): Promise<void> {
+//   const status = await sandbox.process.executeCommand(
+//     `git status`,
+//     repoDir,
+//     undefined,
+//     60000,
+//   );
+//   logger.info(`Git status: ${status.result}`);
 
-  logger.info("Adding checked-out test files to the branch");
-  await sandbox.process.executeCommand(`git add .`, repoDir, undefined, 60000);
+//   logger.info("Adding checked-out test files to the branch");
+//   await sandbox.process.executeCommand(`git add .`, repoDir, undefined, 60000);
 
-  logger.info("Committing and pushing test files to remote branch");
-  await pushEmptyCommit(targetRepository, sandbox, {
-    githubInstallationToken: githubToken,
-  });
-  logger.info("Successfully committed and pushed test files to remote branch");
-}
+//   logger.info("Committing and pushing test files to remote branch");
+//   await pushEmptyCommit(targetRepository, sandbox, {
+//     githubInstallationToken: githubToken,
+//   });
+//   logger.info("Successfully committed and pushed test files to remote branch");
+// }
 
 /**
  * Process a single PR
@@ -427,24 +425,24 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
     }
 
     // Checkout test files from merge commit before running open-swe
-    if (testFiles.length > 0) {
-      logger.info(
-        `Checking out test files from merge commit before running open-swe: ${prData.mergeCommitSha}`,
-      );
-      await checkoutFilesFromCommit({
-        sandbox,
-        repoDir,
-        commitSha: prData.mergeCommitSha,
-        filePaths: testFiles,
-      });
+    // if (testFiles.length > 0) {
+    //   logger.info(
+    //     `Checking out test files from merge commit before running open-swe: ${prData.mergeCommitSha}`,
+    //   );
+    //   await checkoutFilesFromCommit({
+    //     sandbox,
+    //     repoDir,
+    //     commitSha: prData.mergeCommitSha,
+    //     filePaths: testFiles,
+    //   });
 
-      logger.info(`Successfully checked out ${testFiles.length} test files`);
+    //   logger.info(`Successfully checked out ${testFiles.length} test files`);
 
-      // Add, commit and push the checked-out test files
-      await addCommitAndPush(sandbox, repoDir, targetRepository, githubToken);
-    } else {
-      logger.info(`No test files found for PR #${prData.prNumber}`);
-    }
+    //   // Add, commit and push the checked-out test files
+    //   await addCommitAndPush(sandbox, repoDir, targetRepository, githubToken);
+    // } else {
+    //   logger.info(`No test files found for PR #${prData.prNumber}`);
+    // }
 
     // Run open-swe instance with the pre-merge commit and track streams
     logger.info("Starting open-swe...");
@@ -472,6 +470,7 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
         testFiles,
         timeoutSec: 300,
         testNames: testNames,
+        mergeCommitSha: prData.mergeCommitSha,
       });
       result.testResults = testResults;
 
