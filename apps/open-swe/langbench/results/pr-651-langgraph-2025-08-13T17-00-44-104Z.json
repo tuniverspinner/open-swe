@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-13T14:54:52.171Z",
+  "timestamp": "2025-08-13T17:00:44.104Z",
   "prNumber": 651,
   "repoName": "langgraph",
   "repoOwner": "Palashio",
@@ -8,28 +8,30 @@
   "mergeCommitSha": "6e7265a65950af8d152843e41fef2a73be6ab4cb",
   "preMergeCommitSha": "5e8aa5d9f2e24b197ffa187c6b7b36602761d1a4",
   "result": {
-    "success": false,
+    "success": true,
     "evalsFound": false,
     "evalsFiles": [],
     "testFiles": [
       "libs/langgraph/tests/test_pregel.py"
     ],
-    "workspaceId": "dbb624f6-bd15-4f0a-b31f-46f62480ec8f",
+    "workspaceId": "4a0e4b05-39dd-4578-ba11-521e8ed70a07",
     "preMergeSha": "5e8aa5d9f2e24b197ffa187c6b7b36602761d1a4",
     "testResults": {
-      "success": false,
-      "error": "Exit code: 5",
-      "totalTests": 0,
-      "passedTests": 0,
+      "success": true,
+      "error": null,
+      "totalTests": 1,
+      "passedTests": 1,
       "failedTests": 0,
-      "testDetails": []
+      "testDetails": [
+        "tests/test_pregel.py::test_remove_message_via_state_update PASSED"
+      ]
     },
     "openSWEResults": {
       "success": true,
-      "threadId": "e64602ea-8893-4fda-a75d-6bf516d1b49d",
-      "plannerRunId": "4088cfb4-38b4-42e4-b4ea-5c9ab83b5b9e",
-      "programmerRunId": "700bb792-833c-469a-a3c9-e0249da5c751",
-      "branchName": "pre-merge-test-1755095993024"
+      "threadId": "200dcc7c-9afc-450d-ae70-ddd7fe337d3d",
+      "plannerRunId": "853d2b28-814a-4536-bd66-ebfa5d5be6bb",
+      "programmerRunId": "27abbcd8-612d-49c6-a816-cd385ce63ef5",
+      "branchName": "pre-merge-test-1755103575481"
     }
   }
 }

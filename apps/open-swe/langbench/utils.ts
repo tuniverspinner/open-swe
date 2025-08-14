@@ -120,6 +120,33 @@ export async function runPytestOnFiles(
       stateBranchName: branchName,
     });
 
+    // Fetch the merge commit if provided to ensure it's available in the repository
+    if (mergeCommitSha) {
+      logger.info(`Fetching merge commit to ensure it's available: ${mergeCommitSha}`);
+      const fetchResult = await sandbox.process.executeCommand(
+        `git fetch origin ${mergeCommitSha}`,
+        repoDir,
+        undefined,
+        60000,
+      );
+
+      if (fetchResult.exitCode !== 0) {
+        logger.warn(`Could not fetch merge commit directly, trying to fetch all refs: ${fetchResult.result}`);
+        // Try to fetch all refs as a fallback
+        const fetchAllResult = await sandbox.process.executeCommand(
+          `git fetch origin --unshallow`,
+          repoDir,
+          undefined,
+          120000,
+        );
+        if (fetchAllResult.exitCode !== 0) {
+          logger.warn(`Failed to fetch all refs: ${fetchAllResult.result}`);
+        }
+      } else {
+        logger.info(`Successfully fetched merge commit: ${mergeCommitSha}`);
+      }
+    }
+
     // Checkout the specific branch created by open-swe
     logger.info(`Checking out branch: ${branchName}`);
     const checkoutResult = await sandbox.process.executeCommand(

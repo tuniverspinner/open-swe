@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-12T21:31:11.004Z",
+  "timestamp": "2025-08-13T16:36:50.486Z",
   "prNumber": 1004,
   "repoName": "langgraph",
   "repoOwner": "Palashio",
@@ -14,11 +14,11 @@
     "testFiles": [
       "libs/langgraph/tests/test_interruption.py"
     ],
-    "workspaceId": "00ad85e2-2a27-4cc7-9cfa-3c8ff05ad4c1",
+    "workspaceId": "c0165aab-d193-4251-aee8-74fb5cafdf9d",
     "preMergeSha": "558a513a1acbc0ae88ae24d6e5cc13325ab00ad1",
     "openSWEResults": {
       "success": false,
-      "threadId": "430228ea-6eeb-4b02-b0aa-8670f970afa2"
+      "threadId": "413615a0-d37e-4757-a2e8-b65860839ad0"
     }
   }
 }

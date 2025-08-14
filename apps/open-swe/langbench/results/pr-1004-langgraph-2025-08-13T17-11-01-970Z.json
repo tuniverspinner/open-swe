@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-13T14:59:11.822Z",
+  "timestamp": "2025-08-13T17:11:01.970Z",
   "prNumber": 1004,
   "repoName": "langgraph",
   "repoOwner": "Palashio",
@@ -14,22 +14,11 @@
     "testFiles": [
       "libs/langgraph/tests/test_interruption.py"
     ],
-    "workspaceId": "71642e5a-15ee-4430-8781-f331297f836c",
+    "workspaceId": "6eac6ad9-a4de-463b-955b-e773fce0ec50",
     "preMergeSha": "558a513a1acbc0ae88ae24d6e5cc13325ab00ad1",
-    "testResults": {
-      "success": false,
-      "error": "Exit code: 4",
-      "totalTests": 0,
-      "passedTests": 0,
-      "failedTests": 0,
-      "testDetails": []
-    },
     "openSWEResults": {
-      "success": true,
-      "threadId": "cb35b640-8e26-4e80-9c0e-96fd29333fde",
-      "plannerRunId": "1e872d01-5293-4d75-a703-8ac593170192",
-      "programmerRunId": "4e28a452-175b-4459-a674-ca8fd407ea56",
-      "branchName": "pre-merge-test-1755095994175"
+      "success": false,
+      "threadId": "d97d0c35-8b01-4cb0-90ab-2ca6a3006d99"
     }
   }
 }

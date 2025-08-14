@@ -1,28 +1,5 @@
 [
   {
-    "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/2848",
-    "html_url": "https://github.com/langchain-ai/langgraph/pull/2848",
-    "diff_url": "https://github.com/langchain-ai/langgraph/pull/2848.diff",
-    "patch_url": "https://github.com/langchain-ai/langgraph/pull/2848.patch",
-    "repo_owner": "Palashio",
-    "repo_name": "langgraph",
-    "pr_number": 2848,
-    "merge_commit_sha": "10d46acc60d19db426b6508b8b81de96aa1bab6d",
-    "title": "langgraph: add structured output to create_react_agent",
-    "body": "```python\r\nclass WeatherResponse(BaseModel):\r\n    \"\"\"Respond to the user with this\"\"\"\r\n\r\n    temperature: float = Field(description=\"The temperature in fahrenheit\")\r\n    wind_direction: str = Field(\r\n        description=\"The direction of the wind in abbreviated form\"\r\n    )\r\n    wind_speed: float = Field(description=\"The speed of the wind in mph\")\r\n\r\n@tool\r\ndef get_weather(city: Literal[\"nyc\", \"sf\"]):\r\n    \"\"\"Use this to get weather information.\"\"\"\r\n    if city == \"nyc\":\r\n        return \"It is cloudy in NYC, with 5 mph winds in the North-East direction and a temperature of 70 degrees\"\r\n    elif city == \"sf\":\r\n        return \"It is 75 degrees and sunny in SF, with 3 mph winds in the South-East direction\"\r\n    else:\r\n        raise AssertionError(\"Unknown city\")\r\n\r\nmodel = ChatOpenAI()\r\ntools = [get_weather]\r\nagent_with_structured_output = create_react_agent(model, tools, response_format=WeatherResponse)\r\nagent_with_structured_output.invoke({\"messages\": [(\"user\", \"what's the weather in nyc?\")]})\r\n```\r\n\r\n```pycon\r\n{\r\n    'messages': [...],\r\n    'structured_response': WeatherResponse(temperature=70.0, wind_directon='NE', wind_speed=5.0)\r\n}\r\n```",
-    "created_at": "2024-12-20T20:31:20Z",
-    "merged_at": "2025-01-10T16:06:59Z",
-    "pre_merge_commit_sha": "35c3ba0104804bee045675ee8bce754deccacfc2",
-    "tests": {
-      "libs/langgraph/tests/test_prebuilt.py": ["test_react_agent_with_structured_response"]
-    },
-    "claudeCodeWithTests": {
-      "libs/langgraph/tests/test_prebuilt.py": {
-        "test_react_agent_with_structured_response": "FAIL"
-      }
-    }
-  },
-  {
     "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/1004",
     "html_url": "https://github.com/langchain-ai/langgraph/pull/1004",
     "diff_url": "https://github.com/langchain-ai/langgraph/pull/1004.diff",
@@ -42,64 +19,6 @@
     "claudeCodeWithTests": {
       "libs/langgraph/tests/test_interruption.py": {
         "test_interruption_without_state_updates": "PASS"
-      }
-    }
-  },
-  {
-    "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/809",
-    "html_url": "https://github.com/langchain-ai/langgraph/pull/809",
-    "diff_url": "https://github.com/langchain-ai/langgraph/pull/809.diff",
-    "patch_url": "https://github.com/langchain-ai/langgraph/pull/809.patch",
-    "repo_owner": "Palashio",
-    "repo_name": "langgraph",
-    "pr_number": 809,
-    "merge_commit_sha": "8e611b42aa35a7032c81ad2fd264d3192d47c911",
-    "title": "Fix bug in add_conditional_edges when no path_map is provided",
-    "body": "When an instance of a callable class is passed as the path arg to add_conditional_edges but no path_map is provided, get_type_hints(path) is called, which raises a TypeError (since get_type_hints only accepts a module, class, method, or function).\r\n\r\nThis patch fixes the error by trying to get type hints from path.\\_\\_call\\_\\_ first, which should work for instances of callable classes.\r\n\r\nTested: Added a test that raises TypeError without the fix in this patch but passes with the fix.",
-    "created_at": "2024-06-25T21:38:27Z",
-    "merged_at": "2024-06-26T23:24:59Z",
-    "pre_merge_commit_sha": "6ae59581643b51751731ae64c609a8bc21779714",
-    "tests": {
-      "libs/langgraph/tests/test_pregel.py": ["test_callable_in_conditional_edges_with_no_path_map", "test_function_in_conditional_edges_with_no_path_map"]
-    },
-    "claudeCodeWithTests": {
-      "libs/langgraph/tests/test_pregel.py": {
-        "test_callable_in_conditional_edges_with_no_path_map": "PASS",
-        "test_function_in_conditional_edges_with_no_path_map": "PASS"
-      }
-    },
-    "claudeCodeWithoutTests": {
-      "libs/langgraph/tests/test_pregel.py": {
-        "test_callable_in_conditional_edges_with_no_path_map": "PASS",
-        "test_function_in_conditional_edges_with_no_path_map": "PASS"
-      }
-    }
-  },
-  {
-    "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/651",
-    "html_url": "https://github.com/langchain-ai/langgraph/pull/651",
-    "diff_url": "https://github.com/langchain-ai/langgraph/pull/651.diff",
-    "patch_url": "https://github.com/langchain-ai/langgraph/pull/651.patch",
-    "repo_owner": "Palashio",
-    "repo_name": "langgraph",
-    "pr_number": 651,
-    "merge_commit_sha": "6e7265a65950af8d152843e41fef2a73be6ab4cb",
-    "title": "langgraph: add support for deleting messages",
-    "body": "This change allows users or graph nodes to remove messages by `id` via `langchain_core.messages.RemoveMessage`\r\n\r\nExamples:\r\n\r\n* allow users to delete messages from state by calling\r\n\r\n```python\r\ngraph.update_state(config, values=[RemoveMessage(id=state.values[-1].id)])\r\n```\r\n\r\n* allow nodes to delete messages\r\n\r\n```python\r\ngraph.add_node(\"delete_messages\", lambda state: [RemoveMessage(id=state[-1].id)])\r\n```",
-    "created_at": "2024-06-12T14:35:51Z",
-    "merged_at": "2024-07-03T05:43:54Z",
-    "pre_merge_commit_sha": "5e8aa5d9f2e24b197ffa187c6b7b36602761d1a4",
-    "tests": {
-      "libs/langgraph/tests/test_pregel.py": ["test_remove_message_via_state_update"]
-    },
-    "claudeCodeWithTests": {
-      "libs/langgraph/tests/test_pregel.py": {
-        "test_remove_message_via_state_update": "PASS"
-      }
-    },
-    "claudeCodeWithoutTests": {
-      "libs/langgraph/tests/test_pregel.py": {
-        "test_remove_message_via_state_update": "PASS"
       }
     }
   }

@@ -176,7 +176,7 @@ async function runOpenSWEWithStreamTracking(inputs: {
         lgClient.runs.wait(threadId, MANAGER_GRAPH_ID, {
           input,
           config: {
-            recursion_limit: 250,
+            recursion_limit: 1000,
           },
           ifNotExists: "create",
         }),
@@ -451,6 +451,7 @@ async function processPR(prData: PRData): Promise<PRProcessResult> {
       repoName: prData.repoName,
       userInput: createPRFixPrompt(prData),
       branchName: preMergeBranch,
+
     });
     result.openSWEResults = openSWEResults;
 

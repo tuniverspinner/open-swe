@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-12T20:08:57.273Z",
+  "timestamp": "2025-08-13T16:30:24.649Z",
   "prNumber": 809,
   "repoName": "langgraph",
   "repoOwner": "Palashio",
@@ -8,31 +8,31 @@
   "mergeCommitSha": "8e611b42aa35a7032c81ad2fd264d3192d47c911",
   "preMergeCommitSha": "6ae59581643b51751731ae64c609a8bc21779714",
   "result": {
-    "success": false,
+    "success": true,
     "evalsFound": false,
     "evalsFiles": [],
     "testFiles": [
       "libs/langgraph/tests/test_pregel.py"
     ],
-    "workspaceId": "d0abcd37-3908-4c70-bf28-6717aa5a1774",
+    "workspaceId": "fefdc092-0453-4c0e-89c4-75e5d8d0ce93",
     "preMergeSha": "6ae59581643b51751731ae64c609a8bc21779714",
     "testResults": {
-      "success": false,
-      "error": "Exit code: 1",
+      "success": true,
+      "error": null,
       "totalTests": 2,
-      "passedTests": 0,
-      "failedTests": 2,
+      "passedTests": 2,
+      "failedTests": 0,
       "testDetails": [
-        "tests/test_pregel.py::test_callable_in_conditional_edges_with_no_path_map FAILED",
-        "tests/test_pregel.py::test_function_in_conditional_edges_with_no_path_map FAILED"
+        "tests/test_pregel.py::test_callable_in_conditional_edges_with_no_path_map PASSED",
+        "tests/test_pregel.py::test_function_in_conditional_edges_with_no_path_map PASSED"
       ]
     },
     "openSWEResults": {
       "success": true,
-      "threadId": "debb4423-1cd5-4a37-95fe-48c9b7354cd9",
-      "plannerRunId": "88713a05-64e9-481f-9dd1-720b4116753f",
-      "programmerRunId": "d91629ed-5a8c-4d7b-afb6-83c9b063c840",
-      "branchName": "pre-merge-test-1755028100956"
+      "threadId": "ee5f4dbc-33d2-469d-a9f0-a6c4db169b40",
+      "plannerRunId": "12fbb57c-fe20-454c-a841-f31b9baaa5bd",
+      "programmerRunId": "b5561d8b-c240-4ecc-a893-658aae20f111",
+      "branchName": "pre-merge-test-1755101618825"
     }
   }
 }
