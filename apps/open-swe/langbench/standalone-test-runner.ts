@@ -185,19 +185,6 @@ async function installDocker(sandbox: Sandbox, repoDir: string): Promise<boolean
       await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    if (!dockerReady) {
-      logger.error("Docker daemon failed to become ready");
-      // Try to get more diagnostic info
-      const diagResult = await sandbox.process.executeCommand(
-        "sudo service docker status && ps aux | grep docker",
-        repoDir,
-        undefined,
-        30000
-      );
-      logger.error("Docker diagnostic info:", { output: diagResult.result });
-      return false;
-    }
-
     // Install docker-compose
     const composeInstallResult = await sandbox.process.executeCommand(
       "sudo apt install -y docker-compose",
