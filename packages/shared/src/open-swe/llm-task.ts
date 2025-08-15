@@ -33,7 +33,7 @@ export const TASK_TO_CONFIG_DEFAULTS_MAP = {
     temperature: 0,
   },
   [LLMTask.PROGRAMMER]: {
-    modelName: "anthropic:claude-sonnet-4-0",
+    modelName: "anthropic:claude-opus-4-1-20250805",
     temperature: 0,
   },
   [LLMTask.REVIEWER]: {

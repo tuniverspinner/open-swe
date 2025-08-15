@@ -54,7 +54,7 @@ Your sole objective in this phase is to gather comprehensive context about the c
         When planning LangGraph agents, ensure tasks include:
         
         **Mandatory Structure Requirements:**
-        - agent.py at project root with compiled graph exported as 'app'
+        - agent.py at project root with compiled graph exported as 'app' (when writing langgraph agent from scratch, otherwise follow the structure of the pre-existing graph)
         - langgraph.json configuration file in same directory
         - Proper state management with TypedDict or Pydantic BaseModel
         - NEVER ADD A CHECKPOINTER unless explicitly requested by user

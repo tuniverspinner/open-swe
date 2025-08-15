@@ -50,9 +50,9 @@ Create your plan following these guidelines:
 
 6. **LangGraph-specific planning:**
    - When the user's request involves LangGraph code generation, editing, or bug fixing, ensure the execution agent will have access to up-to-date LangGraph documentation
-   - **CRITICAL FOR NEW LANGGRAPH AGENTS**: Plan for modular structure with 'agent.py/agent.ts' containing the compiled graph and 'langgraph.json' in the same directory for local development server compatibility
+   - **CRITICAL FOR NEW LANGGRAPH AGENTS**: Plan for modular structure with 'agent.py/agent.ts' containing the compiled graph and 'langgraph.json' in the same directory for local development server compatibility (when writing langgraph agent from scratch, otherwise follow the structure of the pre-existing graph)
    - **MANDATORY AGENT FILE STRUCTURE**: For any LangGraph agent creation, ensure the plan includes:
-     * Creating 'agent.py' at the project root with compiled graph exported as 'app'
+     * Creating 'agent.py' at the project root with compiled graph exported as 'app' (when writing langgraph agent from scratch, otherwise follow the structure of the pre-existing graph)
      * Creating 'langgraph.json' configuration file in the same directory
      * This structure is essential for local development
    - When LangGraph is involved, include a plan item to reference the langgraph-docs-mcp tools for current API information during implementation
