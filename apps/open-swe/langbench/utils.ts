@@ -138,8 +138,34 @@ export async function runPytestOnFiles(
     // Checkout test files from merge commit if mergeCommitSha is provided
     if (mergeCommitSha && testFiles.length > 0) {
       logger.info(
-        `Checking out test files from merge commit: ${mergeCommitSha}`,
+        `Fetching and checking out test files from merge commit: ${mergeCommitSha}`,
       );
+      
+      // First, fetch the merge commit from origin to make it available locally
+      logger.info(`Fetching merge commit from origin: ${mergeCommitSha}`);
+      const fetchResult = await sandbox.process.executeCommand(
+        `git fetch origin ${mergeCommitSha}`,
+        repoDir,
+        undefined,
+        120000
+      );
+      
+      if (fetchResult.exitCode !== 0) {
+        logger.warn(`Failed to fetch specific commit, trying fetch all:`, { output: fetchResult.result });
+        // Fallback to fetching all refs
+        const fetchAllResult = await sandbox.process.executeCommand(
+          `git fetch origin`,
+          repoDir,
+          undefined,
+          120000
+        );
+        
+        if (fetchAllResult.exitCode !== 0) {
+          logger.error(`Failed to fetch from origin:`, { output: fetchAllResult.result });
+        }
+      }
+      
+      // Now try to checkout the files from the merge commit
       await checkoutFilesFromCommit({
         sandbox,
         repoDir,
@@ -154,6 +180,20 @@ export async function runPytestOnFiles(
     const envSetupSuccess = await setupEnv(sandbox, repoDir);
     if (!envSetupSuccess) {
       logger.warn("Failed to setup Python environment, continuing anyway");
+    }
+
+    // Install Docker
+    logger.info("Installing Docker for test execution...");
+    const dockerSuccess = await installDockerForTests(sandbox, repoDir);
+    if (!dockerSuccess) {
+      logger.warn("Docker installation failed, PostgreSQL setup may fail");
+    }
+
+    // Setup PostgreSQL database
+    logger.info("Setting up PostgreSQL database for tests...");
+    const postgresSuccess = await setupPostgresForTests(sandbox, repoDir);
+    if (!postgresSuccess) {
+      logger.warn("PostgreSQL setup failed, tests requiring database may fail");
     }
 
     // Install pytest dependencies
@@ -229,7 +269,7 @@ export async function runPytestOnFiles(
       testArgs += ` -k "${testNamesPattern}"`;
     }
     
-    const command = `${RUN_PYTHON_IN_VENV} -m pytest ${testArgs} -v --tb=short --json-report --json-report-file=/tmp/pytest_report.json --snapshot-update`;
+    const command = `${RUN_PYTHON_IN_VENV} -m pytest ${testArgs} -v --tb=short --json-report --json-report-file=/tmp/pytest_report.json --snapshot-update 2>&1 | tee /tmp/pytest_full_output.txt`;
     logger.info("Running pytest command", { command, testNames });
 
     // Execute pytest
@@ -239,6 +279,29 @@ export async function runPytestOnFiles(
       undefined,
       timeoutSec,
     );
+
+    // Save the full pytest output to local file
+    try {
+      const fullOutputResult = await sandbox.process.executeCommand(
+        "cat /tmp/pytest_full_output.txt",
+        repoDir,
+        undefined,
+        30000
+      );
+      
+      if (fullOutputResult.exitCode === 0 && fullOutputResult.result) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const outputFilename = `pytest_output_${timestamp}.txt`;
+        const outputFilepath = `langbench/results/${outputFilename}`;
+        
+        // Write the full output to a local file in the results directory
+        const fs = await import('fs');
+        fs.writeFileSync(outputFilepath, fullOutputResult.result);
+        logger.info(`Full pytest output saved to: ${outputFilepath}`);
+      }
+    } catch (error) {
+      logger.warn("Failed to save full pytest output", { error });
+    }
 
     // Handle case where no tests match the pattern
     if (execution.exitCode === 5 && testNames && testNames.length > 0) {
@@ -370,4 +433,326 @@ export function parsePytestJsonReport(
     failedTests,
     testDetails,
   };
+}
+
+/**
+ * Install Docker in the test sandbox using official method
+ */
+async function installDockerForTests(sandbox: Sandbox, repoDir: string): Promise<boolean> {
+  try {
+    logger.info("Installing Docker using official method...");
+
+    // Update package lists and install prerequisites
+    const updateResult = await sandbox.process.executeCommand(
+      "sudo apt update && sudo apt install -y apt-transport-https ca-certificates curl software-properties-common",
+      repoDir,
+      undefined,
+      120000
+    );
+
+    if (updateResult.exitCode !== 0) {
+      logger.error("Failed to install prerequisites", { output: updateResult.result });
+      return false;
+    }
+
+    // Add Docker's GPG key
+    const keyResult = await sandbox.process.executeCommand(
+      "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+      repoDir,
+      undefined,
+      60000
+    );
+
+    if (keyResult.exitCode !== 0) {
+      logger.error("Failed to add Docker GPG key", { output: keyResult.result });
+      return false;
+    }
+
+    // Check Ubuntu version and add appropriate Docker repository
+    const versionResult = await sandbox.process.executeCommand(
+      "lsb_release -cs",
+      repoDir,
+      undefined,
+      10000
+    );
+
+    logger.info("Ubuntu version:", { output: versionResult.result?.trim() });
+
+    // Add Docker repository - use focal for compatibility if newer version
+    const ubuntuVersion = versionResult.result?.trim() || "focal";
+    const dockerRepo = ["jammy", "focal", "bionic"].includes(ubuntuVersion) ? ubuntuVersion : "focal";
+    
+    const repoResult = await sandbox.process.executeCommand(
+      `sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu ${dockerRepo} stable"`,
+      repoDir,
+      undefined,
+      60000
+    );
+
+    if (repoResult.exitCode !== 0) {
+      logger.error("Failed to add Docker repository", { output: repoResult.result });
+      return false;
+    }
+
+    // Update package lists again
+    await sandbox.process.executeCommand(
+      "sudo apt update",
+      repoDir,
+      undefined,
+      60000
+    );
+
+    // Install Docker CE, fallback to docker.io if it fails
+    let installResult = await sandbox.process.executeCommand(
+      "sudo apt install -y docker-ce",
+      repoDir,
+      undefined,
+      300000
+    );
+
+    if (installResult.exitCode !== 0) {
+      logger.warn("Docker CE installation failed, trying docker.io fallback", { output: installResult.result });
+      
+      installResult = await sandbox.process.executeCommand(
+        "sudo apt install -y docker.io",
+        repoDir,
+        undefined,
+        300000
+      );
+
+      if (installResult.exitCode !== 0) {
+        logger.error("Failed to install Docker (both docker-ce and docker.io failed)", { output: installResult.result });
+        return false;
+      }
+    }
+
+    // Start Docker service using service command (not systemd)
+    const startResult = await sandbox.process.executeCommand(
+      "sudo service docker start",
+      repoDir,
+      undefined,
+      60000
+    );
+
+    if (startResult.exitCode !== 0) {
+      logger.error("Failed to start Docker service", { output: startResult.result });
+      return false;
+    }
+
+    // Set proper permissions on docker socket
+    await sandbox.process.executeCommand(
+      "sudo chmod 666 /var/run/docker.sock",
+      repoDir,
+      undefined,
+      10000
+    );
+
+    // Wait for Docker daemon to be ready
+    logger.info("Waiting for Docker daemon to be ready...");
+    for (let i = 0; i < 30; i++) {
+      const testResult = await sandbox.process.executeCommand(
+        "sudo docker version",
+        repoDir,
+        undefined,
+        10000
+      );
+      
+      if (testResult.exitCode === 0) {
+        // Also test without sudo to ensure user can access
+        const userTestResult = await sandbox.process.executeCommand(
+          "docker version",
+          repoDir,
+          undefined,
+          10000
+        );
+        
+        if (userTestResult.exitCode === 0) {
+          break;
+        } else {
+          logger.info(`Docker works with sudo but not without (attempt ${i + 1})`);
+        }
+      }
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    // Install docker-compose
+    const composeInstallResult = await sandbox.process.executeCommand(
+      "sudo apt install -y docker-compose",
+      repoDir,
+      undefined,
+      300000
+    );
+
+    if (composeInstallResult.exitCode !== 0) {
+      logger.warn("Failed to install docker-compose", { output: composeInstallResult.result });
+    }
+
+    // Test if docker-compose is available
+    const dockerComposeTestResult = await sandbox.process.executeCommand(
+      "docker-compose --version",
+      repoDir,
+      undefined,
+      10000
+    );
+
+    logger.info("docker-compose test result:", { 
+      exitCode: dockerComposeTestResult.exitCode, 
+      output: dockerComposeTestResult.result 
+    });
+
+    logger.info("Docker installation completed successfully");
+    return true;
+  } catch (error) {
+    logger.error("Docker installation failed", { error });
+    return false;
+  }
+}
+
+/**
+ * Setup PostgreSQL database in the test sandbox
+ */
+async function setupPostgresForTests(sandbox: Sandbox, repoDir: string): Promise<boolean> {
+  try {
+    logger.info("Setting up PostgreSQL for tests...");
+
+    const langgraphDir = `${repoDir}/libs/langgraph`;
+
+    // Check if the specific compose file exists
+    const composeFileResult = await sandbox.process.executeCommand(
+      "ls -la tests/compose-postgres.yml",
+      langgraphDir,
+      undefined,
+      10000
+    );
+    logger.info("compose-postgres.yml file check:", { 
+      exitCode: composeFileResult.exitCode,
+      output: composeFileResult.result 
+    });
+
+    if (composeFileResult.exitCode !== 0) {
+      logger.error("compose-postgres.yml file not found");
+      return false;
+    }
+
+    // Try to start postgres with step-by-step approach
+    logger.info("Trying to start postgres with step-by-step approach...");
+    
+    // First, try to stop any existing containers
+    logger.info("Stopping any existing postgres containers...");
+    await sandbox.process.executeCommand(
+      "docker-compose -f tests/compose-postgres.yml down -v",
+      langgraphDir,
+      undefined,
+      60000
+    );
+    
+    // Try the simplest possible docker-compose up command
+    logger.info("Starting postgres with simple docker-compose up...");
+    const simpleUpResult = await sandbox.process.executeCommand(
+      "docker-compose -f tests/compose-postgres.yml up -d",
+      langgraphDir,
+      undefined,
+      300000
+    );
+    
+    logger.info("Simple docker-compose up result:", { 
+      exitCode: simpleUpResult.exitCode,
+      output: simpleUpResult.result 
+    });
+    
+    let postgresStarted = false;
+    
+    // Check if the simple command worked (not showing help text)
+    if (simpleUpResult.exitCode === 0 && (!simpleUpResult.result || !simpleUpResult.result.includes('Usage: up [options]'))) {
+      logger.info("Simple docker-compose up succeeded");
+      postgresStarted = true;
+    } else {
+      logger.info("Simple docker-compose failed, trying with docker directly...");
+      
+      // Clean up any existing postgres containers first
+      await sandbox.process.executeCommand(
+        "docker rm -f postgres-test",
+        langgraphDir,
+        undefined,
+        30000
+      );
+      
+      // Try using docker run directly as a fallback (without port mapping to avoid networking issues)
+      const dockerRunResult = await sandbox.process.executeCommand(
+        "docker run -d --name postgres-test -e POSTGRES_DB=postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres postgres:16",
+        langgraphDir,
+        undefined,
+        300000
+      );
+      
+      logger.info("Direct docker run result:", {
+        exitCode: dockerRunResult.exitCode,
+        output: dockerRunResult.result
+      });
+      
+      if (dockerRunResult.exitCode === 0) {
+        logger.info("Direct docker run succeeded");
+        postgresStarted = true;
+      } else {
+        logger.error("All postgres startup methods failed");
+        return false;
+      }
+    }
+
+    if (!postgresStarted) {
+      logger.error("Failed to start postgres container");
+      return false;
+    }
+
+    // Wait for PostgreSQL to be ready
+    logger.info("Waiting for PostgreSQL to be ready...");
+    let pgReady = false;
+    for (let i = 0; i < 30; i++) {
+      // Check if container is running
+      const readyResult = await sandbox.process.executeCommand(
+        "docker ps --filter name=postgres-test --format 'table {{.Names}}\t{{.Status}}'",
+        langgraphDir,
+        undefined,
+        10000
+      );
+
+      if (readyResult.exitCode === 0 && readyResult.result?.includes("postgres-test")) {
+        // Additional check to see if postgres is accepting connections
+        const connectionTest = await sandbox.process.executeCommand(
+          "docker exec postgres-test pg_isready -U postgres",
+          langgraphDir,
+          undefined,
+          10000
+        );
+
+        if (connectionTest.exitCode === 0) {
+          pgReady = true;
+          logger.info("PostgreSQL is ready!");
+          break;
+        }
+      }
+
+      logger.info(`Waiting for PostgreSQL... attempt ${i + 1}/30`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    if (!pgReady) {
+      logger.error("PostgreSQL failed to become ready");
+      // Log container status for debugging
+      const debugResult = await sandbox.process.executeCommand(
+        "docker ps -a --filter name=postgres-test",
+        langgraphDir,
+        undefined,
+        10000
+      );
+      logger.error("Final container status:", { output: debugResult.result });
+      return false;
+    }
+
+    logger.info("PostgreSQL setup completed successfully");
+    return true;
+  } catch (error) {
+    logger.error("PostgreSQL setup failed", { error });
+    return false;
+  }
 }
