@@ -118,6 +118,13 @@
       "pre_merge_commit_sha": "6ae59581643b51751731ae64c609a8bc21779714",
       "tests": {
         "libs/langgraph/tests/test_pregel.py": ["test_callable_in_conditional_edges_with_no_path_map", "test_function_in_conditional_edges_with_no_path_map"]
+      },
+      "claudeCode": {
+        "branch_name": "langgraph-cc-809",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_callable_in_conditional_edges_with_no_path_map": "PASS"},
+            {"test_function_in_conditional_edges_with_no_path_map": "PASS"}
+        ]
       }
     },
     {
@@ -136,8 +143,14 @@
       "pre_merge_commit_sha": "5e8aa5d9f2e24b197ffa187c6b7b36602761d1a4",
       "tests": {
         "libs/langgraph/tests/test_pregel.py": ["test_remove_message_via_state_update"]
+      },
+      "claudeCode": {
+        "branch_name": "langgraph-cc-651",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_remove_message_via_state_update": "PASS"}
+        ]
       }
-    }
+    },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/5243",
       "html_url": "https://github.com/langchain-ai/langgraph/pull/5243",
@@ -163,7 +176,23 @@
         "libs/langgraph/tests/test_pregel.py",
         "libs/langgraph/tests/test_runnable.py",
         "libs/langgraph/tests/test_runtime.py"
-      ]
+      ],
+      "claudeCode": {
+        "branch_name": "langgraph-cc-5243",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_context_json_schema": "FAIL"}
+        ],
+        "libs/langgraph/tests/test_runnable.py": [
+            {"test_runnable_callable_func_accepts": "PASS"}
+        ],
+        "libs/langgraph/tests/test_runtime.py": [
+            {"test_injected_runtime": "FAIL"},
+            {"test_context_runtime": "FAIL"}
+        ],
+        "libs/langgraph/tests/test_deprecation.py": [
+            {"test_config_schema_deprecation": "FAIL"}
+        ]
+      }
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/4374",
@@ -226,7 +255,13 @@
       "tests": {
         "libs/langgraph/tests/test_pregel_async.py": ["test_step_timeout_on_stream_hang"]
       },
-      "test_files": ["libs/langgraph/tests/test_pregel_async.py"]
+      "test_files": ["libs/langgraph/tests/test_pregel_async.py"],
+      "claudeCode": {
+        "branch_name": "langgraph-cc-3095",
+        "libs/langgraph/tests/test_pregel_async.py": [
+            {"test_step_timeout_on_stream_hang": "FAIL"}
+        ]
+      }
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/5801",
@@ -307,7 +342,19 @@
         "libs/langgraph/tests/test_algo.py",
         "libs/langgraph/tests/test_large_cases.py",
         "libs/langgraph/tests/test_pregel_async.py"
-      ]
+      ],
+      "claudeCode": {
+        "branch_name": "langgraph-cc-3037",
+        "libs/langgraph/tests/test_algo.py": [
+            {"test_tuple_str": "FAIL"}
+        ],
+        "libs/langgraph/tests/test_large_cases.py": [
+            {"test_send_dedupe_on_resume": "PASS"}
+        ],
+        "libs/langgraph/tests/test_pregel_async.py": [
+            {"test_send_dedupe_on_resume": "PASS"}
+        ]
+      }
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/2393",
@@ -330,7 +377,16 @@
       "test_files": [
         "libs/langgraph/tests/test_pregel.py",
         "libs/langgraph/tests/test_pregel_async.py"
-      ]
+      ],
+      "claudeCode": {
+        "branch_name": "langgraph-cc-2393",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_send_react_interrupt_control": "FAIL"}
+        ],
+        "libs/langgraph/tests/test_pregel_async.py": [
+            {"test_dynamic_interrupt": "FAIL"}
+        ]
+      }
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/1735",
@@ -349,7 +405,13 @@
       "tests": {
         "libs/langgraph/tests/test_pregel_async.py": ["test_stream_subgraph_output"]
       },
-      "test_files": ["libs/langgraph/tests/test_stream_subgraphs_during_execution.py"]
+      "test_files": ["libs/langgraph/tests/test_stream_subgraphs_during_execution.py"],
+      "claudeCode": {
+        "branch_name": "langgraph-cc-1735",
+        "libs/langgraph/tests/test_pregel_async.py": [
+            {"test_stream_subgraph_output": "FAIL"}
+        ]
+      }
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/1630",
@@ -364,7 +426,7 @@
       "body": "- Orchestrator and Executor classes to run LangGraph in a distributed fashion using Kafka as a message bus for communication\r\n- Orchestrator and Executor run on-demand when a new message is published to the topic they listen to\r\n- Orchestrator is responsible for running the Pregel algorithm (deciding next tasks to run) and sending messages to the executor topic\r\n- Executor is responsible for executing each task (node), and sending messages to the orchestrator topic when done",
       "created_at": "2024-09-06T01:01:06Z",
       "merged_at": "2024-09-11T00:31:59Z",
-      "pre_merge_commit_sha": "34d530d5d83837fa080c1db2d055fe952cfc8488",
+      "pre_merge_commit_sha": "5d4b276af2e427ecb217e66b2be890bb75b82a39",
       "tests": {
         "libs/langgraph/tests/test_pregel.py": ["test_invoke_two_processes_in_out_interrupt"],
         "libs/langgraph/tests/test_pregel_async.py": ["test_pending_writes_resume"]
@@ -372,6 +434,15 @@
       "test_files": [
         "libs/langgraph/tests/test_pregel.py",
         "libs/langgraph/tests/test_pregel_async.py"
-      ]
+      ],
+      "claudeCode": {
+        "branch_name": "langgraph-cc-1630",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_invoke_two_processes_in_out_interrupt": "FAIL"}
+        ],
+        "libs/langgraph/tests/test_pregel_async.py": [
+            {"test_pending_writes_resume": "FAIL"}
+        ]
+      }
     }
   ]
