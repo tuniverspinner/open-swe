@@ -424,7 +424,7 @@ export function getGraphConfigurationMetadata(config?: GraphConfig): {
       default: "anthropic:claude-sonnet-4-0",
       description:
         "The model to use for summarizing the conversation history, or extracting key context from large inputs. This model should have strong context retention/understanding capabilities, and should be good at tool calling/structured output.",
-      options: MODEL_OPTIONS_NO_THINKING,
+      options: getAvailableModelsNoThinking(config),
     },
   },
   summarizerTemperature: {
@@ -696,6 +696,7 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
 
 
 
