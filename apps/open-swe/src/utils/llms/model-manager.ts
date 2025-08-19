@@ -527,6 +527,3 @@ export function resetModelManager(): void {
     globalModelManager = null;
   }
 }
-
-
-

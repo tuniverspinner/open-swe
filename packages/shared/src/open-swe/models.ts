@@ -139,11 +139,11 @@ export const MODEL_OPTIONS_NO_THINKING = MODEL_OPTIONS.filter(
  */
 export function getAvailableModels(config?: GraphConfig) {
   const baseModels = MODEL_OPTIONS;
-  
+
   if (isLocalMode(config)) {
     return [...baseModels, ...OLLAMA_MODELS];
   }
-  
+
   return baseModels;
 }
 
@@ -153,17 +153,15 @@ export function getAvailableModels(config?: GraphConfig) {
  */
 export function getAvailableModelsNoThinking(config?: GraphConfig) {
   const baseModels = MODEL_OPTIONS_NO_THINKING;
-  
+
   if (isLocalMode(config)) {
     // Filter out thinking models from Ollama models as well
     const ollamaModelsNoThinking = OLLAMA_MODELS.filter(
-      ({ value }) => !value.includes("extended-thinking") && !value.startsWith("ollama:o")
+      ({ value }) =>
+        !value.includes("extended-thinking") && !value.startsWith("ollama:o"),
     );
     return [...baseModels, ...ollamaModelsNoThinking];
   }
-  
+
   return baseModels;
 }
-
-
-
