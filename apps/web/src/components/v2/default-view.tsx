@@ -140,7 +140,7 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-4xl space-y-6 p-4">
+        <div className="mx-auto max-w-4xl space-y-6 p-3 sm:p-4 md:p-6">
           <GitHubInstallationBanner />
           <ApiKeyBanner />
           <IssuesRequiredBanner />
@@ -246,3 +246,4 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
     </div>
   );
 }
+
