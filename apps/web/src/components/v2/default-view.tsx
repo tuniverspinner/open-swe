@@ -154,7 +154,7 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
             )}
             ref={dropRef}
           >
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <ContentBlocksPreview
                 blocks={contentBlocks}
                 onRemove={removeBlock}
@@ -246,5 +246,6 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
     </div>
   );
 }
+
 
 
