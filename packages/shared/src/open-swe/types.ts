@@ -505,7 +505,11 @@ export function getGraphConfigurationMetadata(config?: GraphConfig): {
       type: "hidden",
     },
   },
-};
+  };
+}
+
+// Static version for backward compatibility - uses default (non-local) mode
+export const GraphConfigurationMetadata = getGraphConfigurationMetadata();
 
 export const GraphConfiguration = z.object({
   /**
@@ -696,6 +700,7 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
 
 
 
