@@ -117,7 +117,7 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
   return (
     <div className="flex flex-1 flex-col">
       {/* Header */}
-      <div className="border-border bg-card border-b px-4 py-2">
+      <div className="border-border bg-card border-b px-3 sm:px-4 py-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <OpenSWELogoSVG
@@ -246,4 +246,5 @@ export function DefaultView({ threads, threadsLoading }: DefaultViewProps) {
     </div>
   );
 }
+
 
