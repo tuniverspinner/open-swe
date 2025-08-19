@@ -160,8 +160,10 @@ function AllThreadsPageContent() {
             />
           </div>
           <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-            <Filter className="text-muted-foreground h-4 w-4 hidden sm:block" />
-            <span className="text-muted-foreground mr-2 text-xs hidden sm:inline">Filter:</span>
+            <Filter className="text-muted-foreground hidden h-4 w-4 sm:block" />
+            <span className="text-muted-foreground mr-2 hidden text-xs sm:inline">
+              Filter:
+            </span>
             <div className="flex flex-wrap gap-1">
               {(
                 [
@@ -304,4 +306,3 @@ export default function AllThreadsPage() {
     </Suspense>
   );
 }
-
