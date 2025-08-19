@@ -6,7 +6,12 @@ import {
   messagesStateReducer,
   MessagesZodState,
 } from "@langchain/langgraph/web";
-import { MODEL_OPTIONS, MODEL_OPTIONS_NO_THINKING } from "./models.js";
+import { 
+  MODEL_OPTIONS, 
+  MODEL_OPTIONS_NO_THINKING, 
+  getAvailableModels, 
+  getAvailableModelsNoThinking 
+} from "./models.js";
 import { ConfigurableFieldUIMetadata } from "../configurable-metadata.js";
 import {
   uiMessageReducer,
@@ -690,3 +695,4 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
