@@ -388,68 +388,71 @@ export function ThreadView({
         </div>
       </div>
 
-      {/* Main Content - Split Layout */}
-      <div className="flex w-full pt-12">
-        <ManagerChat
-          messages={displayMessages}
-          chatInput={chatInput}
-          setChatInput={setChatInput}
-          handleSendMessage={handleSendMessage}
-          isLoading={stream.isLoading}
-          cancelRun={cancelRun}
-          errorState={errorState}
-          githubUser={user || undefined}
-        />
-        {/* Right Side - Actions & Plan */}
-        <div
-          className="flex flex-1 flex-col px-4 pt-4"
-          style={{ height: "calc(100vh - 3rem)" }}
-        >
-          <div className="min-h-0 flex-1">
-            <Tabs
-              defaultValue="planner"
-              className="flex h-full w-full flex-col"
-              value={selectedTab}
-              onValueChange={(value) =>
-                setSelectedTab(value as "planner" | "programmer")
-              }
-            >
-              <div className="flex flex-shrink-0 items-center gap-3">
-                <TabsList className="bg-muted/70">
-                  <TabsTrigger value="planner">Planner</TabsTrigger>
-                  <TabsTrigger value="programmer">Programmer</TabsTrigger>
-                </TabsList>
+      {/* Main Content - Responsive Layout */}
+      {isDesktop ? (
+        // Desktop: Split Layout
+        <div className="flex w-full pt-12">
+          <ManagerChat
+            messages={displayMessages}
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            handleSendMessage={handleSendMessage}
+            isLoading={stream.isLoading}
+            cancelRun={cancelRun}
+            errorState={errorState}
+            githubUser={user || undefined}
+            isMobile={false}
+          />
+          {/* Right Side - Actions & Plan */}
+          <div
+            className="flex flex-1 flex-col px-4 pt-4"
+            style={{ height: "calc(100vh - 3rem)" }}
+          >
+            <div className="min-h-0 flex-1">
+              <Tabs
+                defaultValue="planner"
+                className="flex h-full w-full flex-col"
+                value={selectedTab === "manager" ? "planner" : selectedTab}
+                onValueChange={(value) =>
+                  setSelectedTab(value as "planner" | "programmer")
+                }
+              >
+                <div className="flex flex-shrink-0 items-center gap-3">
+                  <TabsList className="bg-muted/70">
+                    <TabsTrigger value="planner">Planner</TabsTrigger>
+                    <TabsTrigger value="programmer">Programmer</TabsTrigger>
+                  </TabsList>
 
-                {programmerTaskPlan && (
-                  <ProgressBar
-                    taskPlan={programmerTaskPlan}
-                    onOpenSidebar={() => setIsTaskSidebarOpen(true)}
-                  />
-                )}
-
-                <div className="ml-auto flex items-center justify-center gap-2">
-                  {selectedTab === "planner" && plannerStream.isLoading && (
-                    <CancelStreamButton
-                      stream={plannerStream}
-                      threadId={plannerSession?.threadId}
-                      runId={plannerSession?.runId}
-                      streamName="Planner"
+                  {programmerTaskPlan && (
+                    <ProgressBar
+                      taskPlan={programmerTaskPlan}
+                      onOpenSidebar={() => setIsTaskSidebarOpen(true)}
                     />
                   )}
 
-                  {selectedTab === "programmer" &&
-                    programmerStream.isLoading && (
+                  <div className="ml-auto flex items-center justify-center gap-2">
+                    {selectedTab === "planner" && plannerStream.isLoading && (
                       <CancelStreamButton
-                        stream={programmerStream}
-                        threadId={programmerSession?.threadId}
-                        runId={programmerSession?.runId}
-                        streamName="Programmer"
+                        stream={plannerStream}
+                        threadId={plannerSession?.threadId}
+                        runId={plannerSession?.runId}
+                        streamName="Planner"
                       />
                     )}
-                  <TokenUsage
-                    tokenData={joinTokenData(
-                      plannerStream.values.tokenData,
-                      programmerStream.values.tokenData,
+
+                    {selectedTab === "programmer" &&
+                      programmerStream.isLoading && (
+                        <CancelStreamButton
+                          stream={programmerStream}
+                          threadId={programmerSession?.threadId}
+                          runId={programmerSession?.runId}
+                          streamName="Programmer"
+                        />
+                      )}
+                    <TokenUsage
+                      tokenData={joinTokenData(
+                        plannerStream.values.tokenData,
+                        programmerStream.values.tokenData,
                     )}
                   />
                 </div>
@@ -596,5 +599,6 @@ export function ThreadView({
     </div>
   );
 }
+
 
 
