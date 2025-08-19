@@ -1,3 +1,6 @@
+import { GraphConfig } from "./types.js";
+import { isLocalMode } from "./local-mode.js";
+
 export const MODEL_OPTIONS = [
   // TODO: Test these then re-enable
   // {
@@ -90,3 +93,4 @@ export const MODEL_OPTIONS_NO_THINKING = MODEL_OPTIONS.filter(
   ({ value }) =>
     !value.includes("extended-thinking") || !value.startsWith("openai:o"),
 );
+
