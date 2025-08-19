@@ -386,7 +386,7 @@ export function getGraphConfigurationMetadata(config?: GraphConfig): {
       default: "anthropic:claude-sonnet-4-0",
       description:
         "The model to use for reviewer tasks. This model should be very good at generating code, and have strong context understanding and reasoning capabilities. It will be used for the most complex tasks throughout the agent.",
-      options: MODEL_OPTIONS_NO_THINKING,
+      options: getAvailableModelsNoThinking(config),
     },
   },
   reviewerTemperature: {
@@ -696,6 +696,7 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
 
 
 
