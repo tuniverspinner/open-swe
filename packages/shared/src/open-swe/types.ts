@@ -309,13 +309,14 @@ export const GraphAnnotation = MessagesZodState.extend({
 export type GraphState = z.infer<typeof GraphAnnotation>;
 export type GraphUpdate = Partial<GraphState>;
 
-export const GraphConfigurationMetadata: {
+export function getGraphConfigurationMetadata(config?: GraphConfig): {
   [key: string]: {
     x_open_swe_ui_config:
       | Omit<ConfigurableFieldUIMetadata, "label">
       | { type: "hidden" };
   };
-} = {
+} {
+  return {
   maxContextActions: {
     x_open_swe_ui_config: {
       type: "number",
@@ -695,4 +696,5 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
 
