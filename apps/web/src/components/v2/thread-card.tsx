@@ -129,20 +129,20 @@ export function ThreadCard({
   return (
     <Card
       key={thread.id}
-      className="border-border bg-card hover:bg-muted/50 hover:shadow-primary/3 hover:border-primary/10 group cursor-pointer px-0 py-3 transition-all duration-200 hover:shadow-md"
+      className="border-border bg-card hover:bg-muted/50 hover:shadow-primary/3 hover:border-primary/10 group cursor-pointer px-3 sm:px-4 py-3 transition-all duration-200 hover:shadow-md"
       onClick={() => {
         router.push(`/chat/${thread.id}`);
       }}
     >
-      <CardHeader>
+      <CardHeader className="px-0">
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 overflow-hidden">
             <CardTitle className="text-foreground line-clamp-2 text-sm leading-tight">
               <InlineMarkdownText>{threadTitle}</InlineMarkdownText>
             </CardTitle>
-            <div className="mt-1 flex items-center gap-1">
-              <GitBranch className="text-muted-foreground h-2 w-2" />
-              <span className="text-muted-foreground truncate text-xs">
+            <div className="mt-1 flex items-center gap-1 max-w-full">
+              <GitBranch className="text-muted-foreground h-2 w-2 flex-shrink-0" />
+              <span className="text-muted-foreground truncate text-xs max-w-0 flex-1">
                 {thread.repository}
               </span>
             </div>
@@ -260,3 +260,4 @@ export function ThreadCardLoading() {
     </Card>
   );
 }
+
