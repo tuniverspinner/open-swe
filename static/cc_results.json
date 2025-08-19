@@ -236,7 +236,17 @@
       "tests": {
         "libs/langgraph/tests/test_prebuilt.py": ["test_no_prompt", "test_model_with_tools", "test_react_agent_with_structured_response", "test_tool_node_tool_call_input", "test_tool_node_node_interrupt"]
       },
-      "test_files": ["libs/langgraph/tests/test_prebuilt.py"]
+      "test_files": ["libs/langgraph/tests/test_prebuilt.py"],
+      "claudeCode": {
+        "branch_name": "langgraph-cc-3126",
+        "libs/langgraph/tests/test_prebuilt.py": [
+            {"test_no_prompt": "PASS"},
+            {"test_model_with_tools": "PASS"},
+            {"test_react_agent_with_structured_response": "FPASSAIL"},
+            {"test_tool_node_tool_call_input": "FAIL"},
+            {"test_tool_node_node_interrupt": "PASS"},
+        ]
+      }
     },
     {
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/3095",
