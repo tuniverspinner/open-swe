@@ -7,8 +7,6 @@ import {
   MessagesZodState,
 } from "@langchain/langgraph/web";
 import { 
-  MODEL_OPTIONS, 
-  MODEL_OPTIONS_NO_THINKING, 
   getAvailableModels, 
   getAvailableModelsNoThinking 
 } from "./models.js";
@@ -700,6 +698,7 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
 
 
 
