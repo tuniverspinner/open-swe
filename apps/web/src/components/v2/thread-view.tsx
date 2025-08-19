@@ -96,9 +96,10 @@ export function ThreadView({
   onBackToHome,
 }: ThreadViewProps) {
   const { user } = useUser();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const [chatInput, setChatInput] = useState("");
-  const [selectedTab, setSelectedTab] = useState<"planner" | "programmer">(
-    "planner",
+  const [selectedTab, setSelectedTab] = useState<"planner" | "programmer" | "manager">(
+    "manager",
   );
   const [plannerSession, setPlannerSession] =
     useState<ManagerGraphState["plannerSession"]>();
@@ -595,4 +596,5 @@ export function ThreadView({
     </div>
   );
 }
+
 
