@@ -83,6 +83,8 @@ const providerToApiKey = (
       return apiKeys.anthropicApiKey;
     case "google-genai":
       return apiKeys.googleApiKey;
+    case "ollama":
+      return ""; // Ollama typically doesn't require API keys for local usage
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -518,4 +520,5 @@ export function resetModelManager(): void {
     globalModelManager = null;
   }
 }
+
 
