@@ -293,6 +293,14 @@ export class ModelManager {
 
     // Add fallback models
     for (const provider of this.config.fallbackOrder) {
+      // Check if the user has an API key for this provider
+      if (!this.hasApiKeyForProvider(config, provider)) {
+        logger.debug(
+          `Skipping fallback provider ${provider} - no API key configured`,
+        );
+        continue;
+      }
+
       const fallbackModel = this.getDefaultModelForProvider(provider, task);
       if (
         fallbackModel &&
@@ -560,4 +568,5 @@ export function resetModelManager(): void {
     globalModelManager = null;
   }
 }
+
 
