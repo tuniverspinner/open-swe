@@ -77,6 +77,7 @@ interface ManagerChatProps {
     name: string | null;
     email: string | null;
   };
+  isMobile?: boolean;
 }
 
 function extractResponseFromMessage(message: Message): string {
@@ -286,3 +287,4 @@ export function ManagerChat({
     </div>
   );
 }
+
