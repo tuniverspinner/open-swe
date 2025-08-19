@@ -197,12 +197,27 @@ export class FallbackRunnable<
         );
         lastError = error instanceof Error ? error : new Error(String(error));
         this.modelManager.recordFailure(modelKey);
+        
+        // Mark if the primary model failed
+        if (i === 0) {
+          primaryModelFailed = true;
+        }
+
+        // If primary model failed and no fallbacks available, throw immediately with clear message
+        if (primaryModelFailed && modelConfigs.length === 1) {
+          throw new Error(
+            `Primary model failed for task ${this.task} and no fallback providers have API keys configured. Error: ${lastError?.message}`,
+          );
+        }
       }
     }
 
-    throw new Error(
-      `All fallback models exhausted for task ${this.task}. Last error: ${lastError?.message}`,
-    );
+    // Provide more descriptive error message based on the situation
+    const errorMessage = modelConfigs.length === 1
+      ? `Model failed for task ${this.task} with no fallback options available (no other providers have API keys configured). Error: ${lastError?.message}`
+      : `All ${modelConfigs.length} fallback models exhausted for task ${this.task}. Last error: ${lastError?.message}`;
+    
+    throw new Error(errorMessage);
   }
 
   bindTools(
@@ -299,4 +314,5 @@ export class FallbackRunnable<
     return null;
   }
 }
+
 
