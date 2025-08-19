@@ -405,7 +405,7 @@ export function getGraphConfigurationMetadata(config?: GraphConfig): {
       default: "anthropic:claude-3-5-haiku-latest",
       description:
         "The model to use for routing tasks, and other simple generations. This model should be good at tool calling/structured output.",
-      options: MODEL_OPTIONS,
+      options: getAvailableModels(config),
     },
   },
   routerTemperature: {
@@ -696,6 +696,7 @@ export interface AgentSession {
   threadId: string;
   runId: string;
 }
+
 
 
 
