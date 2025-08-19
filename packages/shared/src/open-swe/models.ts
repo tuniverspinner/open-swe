@@ -133,4 +133,37 @@ export const MODEL_OPTIONS_NO_THINKING = MODEL_OPTIONS.filter(
     !value.includes("extended-thinking") || !value.startsWith("openai:o"),
 );
 
+/**
+ * Get available models based on configuration
+ * Returns MODEL_OPTIONS plus OLLAMA_MODELS when in local mode, otherwise just MODEL_OPTIONS
+ */
+export function getAvailableModels(config?: GraphConfig) {
+  const baseModels = MODEL_OPTIONS;
+  
+  if (isLocalMode(config)) {
+    return [...baseModels, ...OLLAMA_MODELS];
+  }
+  
+  return baseModels;
+}
+
+/**
+ * Get available models (no thinking) based on configuration
+ * Returns filtered models plus OLLAMA_MODELS when in local mode, otherwise just filtered models
+ */
+export function getAvailableModelsNoThinking(config?: GraphConfig) {
+  const baseModels = MODEL_OPTIONS_NO_THINKING;
+  
+  if (isLocalMode(config)) {
+    // Filter out thinking models from Ollama models as well
+    const ollamaModelsNoThinking = OLLAMA_MODELS.filter(
+      ({ value }) => !value.includes("extended-thinking") && !value.startsWith("ollama:o")
+    );
+    return [...baseModels, ...ollamaModelsNoThinking];
+  }
+  
+  return baseModels;
+}
+
+
 
