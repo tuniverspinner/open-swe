@@ -99,7 +99,25 @@ export class FallbackRunnable<
       this.getPrimaryModel(),
     );
 
+    // Check if we have any fallback options available
+    if (modelConfigs.length === 0) {
+      throw new Error(
+        `No models available for task ${this.task}. No providers have valid API keys configured.`,
+      );
+    }
+
+    if (modelConfigs.length === 1) {
+      logger.info(
+        `No fallback providers available for task ${this.task} - only primary model has API key configured`,
+      );
+    } else {
+      logger.debug(
+        `${modelConfigs.length} models available for task ${this.task} (including fallbacks)`,
+      );
+    }
+
     let lastError: Error | undefined;
+    let primaryModelFailed = false;
 
     for (let i = 0; i < modelConfigs.length; i++) {
       const modelConfig = modelConfigs[i];
@@ -281,3 +299,4 @@ export class FallbackRunnable<
     return null;
   }
 }
+
