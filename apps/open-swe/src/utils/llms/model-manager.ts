@@ -402,6 +402,13 @@ export class ModelManager {
         [LLMTask.ROUTER]: "gpt-5-nano",
         [LLMTask.SUMMARIZER]: "gpt-5-mini",
       },
+      ollama: {
+        [LLMTask.PLANNER]: "qwen2.5-coder:32b",
+        [LLMTask.PROGRAMMER]: "qwen2.5-coder:32b",
+        [LLMTask.REVIEWER]: "qwen2.5-coder:14b",
+        [LLMTask.ROUTER]: "qwen2.5-coder:7b",
+        [LLMTask.SUMMARIZER]: "qwen2.5-coder:14b",
+      },
     };
 
     const modelName = defaultModels[provider][task];
@@ -520,5 +527,6 @@ export function resetModelManager(): void {
     globalModelManager = null;
   }
 }
+
 
 
