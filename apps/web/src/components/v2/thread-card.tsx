@@ -171,7 +171,7 @@ export function ThreadCard({
           </Badge>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-xs">
@@ -260,4 +260,5 @@ export function ThreadCardLoading() {
     </Card>
   );
 }
+
 
