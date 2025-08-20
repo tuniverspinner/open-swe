@@ -121,7 +121,6 @@ export async function openPullRequest(
     repoPath,
   );
   if (gitDiffRes.exitCode !== 0 || gitDiffRes.result.trim().length === 0) {
-    // no changed files - only return early if there's no existing PR to update
     const prForTask = getPullRequestNumberFromActiveTask(state.taskPlan);
     if (!prForTask) {
       const sandboxDeleted = await deleteSandbox(sandboxSessionId);
