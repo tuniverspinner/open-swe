@@ -53,26 +53,7 @@ function formatToolCallArgs(tool: ToolCall): string {
 
     case "edit_file": {
       const filePath = tool.args.file_path || "";
-      const oldString = tool.args.old_string || "";
-      const newString = tool.args.new_string || "";
-      
-      // Create a git-style diff display
-      const oldLines = oldString.split('\n');
-      const newLines = newString.split('\n');
-      
-      let diffDisplay = `${toolName}: ${filePath}`;
-      
-      // Add removed lines (red)
-      oldLines.forEach(line => {
-        diffDisplay += `\n    - ${line}`;
-      });
-      
-      // Add added lines (green) 
-      newLines.forEach(line => {
-        diffDisplay += `\n    + ${line}`;
-      });
-      
-      return diffDisplay;
+      return `${toolName}: ${filePath}`;
     }
 
     case "http_request": {
@@ -472,6 +453,36 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
                   const statusIcon = todo.status === "completed" ? "✓" : 
                                    todo.status === "in_progress" ? "→" : "○";
                   logs.push(`  ${statusIcon} ${todo.content}`);
+                });
+              }
+
+              // Special handling for edit_file to display the diff
+              if (tool.name === "edit_file" && tool.args) {
+                const oldString = tool.args.old_string || "";
+                const newString = tool.args.new_string || "";
+                
+                // Create a simple diff by comparing line by line
+                const oldLines = oldString.split('\n');
+                const newLines = newString.split('\n');
+                
+                // Find which lines were removed (in old but not in new)
+                const removedLines = oldLines.filter(oldLine => 
+                  !newLines.some(newLine => newLine.trim() === oldLine.trim())
+                );
+                
+                // Find which lines were added (in new but not in old)
+                const addedLines = newLines.filter(newLine => 
+                  !oldLines.some(oldLine => oldLine.trim() === newLine.trim())
+                );
+                
+                // Show removed lines
+                removedLines.forEach(line => {
+                  logs.push(`[REMOVED]    - ${line}`);
+                });
+                
+                // Show added lines
+                addedLines.forEach(line => {
+                  logs.push(`[ADDED]    + ${line}`);
                 });
               }
 

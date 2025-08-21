@@ -166,16 +166,15 @@ const App: React.FC = () => {
                 const isToolCall = log.startsWith("▸");
                 const isToolResult = log.startsWith("  ↳");
                 const isAIMessage = log.startsWith("◆");
-                const isRemovedLine = log.trim().startsWith("- ");
-                const isAddedLine = log.trim().startsWith("+ ");
+                const isRemovedLine = log.startsWith("[REMOVED]");
+                const isAddedLine = log.startsWith("[ADDED]");
                 
                 return (
                   <Box 
                     key={index} 
                     paddingLeft={isToolCall ? 1 : isToolResult ? 2 : 0}
-                    paddingX={isAIMessage ? 1 : 0}
-                    borderStyle={isAIMessage ? "round" : undefined}
-                    borderColor={isAIMessage ? "magenta" : undefined}
+                    width="100%"
+                    flexShrink={0}
                   >
                     <Text 
                       color={
@@ -186,8 +185,9 @@ const App: React.FC = () => {
                         undefined
                       } 
                       bold={isAIMessage}
+                      wrap="truncate"
                     >
-                      {log}
+                      {isRemovedLine ? log.replace("[REMOVED]", "") : isAddedLine ? log.replace("[ADDED]", "") : log}
                     </Text>
                   </Box>
                 );
