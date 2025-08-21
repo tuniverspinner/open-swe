@@ -216,12 +216,11 @@ const App: React.FC = () => {
           ) : (
             <CustomInput
               onSubmit={(value) => {
-                // Clear logs for new request
-                setLogs([]);
-                
                 if (!streamingService) {
                   // First message - create new session
                   setHasStartedChat(true);
+                  // Clear logs only for first message
+                  setLogs([]);
 
                   const newStreamingService = new StreamingService({
                     setLogs,
@@ -232,7 +231,8 @@ const App: React.FC = () => {
                   setStreamingService(newStreamingService);
                   newStreamingService.startNewSession(value);
                 } else {
-                  // Subsequent messages - submit to existing stream
+                  // If stream is active, submit to existing stream
+                  // If stream is not active, also submit to existing stream
                   streamingService.submitToExistingStream(value);
                 }
               }}

@@ -171,9 +171,7 @@ export class StreamingService {
       throw new Error("No active stream session. Start a new session first.");
     }
 
-    // Clear logs for new submission
-    this.rawLogs = [];
-    this.callbacks.setLogs(() => []);
+    // Don't clear logs - continue the conversation
     this.callbacks.setLoadingLogs(true);
 
     try {
