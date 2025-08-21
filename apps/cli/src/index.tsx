@@ -184,7 +184,7 @@ const App: React.FC = () => {
                       undefined
                     } 
                     bold={isAIMessage}
-                    wrap="truncate"
+                    wrap="wrap"
                   >
                     {isRemovedLine ? log.replace("[REMOVED]", "") : isAddedLine ? log.replace("[ADDED]", "") : log}
                   </Text>
