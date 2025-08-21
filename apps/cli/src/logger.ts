@@ -68,8 +68,9 @@ function formatToolCallArgs(tool: ToolCall): string {
     }
 
     case "grep": {
-      const query = tool.args.query || "";
-      return `${toolName}: "${query}"`;
+      const pattern = tool.args.pattern || "";
+      const path = tool.args.path || "";
+      return `${toolName}: "${pattern}"${path ? ` in ${path}` : ""}`;
     }
 
     case "glob": {
@@ -97,9 +98,7 @@ function formatToolCallArgs(tool: ToolCall): string {
           return `${toolName}: insert_line=${insertLine}, new_str="${newStr}"`;
         }
         case "str_replace": {
-          const oldStr = tool.args.old_str || "";
-          const newStr = tool.args.new_str || "";
-          return `${toolName}: old_str="${oldStr}", new_str="${newStr}"`;
+          return `${toolName}: string replacement`;
         }
         case "create": {
           const fileText = tool.args.file_text || "";
@@ -509,6 +508,38 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
                   if (lines.length > 10) {
                     logs.push(`[ADDED]    + ... (${lines.length - 10} more lines)`);
                   }
+                }
+              }
+
+              // Special handling for str_replace_based_edit_tool to display the diff
+              if (tool.name === "str_replace_based_edit_tool" && tool.args) {
+                const oldStr = tool.args.old_str || "";
+                const newStr = tool.args.new_str || "";
+                
+                if (oldStr && newStr) {
+                  // Create a simple diff by comparing line by line
+                  const oldLines = oldStr.split('\n');
+                  const newLines = newStr.split('\n');
+                  
+                  // Find which lines were removed (in old but not in new)
+                  const removedLines = oldLines.filter((oldLine: string) => 
+                    !newLines.some((newLine: string) => newLine.trim() === oldLine.trim())
+                  );
+                  
+                  // Find which lines were added (in new but not in old)
+                  const addedLines = newLines.filter((newLine: string) => 
+                    !oldLines.some((oldLine: string) => oldLine.trim() === newLine.trim())
+                  );
+                  
+                  // Show removed lines
+                  removedLines.forEach((line: string) => {
+                    logs.push(`[REMOVED]    - ${line}`);
+                  });
+                  
+                  // Show added lines
+                  addedLines.forEach((line: string) => {
+                    logs.push(`[ADDED]    + ${line}`);
+                  });
                 }
               }
 
