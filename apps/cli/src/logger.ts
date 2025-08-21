@@ -42,8 +42,8 @@ function formatToolCallArgs(tool: ToolCall): string {
     case "write_file": {
       const filePath = tool.args.file_path || "";
       const content = tool.args.content || "";
-      const contentPreview = content.length > 50 ? content.slice(0, 50) + "..." : content;
-      return `${toolName}: ${filePath} - "${contentPreview}"`;
+      const lineCount = content.split('\n').length;
+      return `${toolName}: ${filePath} (${lineCount} lines)`;
     }
 
     case "read_file": {
@@ -270,7 +270,12 @@ function formatToolResult(message: ToolMessage): string {
       return content;
 
     case "write_file":
-      return isError ? content : "File written successfully";
+      if (isError) return content;
+      
+      // For write_file, we want to show the diff in the result
+      // The diff display is handled in the tool call processing section
+      // So we just return a simple success message
+      return "File written successfully";
 
     case "read_file":
       const contentLength = content.length;
@@ -466,24 +471,45 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
                 const newLines = newString.split('\n');
                 
                 // Find which lines were removed (in old but not in new)
-                const removedLines = oldLines.filter(oldLine => 
-                  !newLines.some(newLine => newLine.trim() === oldLine.trim())
+                const removedLines = oldLines.filter((oldLine: string) => 
+                  !newLines.some((newLine: string) => newLine.trim() === oldLine.trim())
                 );
                 
                 // Find which lines were added (in new but not in old)
-                const addedLines = newLines.filter(newLine => 
-                  !oldLines.some(oldLine => oldLine.trim() === newLine.trim())
+                const addedLines = newLines.filter((newLine: string) => 
+                  !oldLines.some((oldLine: string) => oldLine.trim() === newLine.trim())
                 );
                 
                 // Show removed lines
-                removedLines.forEach(line => {
+                removedLines.forEach((line: string) => {
                   logs.push(`[REMOVED]    - ${line}`);
                 });
                 
                 // Show added lines
-                addedLines.forEach(line => {
+                addedLines.forEach((line: string) => {
                   logs.push(`[ADDED]    + ${line}`);
                 });
+              }
+
+              // Special handling for write_file to display the new content
+              if (tool.name === "write_file" && tool.args) {
+                const content = tool.args.content || "";
+                
+                if (content) {
+                  // Split content into lines and show first 10 lines
+                  const lines = content.split('\n');
+                  const linesToShow = lines.slice(0, 10);
+                  
+                  // Show the new content lines
+                  linesToShow.forEach((line: string) => {
+                    logs.push(`[ADDED]    + ${line}`);
+                  });
+                  
+                  // If there are more lines, show a truncation indicator
+                  if (lines.length > 10) {
+                    logs.push(`[ADDED]    + ... (${lines.length - 10} more lines)`);
+                  }
+                }
               }
 
               // Handle technical notes from tool call

@@ -18,12 +18,56 @@ export class StreamingService {
   private callbacks: StreamingCallbacks;
   private client: Client | null = null;
   private threadId: string | null = null;
+  private rawLogs: any[] = [];
 
   constructor(callbacks: StreamingCallbacks) {
     this.callbacks = callbacks;
   }
 
+  /**
+   * Get formatted logs for display
+   */
+  getFormattedLogs(): string[] {
+    const formattedLogs: string[] = [];
+    
+    for (const chunk of this.rawLogs) {
+      if (typeof chunk === "string") {
+        const formatted = formatDisplayLog(chunk);
+        formattedLogs.push(...formatted);
+      } else if (chunk.event === "updates") {
+        const formatted = formatDisplayLog(chunk);
+        formattedLogs.push(...formatted);
+      }
+    }
+    
+    return formattedLogs;
+  }
+
+  /**
+   * Update the display with formatted logs
+   */
+  private updateDisplay() {
+    const formattedLogs = this.getFormattedLogs();
+    this.callbacks.setLogs(() => formattedLogs);
+  }
+
+  /**
+   * Get raw logs for debugging purposes
+   */
+  getRawLogs(): any[] {
+    return [...this.rawLogs];
+  }
+
+  /**
+   * Clear all logs
+   */
+  clearLogs() {
+    this.rawLogs = [];
+    this.updateDisplay();
+  }
+
   async replayFromTrace(langsmithRun: any, playbackSpeed: number = 500) {
+    this.rawLogs = [];
     this.callbacks.setLogs(() => []);
     this.callbacks.setLoadingLogs(true);
 
@@ -43,14 +87,12 @@ export class StreamingService {
           }
         };
 
-        const formatted = formatDisplayLog(mockChunk);
-        if (formatted.length > 0) {
-          this.callbacks.setLogs((prev) => {
-            if (prev.length === 0) {
-              this.callbacks.setLoadingLogs(false);
-            }
-            return [...prev, ...formatted];
-          });
+        // Store raw chunk instead of formatting immediately
+        this.rawLogs.push(mockChunk);
+        this.updateDisplay();
+
+        if (this.rawLogs.length === 1) {
+          this.callbacks.setLoadingLogs(false);
         }
 
         // Add delay between messages to simulate streaming
@@ -61,10 +103,8 @@ export class StreamingService {
 
       this.callbacks.setStreamingPhase("done");
     } catch (err: any) {
-      this.callbacks.setLogs((prev) => [
-        ...prev,
-        `Error during replay: ${err.message}`,
-      ]);
+      this.rawLogs.push(`Error during replay: ${err.message}`);
+      this.updateDisplay();
       this.callbacks.setLoadingLogs(false);
     } finally {
       this.callbacks.setLoadingLogs(false);
@@ -72,6 +112,7 @@ export class StreamingService {
   }
 
   async startNewSession(prompt: string) {
+    this.rawLogs = [];
     this.callbacks.setLogs(() => []);
     this.callbacks.setLoadingLogs(true);
 
@@ -105,24 +146,20 @@ export class StreamingService {
       // Process the stream
       for await (const chunk of stream) {
         if (chunk.event === "updates") {
-          const formatted = formatDisplayLog(chunk);
-          if (formatted.length > 0) {
-            this.callbacks.setLogs((prev) => {
-              if (prev.length === 0) {
-                this.callbacks.setLoadingLogs(false);
-              }
-              return [...prev, ...formatted];
-            });
+          // Store raw chunk instead of formatting immediately
+          this.rawLogs.push(chunk);
+          this.updateDisplay();
+          
+          if (this.rawLogs.length === 1) {
+            this.callbacks.setLoadingLogs(false);
           }
         }
       }
 
       this.callbacks.setStreamingPhase("done");
     } catch (err: any) {
-      this.callbacks.setLogs((prev) => [
-        ...prev,
-        `Error during streaming: ${err.message}`,
-      ]);
+      this.rawLogs.push(`Error during streaming: ${err.message}`);
+      this.updateDisplay();
       this.callbacks.setLoadingLogs(false);
     } finally {
       this.callbacks.setLoadingLogs(false);
@@ -150,19 +187,16 @@ export class StreamingService {
       // Process the stream
       for await (const chunk of stream) {
         if (chunk.event === "updates") {
-          const formatted = formatDisplayLog(chunk);
-          if (formatted.length > 0) {
-            this.callbacks.setLogs((prev) => [...prev, ...formatted]);
-          }
+          // Store raw chunk instead of formatting immediately
+          this.rawLogs.push(chunk);
+          this.updateDisplay();
         }
       }
 
       this.callbacks.setStreamingPhase("done");
     } catch (err: any) {
-      this.callbacks.setLogs((prev) => [
-        ...prev,
-        `Error submitting to stream: ${err.message}`,
-      ]);
+      this.rawLogs.push(`Error submitting to stream: ${err.message}`);
+      this.updateDisplay();
     }
   }
 }
