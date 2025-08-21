@@ -125,6 +125,13 @@
             {"test_callable_in_conditional_edges_with_no_path_map": "PASS"},
             {"test_function_in_conditional_edges_with_no_path_map": "PASS"}
         ]
+      },
+      "open_swe_v2": {
+        "branch_name": "langgraph-cc-651",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_callable_in_conditional_edges_with_no_path_map": "PASS"},
+            {"test_function_in_conditional_edges_with_no_path_map": "PASS"}
+        ]
       }
     },
     {
