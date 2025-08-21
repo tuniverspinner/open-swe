@@ -5,6 +5,7 @@ import {
   OPEN_SWE_STREAM_MODE,
 } from "@open-swe/shared/constants";
 import { formatDisplayLog } from "./logger.js";
+import { config } from "process";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 
@@ -136,11 +137,10 @@ export class StreamingService {
         "coding",
         {
           input: { 
-            messages: [{ role: "user", content: prompt }],
-            targetPath: process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "",
+            messages: [{ role: "system", content: "You are working on " + (process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "") }, { role: "user", content: prompt }],
           },
           streamMode: ["updates",] as StreamMode[],
-        }
+        },
       );
 
       // Process the stream
@@ -171,6 +171,11 @@ export class StreamingService {
       throw new Error("No active stream session. Start a new session first.");
     }
 
+    // Clear logs for new submission
+    this.rawLogs = [];
+    this.callbacks.setLogs(() => []);
+    this.callbacks.setLoadingLogs(true);
+
     try {
       // Stream to existing thread using the same pattern
       const stream = await this.client.runs.stream(
@@ -190,6 +195,10 @@ export class StreamingService {
           // Store raw chunk instead of formatting immediately
           this.rawLogs.push(chunk);
           this.updateDisplay();
+          
+          if (this.rawLogs.length === 1) {
+            this.callbacks.setLoadingLogs(false);
+          }
         }
       }
 
@@ -197,6 +206,9 @@ export class StreamingService {
     } catch (err: any) {
       this.rawLogs.push(`Error submitting to stream: ${err.message}`);
       this.updateDisplay();
+      this.callbacks.setLoadingLogs(false);
+    } finally {
+      this.callbacks.setLoadingLogs(false);
     }
   }
 }

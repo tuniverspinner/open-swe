@@ -158,45 +158,45 @@ const App: React.FC = () => {
         </Box>
       ) : (
         <Box flexDirection="column" height={availableHeight} paddingX={2} paddingY={1} paddingBottom={3}>
-          {loadingLogs && logs.length === 0 ? (
-            <LoadingSpinner text="Starting session" />
-          ) : (
-            <Box flexDirection="column" height={availableHeight - 5} justifyContent="flex-end" overflow="hidden">
-              {logs.filter(log => log !== null && log !== undefined && typeof log === 'string').map((log, index) => {
-                const isToolCall = log.startsWith("▸");
-                const isToolResult = log.startsWith("  ↳");
-                const isAIMessage = log.startsWith("◆");
-                const isRemovedLine = log.startsWith("[REMOVED]");
-                const isAddedLine = log.startsWith("[ADDED]");
-                
-                return (
-                  <Box 
-                    key={index} 
-                    paddingLeft={isToolCall ? 1 : isToolResult ? 2 : 0}
-                    width="100%"
-                    flexShrink={0}
+          <Box flexDirection="column" height={availableHeight - 5} justifyContent="flex-end" overflow="hidden">
+            {logs.filter(log => log !== null && log !== undefined && typeof log === 'string').map((log, index) => {
+              const isToolCall = log.startsWith("▸");
+              const isToolResult = log.startsWith("  ↳");
+              const isAIMessage = log.startsWith("◆");
+              const isRemovedLine = log.startsWith("[REMOVED]");
+              const isAddedLine = log.startsWith("[ADDED]");
+              
+              return (
+                <Box 
+                  key={index} 
+                  paddingLeft={isToolCall ? 1 : isToolResult ? 2 : 0}
+                  width="100%"
+                  flexShrink={0}
+                >
+                  <Text 
+                    color={
+                      isAIMessage ? "magenta" : 
+                      isToolResult ? "gray" : 
+                      isRemovedLine ? "redBright" :
+                      isAddedLine ? "greenBright" :
+                      undefined
+                    } 
+                    bold={isAIMessage}
+                    wrap="truncate"
                   >
-                    <Text 
-                      color={
-                        isAIMessage ? "magenta" : 
-                        isToolResult ? "gray" : 
-                        isRemovedLine ? "redBright" :
-                        isAddedLine ? "greenBright" :
-                        undefined
-                      } 
-                      bold={isAIMessage}
-                      wrap="truncate"
-                    >
-                      {isRemovedLine ? log.replace("[REMOVED]", "") : isAddedLine ? log.replace("[ADDED]", "") : log}
-                    </Text>
-                  </Box>
-                );
-              })}
-              {loadingLogs && (
-                <LoadingSpinner text="Processing" />
-              )}
-            </Box>
-          )}
+                    {isRemovedLine ? log.replace("[REMOVED]", "") : isAddedLine ? log.replace("[ADDED]", "") : log}
+                  </Text>
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+      )}
+
+      {/* Cooking icon above input when loading */}
+      {loadingLogs && (
+        <Box paddingX={2} paddingY={1}>
+          <Text>🍳 Cooking...</Text>
         </Box>
       )}
 
@@ -216,6 +216,9 @@ const App: React.FC = () => {
           ) : (
             <CustomInput
               onSubmit={(value) => {
+                // Clear logs for new request
+                setLogs([]);
+                
                 if (!streamingService) {
                   // First message - create new session
                   setHasStartedChat(true);
