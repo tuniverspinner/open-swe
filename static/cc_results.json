@@ -205,9 +205,25 @@
         "libs/langgraph/tests/test_deprecation.py": [
             {"test_config_schema_deprecation": "FAIL"}
         ]
+      },
+      "open_swe_v2": {
+        "branch_name": "langgraph-cc-5243",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_context_json_schema": "FAIL"}
+        ],
+        "libs/langgraph/tests/test_runnable.py": [
+            {"test_runnable_callable_func_accepts": "PASS"}
+        ],
+        "libs/langgraph/tests/test_runtime.py": [
+            {"test_injected_runtime": "FAIL"},
+            {"test_context_runtime": "FAIL"}
+        ],
+        "libs/langgraph/tests/test_deprecation.py": [
+            {"test_config_schema_deprecation": "FAIL"}
+        ]
       }
     },
-    {
+    { D
       "url": "https://api.github.com/repos/langchain-ai/langgraph/pulls/4374",
       "html_url": "https://github.com/langchain-ai/langgraph/pull/4374",
       "diff_url": "https://github.com/langchain-ai/langgraph/pull/4374.diff",
