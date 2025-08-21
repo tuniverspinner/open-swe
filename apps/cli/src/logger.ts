@@ -55,7 +55,24 @@ function formatToolCallArgs(tool: ToolCall): string {
       const filePath = tool.args.file_path || "";
       const oldString = tool.args.old_string || "";
       const newString = tool.args.new_string || "";
-      return `${toolName}: ${filePath} - replace "${oldString}" with "${newString}"`;
+      
+      // Create a git-style diff display
+      const oldLines = oldString.split('\n');
+      const newLines = newString.split('\n');
+      
+      let diffDisplay = `${toolName}: ${filePath}`;
+      
+      // Add removed lines (red)
+      oldLines.forEach(line => {
+        diffDisplay += `\n    - ${line}`;
+      });
+      
+      // Add added lines (green) 
+      newLines.forEach(line => {
+        diffDisplay += `\n    + ${line}`;
+      });
+      
+      return diffDisplay;
     }
 
     case "http_request": {

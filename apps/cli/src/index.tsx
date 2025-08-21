@@ -7,13 +7,19 @@ import fs from "fs";
 import dotenv from "dotenv";
 dotenv.config();
 
+
+// Keep the process alive - prevents exit when streaming completes
+const keepAlive = setInterval(() => {}, 60000);
+
 // Handle graceful exit on Ctrl+C and Ctrl+K
 process.on("SIGINT", () => {
+  clearInterval(keepAlive);
   console.log("\n👋 Goodbye!");
   process.exit(0);
 });
 
 process.on("SIGTERM", () => {
+  clearInterval(keepAlive);
   console.log("\n👋 Goodbye!");
   process.exit(0);
 });
@@ -113,7 +119,6 @@ const App: React.FC = () => {
           setLogs,
           setStreamingPhase,
           setLoadingLogs,
-          targetPath: process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "",
         });
         
         setStreamingService(newStreamingService);
@@ -152,15 +157,17 @@ const App: React.FC = () => {
           </Box>
         </Box>
       ) : (
-        <Box flexDirection="column" height={availableHeight} paddingX={2} paddingY={1}>
+        <Box flexDirection="column" height={availableHeight} paddingX={2} paddingY={1} paddingBottom={3}>
           {loadingLogs && logs.length === 0 ? (
             <LoadingSpinner text="Starting session" />
           ) : (
-            <Box flexDirection="column" height={availableHeight - 2} justifyContent="flex-end">
-              {logs.map((log, index) => {
+            <Box flexDirection="column" height={availableHeight - 5} justifyContent="flex-end" overflow="hidden">
+              {logs.filter(log => log !== null && log !== undefined && typeof log === 'string').map((log, index) => {
                 const isToolCall = log.startsWith("▸");
                 const isToolResult = log.startsWith("  ↳");
                 const isAIMessage = log.startsWith("◆");
+                const isRemovedLine = log.trim().startsWith("- ");
+                const isAddedLine = log.trim().startsWith("+ ");
                 
                 return (
                   <Box 
@@ -170,7 +177,16 @@ const App: React.FC = () => {
                     borderStyle={isAIMessage ? "round" : undefined}
                     borderColor={isAIMessage ? "magenta" : undefined}
                   >
-                    <Text color={isAIMessage ? "magenta" : undefined} bold={isAIMessage}>
+                    <Text 
+                      color={
+                        isAIMessage ? "magenta" : 
+                        isToolResult ? "gray" : 
+                        isRemovedLine ? "redBright" :
+                        isAddedLine ? "greenBright" :
+                        undefined
+                      } 
+                      bold={isAIMessage}
+                    >
                       {log}
                     </Text>
                   </Box>
@@ -208,7 +224,6 @@ const App: React.FC = () => {
                     setLogs,
                     setStreamingPhase,
                     setLoadingLogs,
-                    targetPath: process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "",
                   });
 
                   setStreamingService(newStreamingService);
