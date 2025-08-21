@@ -149,6 +149,12 @@
         "libs/langgraph/tests/test_pregel.py": [
             {"test_remove_message_via_state_update": "PASS"}
         ]
+      },
+      "open_swe_v2": {
+        "branch_name": "langgraph-cc-651",
+        "libs/langgraph/tests/test_pregel.py": [
+            {"test_remove_message_via_state_update": "PASS"}
+        ]
       }
     },
     {
