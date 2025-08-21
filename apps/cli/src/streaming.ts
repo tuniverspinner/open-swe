@@ -1,118 +1,49 @@
 import { Client, StreamMode } from "@langchain/langgraph-sdk";
 import { v4 as uuidv4 } from "uuid";
 import {
-  MANAGER_GRAPH_ID,
   LOCAL_MODE_HEADER,
   OPEN_SWE_STREAM_MODE,
 } from "@open-swe/shared/constants";
 import { formatDisplayLog } from "./logger.js";
-import { isAgentInboxInterruptSchema } from "@open-swe/shared/agent-inbox-interrupt";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 
 interface StreamingCallbacks {
   setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
-  setPlannerThreadId: (id: string) => void; // eslint-disable-line no-unused-vars
-  setStreamingPhase: (phase: "streaming" | "awaitingFeedback" | "done") => void; // eslint-disable-line no-unused-vars
+  setStreamingPhase: (phase: "streaming" | "done") => void; // eslint-disable-line no-unused-vars
   setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
 }
 
 export class StreamingService {
   private callbacks: StreamingCallbacks;
+  private client: Client | null = null;
+  private threadId: string | null = null;
 
   constructor(callbacks: StreamingCallbacks) {
     this.callbacks = callbacks;
   }
 
-  private async handleProgrammerStream(
-    client: Client,
-    programmerThreadId: string,
-    programmerRunId: string,
-  ) {
-    for await (const programmerChunk of client.runs.joinStream(
-      programmerThreadId,
-      programmerRunId,
-      {
-        streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
-      },
-    )) {
-      if (programmerChunk.event === "updates") {
-        const formatted = formatDisplayLog(programmerChunk);
-        if (formatted.length > 0) {
-          this.callbacks.setLogs((prev) => [...prev, ...formatted]);
-        }
-      }
-    }
-  }
+  async replayFromTrace(langsmithRun: any, playbackSpeed: number = 500) {
+    this.callbacks.setLogs(() => []);
+    this.callbacks.setLoadingLogs(true);
 
-  private async handlePlannerStream(
-    client: Client,
-    plannerThreadId: string,
-    plannerRunId: string,
-  ): Promise<{ needsFeedback: boolean }> {
-    let programmerStreamed = false;
+    try {
+      const messages = langsmithRun.messages || [];
+      
+      for (let i = 0; i < messages.length; i++) {
+        const message = messages[i];
+        
+        // Convert LangSmith message to the format expected by formatDisplayLog
+        const mockChunk = {
+          event: "updates",
+          data: {
+            agent: {
+              messages: [message]
+            }
+          }
+        };
 
-    for await (const subChunk of client.runs.joinStream(
-      plannerThreadId,
-      plannerRunId,
-      {
-        streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
-      },
-    )) {
-      if (subChunk.event === "updates") {
-        const formatted = formatDisplayLog(subChunk);
-        // Filter out human messages from planner stream (already logged in manager)
-        const filteredFormatted = formatted.filter(
-          (log) => !log.startsWith("[HUMAN]"),
-        );
-        if (filteredFormatted.length > 0) {
-          this.callbacks.setLogs((prev) => [...prev, ...filteredFormatted]);
-        }
-      }
-
-      // Check for programmer session
-      if (
-        !programmerStreamed &&
-        subChunk.data?.programmerSession?.threadId &&
-        typeof subChunk.data.programmerSession.threadId === "string" &&
-        typeof subChunk.data.programmerSession.runId === "string"
-      ) {
-        programmerStreamed = true;
-        await this.handleProgrammerStream(
-          client,
-          subChunk.data.programmerSession.threadId,
-          subChunk.data.programmerSession.runId,
-        );
-      }
-
-      // Detect HumanInterrupt in planner stream
-      const interruptArr =
-        subChunk.data && Array.isArray(subChunk.data["__interrupt__"])
-          ? subChunk.data["__interrupt__"]
-          : undefined;
-      const firstInterruptValue =
-        interruptArr && interruptArr[0] && interruptArr[0].value
-          ? interruptArr[0].value
-          : undefined;
-
-      if (isAgentInboxInterruptSchema(firstInterruptValue)) {
-        return { needsFeedback: true };
-      }
-    }
-
-    return { needsFeedback: false };
-  }
-
-  private async startManagerStream(
-    client: Client,
-    threadId: string,
-    runId: string,
-  ) {
-    let plannerStreamed = false;
-
-    for await (const chunk of client.runs.joinStream(threadId, runId)) {
-      if (chunk.event === "updates") {
-        const formatted = formatDisplayLog(chunk);
+        const formatted = formatDisplayLog(mockChunk);
         if (formatted.length > 0) {
           this.callbacks.setLogs((prev) => {
             if (prev.length === 0) {
@@ -121,33 +52,23 @@ export class StreamingService {
             return [...prev, ...formatted];
           });
         }
-      }
 
-      // Check for plannerSession
-      if (
-        !plannerStreamed &&
-        chunk.data &&
-        chunk.data.plannerSession &&
-        typeof chunk.data.plannerSession.threadId === "string" &&
-        typeof chunk.data.plannerSession.runId === "string"
-      ) {
-        plannerStreamed = true;
-        this.callbacks.setPlannerThreadId(chunk.data.plannerSession.threadId);
-
-        const result = await this.handlePlannerStream(
-          client,
-          chunk.data.plannerSession.threadId,
-          chunk.data.plannerSession.runId,
-        );
-
-        if (result.needsFeedback) {
-          this.callbacks.setStreamingPhase("awaitingFeedback");
-          return; // Pause streaming, let React render feedback prompt
+        // Add delay between messages to simulate streaming
+        if (i < messages.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, playbackSpeed));
         }
       }
-    }
 
-    this.callbacks.setStreamingPhase("done");
+      this.callbacks.setStreamingPhase("done");
+    } catch (err: any) {
+      this.callbacks.setLogs((prev) => [
+        ...prev,
+        `Error during replay: ${err.message}`,
+      ]);
+      this.callbacks.setLoadingLogs(false);
+    } finally {
+      this.callbacks.setLoadingLogs(false);
+    }
   }
 
   async startNewSession(prompt: string) {
@@ -155,45 +76,48 @@ export class StreamingService {
     this.callbacks.setLoadingLogs(true);
 
     try {
-      const runInput = {
-        messages: [
-          {
-            id: uuidv4(),
-            type: "human",
-            content: [{ type: "text", text: prompt }],
-          },
-        ],
-        targetRepository: {
-          owner: "local",
-          repo: "local",
-          branch: "main",
-        },
-        autoAcceptPlan: false,
-      };
-
       const headers = {
         [LOCAL_MODE_HEADER]: "true",
       };
 
-      const newClient = new Client({
+      this.client = new Client({
         apiUrl: LANGGRAPH_URL,
         defaultHeaders: headers,
       });
 
-      const thread = await newClient.threads.create();
-      const threadId = thread.thread_id;
+      const thread = await this.client.threads.create();
+      console.log("thread", thread);
+      this.threadId = thread.thread_id;
 
-      const run = await newClient.runs.create(threadId, MANAGER_GRAPH_ID, {
-        input: runInput,
-        config: {
-          recursion_limit: 400,
-        },
-        ifNotExists: "create",
-        streamResumable: true,
-        streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
-      });
+      // Stream using the pattern from deep-agents
+      const stream = await this.client.runs.stream(
+        this.threadId,
+        "coding",
+        {
+          input: { 
+            messages: [{ role: "user", content: prompt }],
+            targetPath: process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "",
+          },
+          streamMode: ["updates",] as StreamMode[],
+        }
+      );
 
-      await this.startManagerStream(newClient, threadId, run.run_id);
+      // Process the stream
+      for await (const chunk of stream) {
+        if (chunk.event === "updates") {
+          const formatted = formatDisplayLog(chunk);
+          if (formatted.length > 0) {
+            this.callbacks.setLogs((prev) => {
+              if (prev.length === 0) {
+                this.callbacks.setLoadingLogs(false);
+              }
+              return [...prev, ...formatted];
+            });
+          }
+        }
+      }
+
+      this.callbacks.setStreamingPhase("done");
     } catch (err: any) {
       this.callbacks.setLogs((prev) => [
         ...prev,
@@ -202,6 +126,43 @@ export class StreamingService {
       this.callbacks.setLoadingLogs(false);
     } finally {
       this.callbacks.setLoadingLogs(false);
+    }
+  }
+
+  async submitToExistingStream(prompt: string) {
+    if (!this.client || !this.threadId) {
+      throw new Error("No active stream session. Start a new session first.");
+    }
+
+    try {
+      // Stream to existing thread using the same pattern
+      const stream = await this.client.runs.stream(
+        this.threadId,
+        "coding",
+        {
+          input: { 
+            messages: [{ role: "user", content: prompt }]
+          },
+          streamMode: ["updates"] as StreamMode[],
+        }
+      );
+
+      // Process the stream
+      for await (const chunk of stream) {
+        if (chunk.event === "updates") {
+          const formatted = formatDisplayLog(chunk);
+          if (formatted.length > 0) {
+            this.callbacks.setLogs((prev) => [...prev, ...formatted]);
+          }
+        }
+      }
+
+      this.callbacks.setStreamingPhase("done");
+    } catch (err: any) {
+      this.callbacks.setLogs((prev) => [
+        ...prev,
+        `Error submitting to stream: ${err.message}`,
+      ]);
     }
   }
 }

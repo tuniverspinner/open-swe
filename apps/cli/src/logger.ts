@@ -31,11 +31,42 @@ function formatToolCallArgs(tool: ToolCall): string {
   if (!tool.args) return toolName;
 
   switch (toolName.toLowerCase()) {
-    case "shell": {
+    case "shell":
+    case "execute_bash": {
       if (Array.isArray(tool.args.command)) {
         return `${toolName}: ${tool.args.command.join(" ")}`;
       }
       return `${toolName}: ${tool.args.command || ""}`;
+    }
+
+    case "write_file": {
+      const filePath = tool.args.file_path || "";
+      const content = tool.args.content || "";
+      const contentPreview = content.length > 50 ? content.slice(0, 50) + "..." : content;
+      return `${toolName}: ${filePath} - "${contentPreview}"`;
+    }
+
+    case "read_file": {
+      const filePath = tool.args.file_path || "";
+      return `${toolName}: ${filePath}`;
+    }
+
+    case "edit_file": {
+      const filePath = tool.args.file_path || "";
+      const oldString = tool.args.old_string || "";
+      const newString = tool.args.new_string || "";
+      return `${toolName}: ${filePath} - replace "${oldString}" with "${newString}"`;
+    }
+
+    case "http_request": {
+      const method = tool.args.method || "GET";
+      const url = tool.args.url || "";
+      return `${toolName}: ${method} ${url}`;
+    }
+
+    case "web_search": {
+      const query = tool.args.query || "";
+      return `${toolName}: "${query}"`;
     }
 
     case "grep": {
@@ -43,8 +74,19 @@ function formatToolCallArgs(tool: ToolCall): string {
       return `${toolName}: "${query}"`;
     }
 
+    case "glob": {
+      const pattern = tool.args.pattern || "";
+      const path = tool.args.path || "";
+      return `${toolName}: ${pattern}${path ? ` in ${path}` : ""}`;
+    }
+
     case "view": {
       return `${toolName}: ${tool.args.path || ""}`;
+    }
+
+    case "ls": {
+      const path = tool.args.path || "";
+      return `${toolName}: ${path}`;
     }
 
     case "str_replace_based_edit_tool": {
@@ -167,6 +209,22 @@ function formatToolCallArgs(tool: ToolCall): string {
       return `${toolName}: ${notes.slice(0, 50)}...`;
     }
 
+    case "write_todos": {
+      const todos = tool.args.todos || [];
+      if (Array.isArray(todos)) {
+        const todoCount = todos.length;
+        const statusCounts = todos.reduce((acc: any, todo: any) => {
+          acc[todo.status] = (acc[todo.status] || 0) + 1;
+          return acc;
+        }, {});
+        const statusSummary = Object.entries(statusCounts)
+          .map(([status, count]) => `${count} ${status}`)
+          .join(", ");
+        return `${toolName}: Updated ${todoCount} todos (${statusSummary})`;
+      }
+      return `${toolName}: Updated todos`;
+    }
+
     case "summarize_conversation_history": {
       const reasoning = tool.args.reasoning || "";
       return `${toolName}: ${reasoning.slice(0, 50)}...`;
@@ -188,7 +246,10 @@ function formatToolCallArgs(tool: ToolCall): string {
       return `${toolName}: ${started ? "started" : "not started"}`;
     }
   }
-  return "";
+  
+  // Fallback for unrecognized tools
+  const args = tool.args ? Object.keys(tool.args).map(key => `${key}=${tool.args[key]}`).join(", ") : "";
+  return `${toolName}${args ? `: ${args}` : ""}`;
 }
 
 /**
@@ -207,7 +268,40 @@ function formatToolResult(message: ToolMessage): string {
 
   switch (toolName.toLowerCase()) {
     case "shell":
+    case "execute_bash":
       return content;
+
+    case "write_file":
+      return isError ? content : "File written successfully";
+
+    case "read_file":
+      const contentLength = content.length;
+      return `${contentLength} characters`;
+
+    case "edit_file":
+      return isError ? content : "File edited successfully";
+
+    case "http_request": {
+      try {
+        const result = JSON.parse(content);
+        return `HTTP ${result.status_code || 'unknown'}: ${result.success ? 'Success' : 'Failed'}`;
+      } catch {
+        return content.length > 100 ? content.slice(0, 100) + "..." : content;
+      }
+    }
+
+    case "web_search": {
+      try {
+        const result = JSON.parse(content);
+        if (result.error) {
+          return `Search error: ${result.error}`;
+        }
+        const results = result.results || [];
+        return `${results.length} search results found`;
+      } catch {
+        return content.length > 100 ? content.slice(0, 100) + "..." : content;
+      }
+    }
 
     case "grep": {
       if (content.includes("Exit code 1. No results found.")) {
@@ -219,9 +313,7 @@ function formatToolResult(message: ToolMessage): string {
 
     case "view": {
       const contentLength = content.length;
-      return contentLength > 1000
-        ? `${contentLength} characters (truncated)`
-        : `${contentLength} characters`;
+      return `${contentLength} characters`;
     }
 
     case "str_replace_based_edit_tool":
@@ -243,6 +335,23 @@ function formatToolResult(message: ToolMessage): string {
       } catch {
         return content;
       }
+
+    case "write_todos":
+      if (content.includes("Updated todo list")) {
+        return "Todo list updated successfully";
+      }
+      return content.length > 100 ? content.slice(0, 100) + "..." : content;
+
+    case "ls":
+      try {
+        const items = JSON.parse(content);
+        if (Array.isArray(items)) {
+          return `${items.length} items: ${items.slice(0, 8).join(", ")}${items.length > 8 ? "..." : ""}`;
+        }
+      } catch {
+        // fallthrough to default
+      }
+      return content.length > 100 ? content.slice(0, 100) + "..." : content;
 
     default:
       return content.length > 200 ? content.slice(0, 200) + "..." : content;
@@ -278,24 +387,11 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
     }
     // Single line system messages
     const cleanChunk = chunk.replace(/\s+/g, " ").trim();
-    const maxLength = 150;
-    const truncated =
-      cleanChunk.length > maxLength
-        ? cleanChunk.slice(0, maxLength) + "... [trunc]"
-        : cleanChunk;
-    return [`[SYSTEM] ${truncated}`];
+    return [`[SYSTEM] ${cleanChunk}`];
   }
 
   const data = chunk.data;
   const logs: string[] = [];
-
-  // Handle session events
-  if (data.plannerSession) {
-    logs.push("[PLANNER SESSION STARTED]");
-  }
-  if (data.programmerSession) {
-    logs.push("[PROGRAMMER SESSION STARTED]");
-  }
 
   // Handle messages
   const nestedDataObj = Object.values(data)[0] as unknown as Record<
@@ -317,16 +413,17 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         // Handle tool messages
         if (isToolMessage(message)) {
           const toolName = message.name || "tool";
+          
+          // Skip displaying results for todo list tool calls
+          if (toolName === "write_todos") {
+            continue;
+          }
+          
           const result = formatToolResult(message);
           if (result) {
-            // Concatenate long tool results to a single line (truncate if too long)
-            const maxLength = 500;
+            // Display tool results as indented subsections
             let formattedResult = result.replace(/\s+/g, " ");
-            if (formattedResult.length > maxLength) {
-              formattedResult =
-                formattedResult.slice(0, maxLength) + "... [trunc]";
-            }
-            logs.push(`[TOOL RESULT] ${toolName}: ${formattedResult}`);
+            logs.push(`  ↳ ${formattedResult}`);
           }
           continue;
         }
@@ -338,12 +435,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
             const reasoning = String(message.additional_kwargs.reasoning)
               .replace(/\s+/g, " ")
               .trim();
-            const maxLength = 150;
-            const truncated =
-              reasoning.length > maxLength
-                ? reasoning.slice(0, maxLength) + "... [trunc]"
-                : reasoning;
-            logs.push(`[REASONING] ${truncated}`);
+            logs.push(`[REASONING] ${reasoning}`);
           }
 
           // Handle tool calls
@@ -353,7 +445,18 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
 
             message.tool_calls.forEach((tool) => {
               const formattedArgs = formatToolCallArgs(tool);
-              logs.push(`[TOOL CALL] ${formattedArgs}`);
+              logs.push(`▸ ${formattedArgs}`);
+
+              // Special handling for write_todos to display the actual todos nicely
+              if (tool.name === "write_todos" && tool.args && tool.args.todos && Array.isArray(tool.args.todos)) {
+                const todos = tool.args.todos;
+                logs.push(""); // blank line before todos
+                todos.forEach((todo: any, index: number) => {
+                  const statusIcon = todo.status === "completed" ? "✓" : 
+                                   todo.status === "in_progress" ? "→" : "○";
+                  logs.push(`  ${statusIcon} ${todo.content}`);
+                });
+              }
 
               // Handle technical notes from tool call
               if (
@@ -376,14 +479,9 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           // Handle regular AI messages
           const text = getMessageContentString(message.content);
           if (text) {
-            // Always single line, remove newlines and truncate
+            // Always single line, remove newlines
             const cleanText = text.replace(/\s+/g, " ").trim();
-            const maxLength = 200;
-            const truncated =
-              cleanText.length > maxLength
-                ? cleanText.slice(0, maxLength) + "... [trunc]"
-                : cleanText;
-            logs.push(`[AI] ${truncated}`);
+            logs.push(`◆ ${cleanText}`);
           }
         }
 
@@ -393,12 +491,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           if (text) {
             // Single line human messages
             const cleanText = text.replace(/\s+/g, " ").trim();
-            const maxLength = 150;
-            const truncated =
-              cleanText.length > maxLength
-                ? cleanText.slice(0, maxLength) + "... [trunc]"
-                : cleanText;
-            logs.push(`[HUMAN] ${truncated}`);
+            logs.push(`◉ ${cleanText}`);
           }
         }
       } catch (error: any) {
@@ -406,31 +499,27 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         // Fallback to original message if conversion fails
         if (msg.type === "tool") {
           const toolName = msg.name || "tool";
-          const content = getMessageContentString(msg.content);
-          if (content) {
-            logs.push(`[TOOL RESULT] ${toolName}: ${content}`);
+          
+          // Skip displaying results for todo list tool calls
+          if (toolName === "write_todos") {
+            // Skip this tool result
+          } else {
+            const content = getMessageContentString(msg.content);
+            if (content) {
+              logs.push(`  ↳ ${content}`);
+            }
           }
         } else if (msg.type === "ai") {
           const text = getMessageContentString(msg.content);
           if (text) {
             const cleanText = text.replace(/\s+/g, " ").trim();
-            const maxLength = 200;
-            const truncated =
-              cleanText.length > maxLength
-                ? cleanText.slice(0, maxLength) + "... [trunc]"
-                : cleanText;
-            logs.push(`[AI] ${truncated}`);
+            logs.push(`◆ ${cleanText}`);
           }
         } else if (msg.type === "human") {
           const text = getMessageContentString(msg.content);
           if (text) {
             const cleanText = text.replace(/\s+/g, " ").trim();
-            const maxLength = 150;
-            const truncated =
-              cleanText.length > maxLength
-                ? cleanText.slice(0, maxLength) + "... [trunc]"
-                : cleanText;
-            logs.push(`[HUMAN] ${truncated}`);
+            logs.push(`◉ ${cleanText}`);
           }
         }
       }
@@ -469,6 +558,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
       );
     }
   }
+  
   return logs;
 }
 
