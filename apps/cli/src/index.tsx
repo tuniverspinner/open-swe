@@ -165,6 +165,7 @@ const App: React.FC = () => {
               const isAIMessage = log.startsWith("◆");
               const isRemovedLine = log.startsWith("[REMOVED]");
               const isAddedLine = log.startsWith("[ADDED]");
+              const isLongBashCommand = isToolCall && (log.includes("execute_bash:") || log.includes("shell:")) && log.includes("...");
               
               return (
                 <Box 
@@ -179,6 +180,7 @@ const App: React.FC = () => {
                       isToolResult ? "gray" : 
                       isRemovedLine ? "redBright" :
                       isAddedLine ? "greenBright" :
+                      isLongBashCommand ? "gray" :
                       undefined
                     } 
                     bold={isAIMessage}

@@ -33,10 +33,18 @@ function formatToolCallArgs(tool: ToolCall): string {
   switch (toolName.toLowerCase()) {
     case "shell":
     case "execute_bash": {
+      let command = "";
       if (Array.isArray(tool.args.command)) {
-        return `${toolName}: ${tool.args.command.join(" ")}`;
+        command = tool.args.command.join(" ");
+      } else {
+        command = tool.args.command || "";
       }
-      return `${toolName}: ${tool.args.command || ""}`;
+      
+      // Truncate long commands (more than 160 characters)
+      if (command.length > 160) {
+        return `${toolName}: ${command.substring(0, 160)}...`;
+      }
+      return `${toolName}: ${command}`;
     }
 
     case "write_file": {
@@ -265,8 +273,20 @@ function formatToolResult(message: ToolMessage): string {
 
   switch (toolName.toLowerCase()) {
     case "shell":
-    case "execute_bash":
-      return content;
+    case "execute_bash": {
+      try {
+        const result = JSON.parse(content);
+        if (!result.success && result.stderr) {
+          return result.stderr;
+        }
+        if (result.success && result.stdout) {
+          return result.stdout;
+        }
+        return content;
+      } catch {
+        return content;
+      }
+    }
 
     case "write_file":
       if (isError) return content;
