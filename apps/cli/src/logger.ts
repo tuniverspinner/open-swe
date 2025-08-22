@@ -213,9 +213,6 @@ function formatToolResult(message: ToolMessage): string {
     case "write_file":
       if (isError) return content;
 
-      // For write_file, we want to show the diff in the result
-      // The diff display is handled in the tool call processing section
-      // So we just return a simple success message
       return "File written successfully";
 
     case "read_file": {
