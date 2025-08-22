@@ -3,7 +3,7 @@ from typing import Dict, Set, NotRequired
 from typing_extensions import TypedDict
 import os
 import hashlib
-from .constants import FILE_EDIT_COMMANDS
+from constants import FILE_EDIT_COMMANDS
 
 class CodingAgentState(DeepAgentState):
     """Extended state for coding agent with approval operation caching."""
