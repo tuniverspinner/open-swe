@@ -164,8 +164,6 @@ export class StreamingService {
     this.callbacks.setLoadingLogs(true);
 
     try {
-      // Submit the response using Command resume pattern
-      // Can be boolean (true/false) for approval/rejection or string for custom instructions
       const stream = await this.client.runs.stream(this.threadId, "coding", {
         command: { resume: response },
         streamMode: ["updates"] as StreamMode[],
@@ -252,7 +250,6 @@ export class StreamingService {
         }
       }
 
-      this.callbacks.setStreamingPhase("done");
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       this.rawLogs.push(`Error submitting to stream: ${errorMessage}`);
