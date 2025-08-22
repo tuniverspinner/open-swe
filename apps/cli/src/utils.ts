@@ -46,17 +46,21 @@ export async function submitFeedback({
     }
 
     // Create a new stream with the feedback
-    const stream = await client.runs.stream(plannerThreadId, OPEN_SWE_V2_GRAPH_ID, {
-      command: {
-        resume: [
-          {
-            type: plannerFeedback === "approve" ? "accept" : "ignore",
-            args: null,
-          },
-        ],
+    const stream = await client.runs.stream(
+      plannerThreadId,
+      OPEN_SWE_V2_GRAPH_ID,
+      {
+        command: {
+          resume: [
+            {
+              type: plannerFeedback === "approve" ? "accept" : "ignore",
+              args: null,
+            },
+          ],
+        },
+        streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
       },
-      streamMode: OPEN_SWE_STREAM_MODE as StreamMode[],
-    });
+    );
 
     // Process the stream response
     for await (const chunk of stream) {
