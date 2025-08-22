@@ -25,6 +25,7 @@ process.on("SIGTERM", () => {
 });
 
 import { StreamingService } from "./streaming.js";
+import { TraceReplayService } from "./trace_replay.js";
 
 // Parse command line arguments with Commander
 const program = new Command();
@@ -121,15 +122,14 @@ const App: React.FC = () => {
         const traceData = JSON.parse(fs.readFileSync(replayFile, 'utf8'));
         setHasStartedChat(true);
         
-        const newStreamingService = new StreamingService({
+        const traceReplayService = new TraceReplayService({
           setLogs,
-          setStreamingPhase,
           setLoadingLogs,
-          setCurrentInterrupt,
         });
         
-        setStreamingService(newStreamingService);
-        newStreamingService.replayFromTrace(traceData, playbackSpeed);
+        traceReplayService.replayFromTrace(traceData, playbackSpeed).then(() => {
+          setStreamingPhase("done");
+        });
       } catch (err: any) {
         console.error('Error loading replay file:', err.message);
         process.exit(1);

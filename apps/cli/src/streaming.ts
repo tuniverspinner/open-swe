@@ -84,61 +84,6 @@ export class StreamingService {
     this.updateDisplay();
   }
 
-  async replayFromTrace(langsmithRun: any, playbackSpeed: number = 500) {
-    this.rawLogs = [];
-    this.callbacks.setLogs(() => []);
-    this.callbacks.setLoadingLogs(true);
-
-    try {
-      const messages = langsmithRun.messages || [];
-      
-      for (let i = 0; i < messages.length; i++) {
-        const message = messages[i];
-        
-        // Convert LangSmith message to the format expected by formatDisplayLog
-        const mockChunk = {
-          event: "updates",
-          data: {
-            agent: {
-              messages: [message]
-            }
-          }
-        };
-        this.rawLogs.push(mockChunk);
-        this.updateDisplay();
-
-        if (this.rawLogs.length === 1) {
-          this.callbacks.setLoadingLogs(false);
-        }
-
-        // Add delay between messages to simulate streaming
-        if (i < messages.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, playbackSpeed));
-        }
-      }
-
-      // Check for interrupt data in the trace and add it at the end
-      if (langsmithRun.__interrupt__ || langsmithRun.interrupt) {
-        const interruptData = langsmithRun.__interrupt__ || langsmithRun.interrupt;
-        const interruptChunk = {
-          event: "interrupt",
-          data: {
-            __interrupt__: Array.isArray(interruptData) ? interruptData : [interruptData]
-          }
-        };
-        this.rawLogs.push(interruptChunk);
-        this.updateDisplay();
-      }
-
-      this.callbacks.setStreamingPhase("done");
-    } catch (err: any) {
-      this.rawLogs.push(`Error during replay: ${err.message}`);
-      this.updateDisplay();
-      this.callbacks.setLoadingLogs(false);
-    } finally {
-      this.callbacks.setLoadingLogs(false);
-    }
-  }
 
   async startNewSession(prompt: string) {
     this.rawLogs = [];
@@ -156,7 +101,6 @@ export class StreamingService {
       });
 
       const thread = await this.client.threads.create();
-      console.log("thread", thread);
       this.threadId = thread.thread_id;
 
       // Stream using the pattern from deep-agents
