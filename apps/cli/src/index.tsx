@@ -264,6 +264,7 @@ const App: React.FC = () => {
                     setLogs,
                     setLoadingLogs,
                     setCurrentInterrupt,
+                    setStreamingPhase: () => {},
                   });
 
                   setStreamingService(newStreamingService);

@@ -36,6 +36,7 @@ interface StreamingCallbacks {
   setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
   setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
   setCurrentInterrupt: (interrupt: InterruptData | null) => void; // eslint-disable-line no-unused-vars
+  setStreamingPhase: (phase: string) => void; // eslint-disable-line no-unused-vars
 }
 
 export class StreamingService {
@@ -249,7 +250,6 @@ export class StreamingService {
           }
         }
       }
-
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       this.rawLogs.push(`Error submitting to stream: ${errorMessage}`);

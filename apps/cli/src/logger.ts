@@ -177,6 +177,8 @@ function formatToolCallArgs(tool: ToolCall): string {
       return `${toolName}: Updated todos`;
     }
   }
+
+  return toolName;
 }
 
 /**
@@ -287,6 +289,10 @@ function formatToolResult(message: ToolMessage): string {
 }
 
 export function formatDisplayLog(chunk: LogChunk | string): string[] {
+  if (typeof chunk === "string") {
+    return [chunk];
+  }
+
   const data = chunk.data;
   const logs: string[] = [];
 
