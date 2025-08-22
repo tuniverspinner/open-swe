@@ -235,22 +235,7 @@ const App: React.FC = () => {
               onSubmit={(value) => {
                 // Handle interrupt approval responses
                 if (currentInterrupt && streamingService) {
-                  if (
-                    value.toLowerCase().trim() === "yes" ||
-                    value.toLowerCase().trim() === "y" ||
-                    value.toLowerCase().trim() === "true"
-                  ) {
-                    streamingService.submitInterruptResponse(true);
-                  } else if (
-                    value.toLowerCase().trim() === "no" ||
-                    value.toLowerCase().trim() === "n" ||
-                    value.toLowerCase().trim() === "false"
-                  ) {
-                    streamingService.submitInterruptResponse(false);
-                  } else {
-                    // Treat as custom instruction - pass the raw string
-                    streamingService.submitInterruptResponse(value);
-                  }
+                  streamingService.submitInterruptResponse(value);
                   return;
                 }
 
