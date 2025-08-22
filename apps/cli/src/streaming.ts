@@ -70,21 +70,8 @@ export class StreamingService {
   }
 
   /**
-   * Get raw logs for debugging purposes
+   * Start a new session
    */
-  getRawLogs(): any[] {
-    return [...this.rawLogs];
-  }
-
-  /**
-   * Clear all logs
-   */
-  clearLogs() {
-    this.rawLogs = [];
-    this.updateDisplay();
-  }
-
-
   async startNewSession(prompt: string) {
     this.rawLogs = [];
     this.callbacks.setLogs(() => []);
