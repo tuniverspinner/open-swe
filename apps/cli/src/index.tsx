@@ -170,8 +170,8 @@ const App: React.FC = () => {
               const isToolCall = log.startsWith("▸");
               const isToolResult = log.startsWith("  ↳");
               const isAIMessage = log.startsWith("◆");
-              const isRemovedLine = log.startsWith("[REMOVED]");
-              const isAddedLine = log.startsWith("[ADDED]");
+              const isRemovedLine = log.startsWith("- ");
+              const isAddedLine = log.startsWith("+ ");
               const isLongBashCommand = isToolCall && (log.includes("execute_bash:") || log.includes("shell:")) && log.includes("...");
               
               return (
@@ -193,7 +193,7 @@ const App: React.FC = () => {
                     bold={isAIMessage}
                     wrap="wrap"
                   >
-                    {isRemovedLine ? log.replace("[REMOVED]", "") : isAddedLine ? log.replace("[ADDED]", "") : log}
+                    {log}
                   </Text>
                 </Box>
               );

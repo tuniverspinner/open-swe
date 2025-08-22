@@ -23,6 +23,43 @@ interface LogChunk {
 }
 
 /**
+ * Create a simple diff between old and new strings
+ */
+function createSimpleDiff(oldString: string, newString: string): string[] {
+  const logs: string[] = [];
+  
+  if (!oldString && newString) {
+    const lines = newString.split('\n').slice(0, 10);
+    lines.forEach(line => logs.push(`+ ${line}`));
+    if (newString.split('\n').length > 10) {
+      logs.push(`+ ... (${newString.split('\n').length - 10} more lines)`);
+    }
+    return logs;
+  }
+  
+  if (!newString) {
+    oldString.split('\n').forEach(line => logs.push(`- ${line}`));
+    return logs;
+  }
+  
+  const oldLines = oldString.split('\n');
+  const newLines = newString.split('\n');
+  
+  const removedLines = oldLines.filter(oldLine => 
+    !newLines.some(newLine => newLine === oldLine)
+  );
+  
+  const addedLines = newLines.filter(newLine => 
+    !oldLines.some(oldLine => oldLine === newLine)
+  );
+  
+  removedLines.forEach(line => logs.push(`- ${line}`));
+  addedLines.forEach(line => logs.push(`+ ${line}`));
+  
+  return logs;
+}
+
+/**
  * Format a tool call arguments into a clean, readable string
  */
 function formatToolCallArgs(tool: ToolCall): string {
@@ -124,96 +161,6 @@ function formatToolCallArgs(tool: ToolCall): string {
       }
     }
 
-    case "search_documents_for": {
-      const query = tool.args.query || "";
-      const url = tool.args.url || "";
-      return `${toolName}: "${query}" in ${url}`;
-    }
-
-    case "get_url_content": {
-      return `${toolName}: ${tool.args.url || ""}`;
-    }
-
-    case "session_plan": {
-      const title = tool.args.title || "";
-      const planSteps = tool.args.plan || [];
-      if (title) {
-        return `${toolName}: "${title}" (${planSteps.length} steps)`;
-      }
-      return `${toolName}: ${planSteps.length} plan steps`;
-    }
-
-    case "apply_patch": {
-      const filePath = tool.args.file_path || "";
-      const diff = tool.args.diff || "";
-      const diffLines = diff.split("\n").length;
-      return `${toolName}: applied ${diffLines} line diff to ${filePath}`;
-    }
-
-    case "install_dependencies": {
-      const command = tool.args.command || [];
-      if (Array.isArray(command)) {
-        return `${toolName}: ${command.join(" ")}`;
-      }
-      return `${toolName}: ${command}`;
-    }
-
-    case "scratchpad": {
-      const scratchpad = tool.args.scratchpad || [];
-      if (Array.isArray(scratchpad)) {
-        return `${toolName}: ${scratchpad.length} notes`;
-      }
-      return `${toolName}: ${scratchpad}`;
-    }
-
-    case "command_safety_evaluator": {
-      const command = tool.args.command || "";
-      return `${toolName}: evaluating "${command}"`;
-    }
-
-    case "respond_and_route": {
-      const response = tool.args.response || "";
-      const route = tool.args.route || "";
-      if (response && route) {
-        return `${toolName}: "${response}" → ${route}`;
-      } else if (response) {
-        return `${toolName}: "${response}"`;
-      } else if (route) {
-        return `${toolName}: → ${route}`;
-      }
-      return `${toolName}: routing decision`;
-    }
-
-    case "request_human_help": {
-      const helpRequest = tool.args.help_request || "";
-      return `${toolName}: "${helpRequest}"`;
-    }
-
-    case "update_plan": {
-      const reasoning = tool.args.update_plan_reasoning || "";
-      return `${toolName}: ${reasoning.slice(0, 50)}...`;
-    }
-
-    case "mark_task_completed": {
-      const summary = tool.args.completed_task_summary || "";
-      return `${toolName}: ${summary.slice(0, 50)}...`;
-    }
-
-    case "mark_task_not_completed": {
-      const reasoning = tool.args.reasoning || "";
-      return `${toolName}: ${reasoning.slice(0, 50)}...`;
-    }
-
-    case "diagnose_error": {
-      const diagnosis = tool.args.diagnosis || "";
-      return `${toolName}: ${diagnosis.slice(0, 50)}...`;
-    }
-
-    case "write_technical_notes": {
-      const notes = tool.args.notes || "";
-      return `${toolName}: ${notes.slice(0, 50)}...`;
-    }
-
     case "write_todos": {
       const todos = tool.args.todos || [];
       if (Array.isArray(todos)) {
@@ -229,32 +176,7 @@ function formatToolCallArgs(tool: ToolCall): string {
       }
       return `${toolName}: Updated todos`;
     }
-
-    case "summarize_conversation_history": {
-      const reasoning = tool.args.reasoning || "";
-      return `${toolName}: ${reasoning.slice(0, 50)}...`;
-    }
-
-    case "code_review_mark_task_completed": {
-      const review = tool.args.review || "";
-      return `${toolName}: ${review.slice(0, 50)}...`;
-    }
-
-    case "code_review_mark_task_not_complete": {
-      const review = tool.args.review || "";
-      const actions = tool.args.additional_actions || [];
-      return `${toolName}: ${review.slice(0, 30)}... (${actions.length} actions)`;
-    }
-
-    case "review_started": {
-      const started = tool.args.review_started || false;
-      return `${toolName}: ${started ? "started" : "not started"}`;
-    }
   }
-  
-  // Fallback for unrecognized tools
-  const args = tool.args ? Object.keys(tool.args).map(key => `${key}=${tool.args[key]}`).join(", ") : "";
-  return `${toolName}${args ? `: ${args}` : ""}`;
 }
 
 /**
@@ -344,19 +266,6 @@ function formatToolResult(message: ToolMessage): string {
     case "get_url_content":
       return `${content.length} characters of content`;
 
-    case "apply_patch":
-      return "Patch applied successfully";
-
-    case "install_dependencies":
-      return "Dependencies installed successfully";
-
-    case "command_safety_evaluator":
-      try {
-        const evaluation = JSON.parse(content);
-        return `Safety: ${evaluation.is_safe ? "SAFE" : "UNSAFE"} (${evaluation.risk_level} risk)`;
-      } catch {
-        return content;
-      }
 
     case "write_todos":
       if (content.includes("Updated todo list")) {
@@ -381,36 +290,6 @@ function formatToolResult(message: ToolMessage): string {
 }
 
 export function formatDisplayLog(chunk: LogChunk | string): string[] {
-  if (typeof chunk === "string") {
-    if (chunk.startsWith("Human feedback:")) {
-      return [
-        `[HUMAN FEEDBACK RECEIVED] ${chunk.replace("Human feedback:", "").trim()}`,
-      ];
-    }
-    if (chunk.startsWith("Interrupt:")) {
-      const message = chunk.replace("Interrupt:", "").trim();
-      return [
-        "═══════════════════════════════════════",
-        `📤 INTERRUPT: "${message}"`,
-        "═══════════════════════════════════════",
-      ];
-    }
-    // Filter out raw file content and object references
-    if (
-      chunk === "[object Object]" ||
-      chunk.includes("total 4") ||
-      chunk.includes("drwxr-xr-x") ||
-      chunk.includes("Exit code 1") ||
-      chunk.startsWith("#") ||
-      chunk.startsWith("-") ||
-      chunk.startsWith("./")
-    ) {
-      return [];
-    }
-    // Single line system messages
-    const cleanChunk = chunk.replace(/\s+/g, " ").trim();
-    return [`[SYSTEM] ${cleanChunk}`];
-  }
 
   const data = chunk.data;
   const logs: string[] = [];
@@ -484,83 +363,23 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
               if (tool.name === "edit_file" && tool.args) {
                 const oldString = tool.args.old_string || "";
                 const newString = tool.args.new_string || "";
-                
-                // Create a simple diff by comparing line by line
-                const oldLines = oldString.split('\n');
-                const newLines = newString.split('\n');
-                
-                // Find which lines were removed (in old but not in new)
-                const removedLines = oldLines.filter((oldLine: string) => 
-                  !newLines.some((newLine: string) => newLine.trim() === oldLine.trim())
-                );
-                
-                // Find which lines were added (in new but not in old)
-                const addedLines = newLines.filter((newLine: string) => 
-                  !oldLines.some((oldLine: string) => oldLine.trim() === newLine.trim())
-                );
-                
-                // Show removed lines
-                removedLines.forEach((line: string) => {
-                  logs.push(`[REMOVED]    - ${line}`);
-                });
-                
-                // Show added lines
-                addedLines.forEach((line: string) => {
-                  logs.push(`[ADDED]    + ${line}`);
-                });
+                const diffLines = createSimpleDiff(oldString, newString);
+                logs.push(...diffLines);
               }
 
               // Special handling for write_file to display the new content
               if (tool.name === "write_file" && tool.args) {
                 const content = tool.args.content || "";
-                
-                if (content) {
-                  // Split content into lines and show first 10 lines
-                  const lines = content.split('\n');
-                  const linesToShow = lines.slice(0, 10);
-                  
-                  // Show the new content lines
-                  linesToShow.forEach((line: string) => {
-                    logs.push(`[ADDED]    + ${line}`);
-                  });
-                  
-                  // If there are more lines, show a truncation indicator
-                  if (lines.length > 10) {
-                    logs.push(`[ADDED]    + ... (${lines.length - 10} more lines)`);
-                  }
-                }
+                const diffLines = createSimpleDiff("", content);
+                logs.push(...diffLines);
               }
 
               // Special handling for str_replace_based_edit_tool to display the diff
               if (tool.name === "str_replace_based_edit_tool" && tool.args) {
                 const oldStr = tool.args.old_str || "";
                 const newStr = tool.args.new_str || "";
-                
-                if (oldStr && newStr) {
-                  // Create a simple diff by comparing line by line
-                  const oldLines = oldStr.split('\n');
-                  const newLines = newStr.split('\n');
-                  
-                  // Find which lines were removed (in old but not in new)
-                  const removedLines = oldLines.filter((oldLine: string) => 
-                    !newLines.some((newLine: string) => newLine.trim() === oldLine.trim())
-                  );
-                  
-                  // Find which lines were added (in new but not in old)
-                  const addedLines = newLines.filter((newLine: string) => 
-                    !oldLines.some((oldLine: string) => oldLine.trim() === newLine.trim())
-                  );
-                  
-                  // Show removed lines
-                  removedLines.forEach((line: string) => {
-                    logs.push(`[REMOVED]    - ${line}`);
-                  });
-                  
-                  // Show added lines
-                  addedLines.forEach((line: string) => {
-                    logs.push(`[ADDED]    + ${line}`);
-                  });
-                }
+                const diffLines = createSimpleDiff(oldStr, newStr);
+                logs.push(...diffLines);
               }
 
               // Handle technical notes from tool call
