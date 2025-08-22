@@ -1,20 +1,33 @@
 import { Client, StreamMode } from "@langchain/langgraph-sdk";
-import { v4 as uuidv4 } from "uuid";
 import {
   LOCAL_MODE_HEADER,
-  OPEN_SWE_STREAM_MODE,
 } from "@open-swe/shared/constants";
 import { formatDisplayLog } from "./logger.js";
-import { config } from "process";
-import fs from "fs";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
+
+interface InterruptData {
+  question: string;
+  command: string;
+  args: Record<string, any>;
+  id: string;
+}
+
+interface InterruptItem {
+  id: string;
+  value: InterruptData;
+}
+
+interface ChunkData {
+  __interrupt__?: InterruptItem[];
+  [key: string]: any;
+}
 
 interface StreamingCallbacks {
   setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
   setStreamingPhase: (phase: "streaming" | "done") => void; // eslint-disable-line no-unused-vars
   setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
-  setCurrentInterrupt: (interrupt: { question: string; command: string; args: Record<string, any>; id: string; } | null) => void; // eslint-disable-line no-unused-vars
+  setCurrentInterrupt: (interrupt: InterruptData | null) => void; // eslint-disable-line no-unused-vars
 }
 
 export class StreamingService {
@@ -22,40 +35,11 @@ export class StreamingService {
   private client: Client | null = null;
   private threadId: string | null = null;
   private rawLogs: any[] = [];
-  private logFilePath: string;
 
   constructor(callbacks: StreamingCallbacks) {
     this.callbacks = callbacks;
-    this.logFilePath = `streaming-logs-${Date.now()}.json`;
   }
 
-  /**
-   * Save log entry to JSON file incrementally
-   */
-  private saveLogToJson(logEntry: any) {
-    try {
-      let existingLogs: any[] = [];
-      
-      // Read existing logs if file exists
-      if (fs.existsSync(this.logFilePath)) {
-        const fileContent = fs.readFileSync(this.logFilePath, 'utf8');
-        if (fileContent.trim()) {
-          existingLogs = JSON.parse(fileContent);
-        }
-      }
-      
-      // Add new log entry with timestamp
-      existingLogs.push({
-        timestamp: new Date().toISOString(),
-        entry: logEntry
-      });
-      
-      // Write back to file
-      fs.writeFileSync(this.logFilePath, JSON.stringify(existingLogs, null, 2));
-    } catch (error) {
-      console.error('Error saving log to JSON:', error);
-    }
-  }
 
   /**
    * Get formatted logs for display
@@ -189,20 +173,19 @@ export class StreamingService {
 
       // Process the stream
       for await (const chunk of stream) {
-        this.saveLogToJson(chunk);
-        this.rawLogs.push('raw chunk', chunk);
         this.updateDisplay();
 
         if (chunk.event === "updates") {
           // Check for interrupts in the chunk
           if (chunk.data && chunk.data.__interrupt__) {
-            const interrupt = chunk.data.__interrupt__[0]?.value;
+            const chunkData = chunk.data as ChunkData;
+            const interrupt = chunkData.__interrupt__?.[0]?.value;
             if (interrupt?.question && interrupt?.command && interrupt?.args) {
               this.callbacks.setCurrentInterrupt({
                 question: interrupt.question,
                 command: interrupt.command,
                 args: interrupt.args,
-                id: chunk.data.__interrupt__[0]?.id || 'unknown'
+                id: chunkData.__interrupt__?.[0]?.id || 'unknown'
               });
             }
           }
@@ -227,7 +210,7 @@ export class StreamingService {
     }
   }
 
-  async submitInterruptResponse(response: boolean | string, interruptId: string) {
+  async submitInterruptResponse(response: boolean | string, _interruptId: string) {
     if (!this.client || !this.threadId) {
       throw new Error("No active stream session. Start a new session first.");
     }
@@ -250,17 +233,17 @@ export class StreamingService {
 
       // Process the stream
       for await (const chunk of stream) {
-        this.saveLogToJson(chunk);
         if (chunk.event === "updates") {
           // Check for interrupts in the chunk
           if (chunk.data && chunk.data.__interrupt__) {
-            const interrupt = chunk.data.__interrupt__[0]?.value;
+            const chunkData = chunk.data as ChunkData;
+            const interrupt = chunkData.__interrupt__?.[0]?.value;
             if (interrupt?.question && interrupt?.command && interrupt?.args) {
               this.callbacks.setCurrentInterrupt({
                 question: interrupt.question,
                 command: interrupt.command,
                 args: interrupt.args,
-                id: chunk.data.__interrupt__[0]?.id || 'unknown'
+                id: chunkData.__interrupt__?.[0]?.id || 'unknown'
               });
             }
           }
@@ -309,17 +292,17 @@ export class StreamingService {
 
       // Process the stream
       for await (const chunk of stream) {
-        this.saveLogToJson(chunk);
         if (chunk.event === "updates") {
           // Check for interrupts in the chunk
           if (chunk.data && chunk.data.__interrupt__) {
-            const interrupt = chunk.data.__interrupt__[0]?.value;
+            const chunkData = chunk.data as ChunkData;
+            const interrupt = chunkData.__interrupt__?.[0]?.value;
             if (interrupt?.question && interrupt?.command && interrupt?.args) {
               this.callbacks.setCurrentInterrupt({
                 question: interrupt.question,
                 command: interrupt.command,
                 args: interrupt.args,
-                id: chunk.data.__interrupt__[0]?.id || 'unknown'
+                id: chunkData.__interrupt__?.[0]?.id || 'unknown'
               });
             }
           }
