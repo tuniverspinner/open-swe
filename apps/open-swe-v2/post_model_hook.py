@@ -6,51 +6,12 @@ Similar to Claude Code's approval system - only prompts for new commands or new 
 from typing import Dict, Any
 from langchain_core.messages import AIMessage
 from langgraph.types import interrupt
-import os
-from .constants import FILE_EDIT_COMMANDS, WRITE_COMMANDS
+from .constants import WRITE_COMMANDS
+from .state import CodingAgentState
 
 
 def create_coding_agent_post_model_hook():
     """Create a post model hook with intelligent approval caching."""
-    
-    def get_approval_key(command: str, args: Dict[str, Any]) -> str:
-        """Generate a cache key for command approval based on command type and target directory."""
-        # Extract directory from common file operations
-        target_dir = None
-        
-        if command in FILE_EDIT_COMMANDS:
-            file_path = args.get("file_path") or args.get("path")
-            if file_path:
-                target_dir = os.path.dirname(os.path.abspath(file_path))
-        elif command == "execute_bash":
-            # For bash commands, use current working directory or cwd from args
-            target_dir = args.get("cwd") or os.getcwd()
-        elif command in ["ls", "glob", "grep"]:
-            # For read operations, use the path if provided
-            target_dir = args.get("path") or args.get("directory") or os.getcwd()
-        
-        if not target_dir:
-            target_dir = os.getcwd()
-            
-        # Create a cache key: command_type:normalized_directory
-        normalized_dir = os.path.normpath(target_dir)
-        return f"{command}:{normalized_dir}"
-    
-    def is_operation_approved(approved_operations: Dict[str, Any], command: str, args: Dict[str, Any]) -> bool:
-        """Check if a command/directory combination has been previously approved."""
-        if not approved_operations:
-            return False
-            
-        approval_key = get_approval_key(command, args)
-        return approval_key in approved_operations.get("cached_approvals", set())
-    
-    def add_approved_operation(approved_operations: Dict[str, Any], command: str, args: Dict[str, Any]):
-        """Add a command/directory combination to the approved operations cache."""
-        if "cached_approvals" not in approved_operations:
-            approved_operations["cached_approvals"] = set()
-            
-        approval_key = get_approval_key(command, args)
-        approved_operations["cached_approvals"].add(approval_key)
     
     def post_model_hook(state: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -67,8 +28,9 @@ def create_coding_agent_post_model_hook():
         if not isinstance(last_message, AIMessage) or not last_message.tool_calls:
             return state
         
-        # Get or initialize the approval cache from state
-        approved_operations = state.get("approved_operations", {"cached_approvals": set()})
+        # Create a CodingAgentState instance to access approval methods
+        coding_state = CodingAgentState()
+        coding_state.approved_operations = state.get("approved_operations", {"cached_approvals": set()})
         
         approved_tool_calls = []
         
@@ -81,10 +43,10 @@ def create_coding_agent_post_model_hook():
             
             if tool_name in write_tools:
                 # Check if this command/directory combination has been approved before
-                if is_operation_approved(approved_operations, tool_name, tool_args):
+                if coding_state.is_operation_approved(tool_name, tool_args):
                     approved_tool_calls.append(tool_call)
                 else:
-                    approval_key = get_approval_key(tool_name, tool_args)
+                    approval_key = coding_state.get_approval_key(tool_name, tool_args)
                     
                     is_approved = interrupt({
                         "command": tool_name,
@@ -93,10 +55,10 @@ def create_coding_agent_post_model_hook():
                     })
                     
                     if is_approved:
-                        add_approved_operation(approved_operations, tool_name, tool_args)
+                        coding_state.add_approved_operation(tool_name, tool_args)
                         approved_tool_calls.append(tool_call)
 
-                        state["approved_operations"] = approved_operations
+                        state["approved_operations"] = coding_state.approved_operations
                     else:
                         continue
             else:
