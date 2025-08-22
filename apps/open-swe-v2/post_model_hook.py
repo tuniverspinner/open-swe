@@ -88,18 +88,8 @@ def create_coding_agent_post_model_hook():
                 else:
                     # New command or directory - ask for approval
                     approval_key = get_approval_key(tool_name, tool_args)
-                    question = (
-                        f"New operation detected:\n\n"
-                        f"Command: {tool_name}\n"
-                        f"Directory: {approval_key.split(':', 1)[1]}\n"
-                        f"Args: {tool_args}\n\n"
-                        f"Approve this command for this directory? "
-                        f"(Future identical operations in this directory will be auto-approved)\n\n"
-                        f"Respond with True to approve or False to reject."
-                    )
                     
                     is_approved = interrupt({
-                        "question": question,
                         "command": tool_name,
                         "args": tool_args,
                         "approval_key": approval_key
