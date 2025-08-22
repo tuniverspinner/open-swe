@@ -6,6 +6,7 @@ import { Client, StreamMode } from "@langchain/langgraph-sdk";
 import {
   OPEN_SWE_STREAM_MODE,
   LOCAL_MODE_HEADER,
+  OPEN_SWE_V2_GRAPH_ID,
 } from "@open-swe/shared/constants";
 import { formatDisplayLog } from "./logger.js";
 
@@ -45,7 +46,7 @@ export async function submitFeedback({
     }
 
     // Create a new stream with the feedback
-    const stream = await client.runs.stream(plannerThreadId, "coding_agent", {
+    const stream = await client.runs.stream(plannerThreadId, OPEN_SWE_V2_GRAPH_ID, {
       command: {
         resume: [
           {
