@@ -222,7 +222,6 @@ export class StreamingService {
     this.callbacks.setLoadingLogs(true);
 
     try {
-      // Stream to existing thread using the same pattern
       const stream = await this.client.runs.stream(
         this.threadId,
         "coding",

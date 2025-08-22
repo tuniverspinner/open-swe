@@ -1,7 +1,7 @@
 import { formatDisplayLog } from "./logger.js";
 
 export interface TraceReplayCallbacks {
-  setLogs: (updater: (prev: string[]) => string[]) => void;
+  setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
   setLoadingLogs: (loading: boolean) => void;
 }
 
