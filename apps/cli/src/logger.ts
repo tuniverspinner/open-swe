@@ -27,35 +27,35 @@ interface LogChunk {
  */
 function createSimpleDiff(oldString: string, newString: string): string[] {
   const logs: string[] = [];
-  
+
   if (!oldString && newString) {
-    const lines = newString.split('\n').slice(0, 10);
-    lines.forEach(line => logs.push(`+ ${line}`));
-    if (newString.split('\n').length > 10) {
-      logs.push(`+ ... (${newString.split('\n').length - 10} more lines)`);
+    const lines = newString.split("\n").slice(0, 10);
+    lines.forEach((line) => logs.push(`+ ${line}`));
+    if (newString.split("\n").length > 10) {
+      logs.push(`+ ... (${newString.split("\n").length - 10} more lines)`);
     }
     return logs;
   }
-  
+
   if (!newString) {
-    oldString.split('\n').forEach(line => logs.push(`- ${line}`));
+    oldString.split("\n").forEach((line) => logs.push(`- ${line}`));
     return logs;
   }
-  
-  const oldLines = oldString.split('\n');
-  const newLines = newString.split('\n');
-  
-  const removedLines = oldLines.filter(oldLine => 
-    !newLines.some(newLine => newLine === oldLine)
+
+  const oldLines = oldString.split("\n");
+  const newLines = newString.split("\n");
+
+  const removedLines = oldLines.filter(
+    (oldLine) => !newLines.some((newLine) => newLine === oldLine),
   );
-  
-  const addedLines = newLines.filter(newLine => 
-    !oldLines.some(oldLine => oldLine === newLine)
+
+  const addedLines = newLines.filter(
+    (newLine) => !oldLines.some((oldLine) => oldLine === newLine),
   );
-  
-  removedLines.forEach(line => logs.push(`- ${line}`));
-  addedLines.forEach(line => logs.push(`+ ${line}`));
-  
+
+  removedLines.forEach((line) => logs.push(`- ${line}`));
+  addedLines.forEach((line) => logs.push(`+ ${line}`));
+
   return logs;
 }
 
@@ -76,7 +76,7 @@ function formatToolCallArgs(tool: ToolCall): string {
       } else {
         command = tool.args.command || "";
       }
-      
+
       // Truncate long commands (more than 160 characters)
       if (command.length > 160) {
         return `${toolName}: ${command.substring(0, 160)}...`;
@@ -87,7 +87,7 @@ function formatToolCallArgs(tool: ToolCall): string {
     case "write_file": {
       const filePath = tool.args.file_path || "";
       const content = tool.args.content || "";
-      const lineCount = content.split('\n').length;
+      const lineCount = content.split("\n").length;
       return `${toolName}: ${filePath} (${lineCount} lines)`;
     }
 
@@ -212,15 +212,16 @@ function formatToolResult(message: ToolMessage): string {
 
     case "write_file":
       if (isError) return content;
-      
+
       // For write_file, we want to show the diff in the result
       // The diff display is handled in the tool call processing section
       // So we just return a simple success message
       return "File written successfully";
 
-    case "read_file":
+    case "read_file": {
       const contentLength = content.length;
       return `${contentLength} characters`;
+    }
 
     case "edit_file":
       return isError ? content : "File edited successfully";
@@ -228,7 +229,7 @@ function formatToolResult(message: ToolMessage): string {
     case "http_request": {
       try {
         const result = JSON.parse(content);
-        return `HTTP ${result.status_code || 'unknown'}: ${result.success ? 'Success' : 'Failed'}`;
+        return `HTTP ${result.status_code || "unknown"}: ${result.success ? "Success" : "Failed"}`;
       } catch {
         return content.length > 100 ? content.slice(0, 100) + "..." : content;
       }
@@ -266,7 +267,6 @@ function formatToolResult(message: ToolMessage): string {
     case "get_url_content":
       return `${content.length} characters of content`;
 
-
     case "write_todos":
       if (content.includes("Updated todo list")) {
         return "Todo list updated successfully";
@@ -290,7 +290,6 @@ function formatToolResult(message: ToolMessage): string {
 }
 
 export function formatDisplayLog(chunk: LogChunk | string): string[] {
-
   const data = chunk.data;
   const logs: string[] = [];
 
@@ -314,12 +313,12 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         // Handle tool messages
         if (isToolMessage(message)) {
           const toolName = message.name || "tool";
-          
+
           // Skip displaying results for todo list tool calls
           if (toolName === "write_todos") {
             continue;
           }
-          
+
           const result = formatToolResult(message);
           if (result) {
             // Display tool results as indented subsections
@@ -349,12 +348,21 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
               logs.push(`▸ ${formattedArgs}`);
 
               // Special handling for write_todos to display the actual todos nicely
-              if (tool.name === "write_todos" && tool.args && tool.args.todos && Array.isArray(tool.args.todos)) {
+              if (
+                tool.name === "write_todos" &&
+                tool.args &&
+                tool.args.todos &&
+                Array.isArray(tool.args.todos)
+              ) {
                 const todos = tool.args.todos;
                 logs.push(""); // blank line before todos
-                todos.forEach((todo: any, index: number) => {
-                  const statusIcon = todo.status === "completed" ? "✓" : 
-                                   todo.status === "in_progress" ? "→" : "○";
+                todos.forEach((todo: any) => {
+                  const statusIcon =
+                    todo.status === "completed"
+                      ? "✓"
+                      : todo.status === "in_progress"
+                        ? "→"
+                        : "○";
                   logs.push(`  ${statusIcon} ${todo.content}`);
                 });
               }
@@ -423,7 +431,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         // Fallback to original message if conversion fails
         if (msg.type === "tool") {
           const toolName = msg.name || "tool";
-          
+
           // Skip displaying results for todo list tool calls
           if (toolName === "write_todos") {
             // Skip this tool result
@@ -476,7 +484,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
       );
     }
   }
-  
+
   return logs;
 }
 

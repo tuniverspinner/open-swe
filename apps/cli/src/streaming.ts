@@ -1,7 +1,5 @@
 import { Client, StreamMode } from "@langchain/langgraph-sdk";
-import {
-  LOCAL_MODE_HEADER,
-} from "@open-swe/shared/constants";
+import { LOCAL_MODE_HEADER } from "@open-swe/shared/constants";
 import { formatDisplayLog } from "./logger.js";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
@@ -9,7 +7,7 @@ const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 interface InterruptData {
   question: string;
   command: string;
-  args: Record<string, any>;
+  args: Record<string, string | number | boolean>;
   id: string;
 }
 
@@ -18,14 +16,24 @@ interface InterruptItem {
   value: InterruptData;
 }
 
+interface StreamChunk {
+  event: string;
+  data: ChunkData;
+}
+
 interface ChunkData {
   __interrupt__?: InterruptItem[];
-  [key: string]: any;
+  agent?: {
+    messages: Array<{
+      role: string;
+      content: string;
+    }>;
+  };
+  [key: string]: unknown;
 }
 
 interface StreamingCallbacks {
   setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
-  setStreamingPhase: (phase: "streaming" | "done") => void; // eslint-disable-line no-unused-vars
   setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
   setCurrentInterrupt: (interrupt: InterruptData | null) => void; // eslint-disable-line no-unused-vars
 }
@@ -34,19 +42,18 @@ export class StreamingService {
   private callbacks: StreamingCallbacks;
   private client: Client | null = null;
   private threadId: string | null = null;
-  private rawLogs: any[] = [];
+  private rawLogs: (string | StreamChunk)[] = [];
 
   constructor(callbacks: StreamingCallbacks) {
     this.callbacks = callbacks;
   }
-
 
   /**
    * Get formatted logs for display
    */
   getFormattedLogs(): string[] {
     const formattedLogs: string[] = [];
-    
+
     for (const chunk of this.rawLogs) {
       if (typeof chunk === "string") {
         const formatted = formatDisplayLog(chunk);
@@ -57,7 +64,7 @@ export class StreamingService {
         formattedLogs.push(...formatted);
       }
     }
-    
+
     return formattedLogs;
   }
 
@@ -77,6 +84,7 @@ export class StreamingService {
     this.callbacks.setLogs(() => []);
     this.callbacks.setLoadingLogs(true);
 
+    // Keeping for the future, not needed now
     try {
       const headers = {
         [LOCAL_MODE_HEADER]: "true",
@@ -91,16 +99,20 @@ export class StreamingService {
       this.threadId = thread.thread_id;
 
       // Stream using the pattern from deep-agents
-      const stream = await this.client.runs.stream(
-        this.threadId,
-        "coding",
-        {
-          input: { 
-            messages: [{ role: "system", content: "You are working on " + (process.env.OPEN_SWE_LOCAL_PROJECT_PATH || "") }, { role: "user", content: prompt }],
-          },
-          streamMode: ["updates",] as StreamMode[],
+      const stream = await this.client.runs.stream(this.threadId, "coding", {
+        input: {
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are working on " +
+                (process.env.OPEN_SWE_LOCAL_PROJECT_PATH || ""),
+            },
+            { role: "user", content: prompt },
+          ],
         },
-      );
+        streamMode: ["updates"] as StreamMode[],
+      });
 
       // Process the stream
       for await (const chunk of stream) {
@@ -116,15 +128,15 @@ export class StreamingService {
                 question: interrupt.question,
                 command: interrupt.command,
                 args: interrupt.args,
-                id: chunkData.__interrupt__?.[0]?.id || 'unknown'
+                id: chunkData.__interrupt__?.[0]?.id || "unknown",
               });
             }
           }
-          
+
           // Store raw chunk instead of formatting immediately
           this.rawLogs.push(chunk);
           this.updateDisplay();
-          
+
           if (this.rawLogs.length === 1) {
             this.callbacks.setLoadingLogs(false);
           }
@@ -132,8 +144,9 @@ export class StreamingService {
       }
 
       this.callbacks.setStreamingPhase("done");
-    } catch (err: any) {
-      this.rawLogs.push(`Error during streaming: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      this.rawLogs.push(`Error during streaming: ${errorMessage}`);
       this.updateDisplay();
       this.callbacks.setLoadingLogs(false);
     } finally {
@@ -141,7 +154,7 @@ export class StreamingService {
     }
   }
 
-  async submitInterruptResponse(response: boolean | string, _interruptId: string) {
+  async submitInterruptResponse(response: boolean | string) {
     if (!this.client || !this.threadId) {
       throw new Error("No active stream session. Start a new session first.");
     }
@@ -153,14 +166,10 @@ export class StreamingService {
     try {
       // Submit the response using Command resume pattern
       // Can be boolean (true/false) for approval/rejection or string for custom instructions
-      const stream = await this.client.runs.stream(
-        this.threadId,
-        "coding",
-        {
-          command: { resume: response },
-          streamMode: ["updates"] as StreamMode[],
-        }
-      );
+      const stream = await this.client.runs.stream(this.threadId, "coding", {
+        command: { resume: response },
+        streamMode: ["updates"] as StreamMode[],
+      });
 
       // Process the stream
       for await (const chunk of stream) {
@@ -174,15 +183,15 @@ export class StreamingService {
                 question: interrupt.question,
                 command: interrupt.command,
                 args: interrupt.args,
-                id: chunkData.__interrupt__?.[0]?.id || 'unknown'
+                id: chunkData.__interrupt__?.[0]?.id || "unknown",
               });
             }
           }
-          
+
           // Store raw chunk instead of formatting immediately
           this.rawLogs.push(chunk);
           this.updateDisplay();
-          
+
           if (this.rawLogs.length === 1) {
             this.callbacks.setLoadingLogs(false);
           }
@@ -190,15 +199,15 @@ export class StreamingService {
       }
 
       this.callbacks.setStreamingPhase("done");
-    } catch (err: any) {
-      this.rawLogs.push(`Error submitting approval: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      this.rawLogs.push(`Error submitting approval: ${errorMessage}`);
       this.updateDisplay();
       this.callbacks.setLoadingLogs(false);
     } finally {
       this.callbacks.setLoadingLogs(false);
     }
   }
-
 
   async submitToExistingStream(prompt: string) {
     if (!this.client || !this.threadId) {
@@ -209,16 +218,12 @@ export class StreamingService {
     this.callbacks.setLoadingLogs(true);
 
     try {
-      const stream = await this.client.runs.stream(
-        this.threadId,
-        "coding",
-        {
-          input: { 
-            messages: [{ role: "user", content: prompt }]
-          },
-          streamMode: ["updates"] as StreamMode[],
-        }
-      );
+      const stream = await this.client.runs.stream(this.threadId, "coding", {
+        input: {
+          messages: [{ role: "user", content: prompt }],
+        },
+        streamMode: ["updates"] as StreamMode[],
+      });
 
       // Process the stream
       for await (const chunk of stream) {
@@ -232,15 +237,15 @@ export class StreamingService {
                 question: interrupt.question,
                 command: interrupt.command,
                 args: interrupt.args,
-                id: chunkData.__interrupt__?.[0]?.id || 'unknown'
+                id: chunkData.__interrupt__?.[0]?.id || "unknown",
               });
             }
           }
-          
+
           // Store raw chunk instead of formatting immediately
           this.rawLogs.push(chunk);
           this.updateDisplay();
-          
+
           if (this.rawLogs.length === 1) {
             this.callbacks.setLoadingLogs(false);
           }
@@ -248,8 +253,9 @@ export class StreamingService {
       }
 
       this.callbacks.setStreamingPhase("done");
-    } catch (err: any) {
-      this.rawLogs.push(`Error submitting to stream: ${err.message}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      this.rawLogs.push(`Error submitting to stream: ${errorMessage}`);
       this.updateDisplay();
       this.callbacks.setLoadingLogs(false);
     } finally {

@@ -7,7 +7,6 @@ import fs from "fs";
 import dotenv from "dotenv";
 dotenv.config();
 
-
 // Keep the process alive - prevents exit when streaming completes
 const keepAlive = setInterval(() => {}, 60000);
 
@@ -42,25 +41,6 @@ program
 // Always run in local mode
 process.env.OPEN_SWE_LOCAL_MODE = "true";
 
-const LoadingSpinner: React.FC<{ text: string }> = ({ text }) => {
-  const [dots, setDots] = useState("");
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDots((prev) => (prev.length >= 3 ? "" : prev + "."));
-    }, 500);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <Box justifyContent="center" paddingY={2}>
-      <Text>
-        {text}
-        {dots}
-      </Text>
-    </Box>
-  );
-};
 // eslint-disable-next-line no-unused-vars
 const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
   onSubmit,
@@ -68,7 +48,6 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
   const [input, setInput] = useState("");
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
-
     // Handle Ctrl+K for exit
     if (key.ctrl && inputChar.toLowerCase() === "k") {
       console.log("\n👋 Goodbye!");
@@ -97,13 +76,11 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
 };
 
 const App: React.FC = () => {
-  const [streamingPhase, setStreamingPhase] = useState<
-    "streaming" | "done"
-  >("streaming");
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
-  const [streamingService, setStreamingService] = useState<StreamingService | null>(null);
+  const [streamingService, setStreamingService] =
+    useState<StreamingService | null>(null);
   const [currentInterrupt, setCurrentInterrupt] = useState<{
     question: string;
     command: string;
@@ -119,32 +96,27 @@ const App: React.FC = () => {
   useEffect(() => {
     if (replayFile && !hasStartedChat) {
       try {
-        const traceData = JSON.parse(fs.readFileSync(replayFile, 'utf8'));
+        const traceData = JSON.parse(fs.readFileSync(replayFile, "utf8"));
         setHasStartedChat(true);
-        
+
         const traceReplayService = new TraceReplayService({
           setLogs,
           setLoadingLogs,
         });
-        
-        traceReplayService.replayFromTrace(traceData, playbackSpeed).then(() => {
-          setStreamingPhase("done");
-        });
+
+        traceReplayService.replayFromTrace(traceData, playbackSpeed);
       } catch (err: any) {
-        console.error('Error loading replay file:', err.message);
+        console.error("Error loading replay file:", err.message);
         process.exit(1);
       }
     }
   }, [replayFile, hasStartedChat, playbackSpeed]);
 
-
   const inputHeight = 4;
-  const welcomeHeight = hasStartedChat ? 0 : 8;
-  const availableHeight = process.stdout.rows - inputHeight - 1; // Reserve space for input + status bar
+  const availableHeight = process.stdout.rows - inputHeight - 1;
 
   return (
     <Box flexDirection="column" height={process.stdout.rows}>
-
       {/* Welcome message or logs display */}
       {!hasStartedChat ? (
         <Box flexDirection="column" paddingX={1}>
@@ -164,40 +136,64 @@ const App: React.FC = () => {
           </Box>
         </Box>
       ) : (
-        <Box flexDirection="column" height={availableHeight} paddingX={2} paddingY={1} paddingBottom={3}>
-          <Box flexDirection="column" height={availableHeight - 5} justifyContent="flex-end" overflow="hidden">
-            {logs.filter(log => log !== null && log !== undefined && typeof log === 'string').map((log, index) => {
-              const isToolCall = log.startsWith("▸");
-              const isToolResult = log.startsWith("  ↳");
-              const isAIMessage = log.startsWith("◆");
-              const isRemovedLine = log.startsWith("- ");
-              const isAddedLine = log.startsWith("+ ");
-              const isLongBashCommand = isToolCall && (log.includes("execute_bash:") || log.includes("shell:")) && log.includes("...");
-              
-              return (
-                <Box 
-                  key={index} 
-                  paddingLeft={isToolCall ? 1 : isToolResult ? 2 : 0}
-                  width="100%"
-                  flexShrink={0}
-                >
-                  <Text 
-                    color={
-                      isAIMessage ? "magenta" : 
-                      isToolResult ? "gray" : 
-                      isRemovedLine ? "redBright" :
-                      isAddedLine ? "greenBright" :
-                      isLongBashCommand ? "gray" :
-                      undefined
-                    } 
-                    bold={isAIMessage}
-                    wrap="wrap"
+        <Box
+          flexDirection="column"
+          height={availableHeight}
+          paddingX={2}
+          paddingY={1}
+          paddingBottom={3}
+        >
+          <Box
+            flexDirection="column"
+            height={availableHeight - 5}
+            justifyContent="flex-end"
+            overflow="hidden"
+          >
+            {logs
+              .filter(
+                (log) =>
+                  log !== null && log !== undefined && typeof log === "string",
+              )
+              .map((log, index) => {
+                const isToolCall = log.startsWith("▸");
+                const isToolResult = log.startsWith("  ↳");
+                const isAIMessage = log.startsWith("◆");
+                const isRemovedLine = log.startsWith("- ");
+                const isAddedLine = log.startsWith("+ ");
+                const isLongBashCommand =
+                  isToolCall &&
+                  (log.includes("execute_bash:") || log.includes("shell:")) &&
+                  log.includes("...");
+
+                return (
+                  <Box
+                    key={index}
+                    paddingLeft={isToolCall ? 1 : isToolResult ? 2 : 0}
+                    width="100%"
+                    flexShrink={0}
                   >
-                    {log}
-                  </Text>
-                </Box>
-              );
-            })}
+                    <Text
+                      color={
+                        isAIMessage
+                          ? "magenta"
+                          : isToolResult
+                            ? "gray"
+                            : isRemovedLine
+                              ? "redBright"
+                              : isAddedLine
+                                ? "greenBright"
+                                : isLongBashCommand
+                                  ? "gray"
+                                  : undefined
+                      }
+                      bold={isAIMessage}
+                      wrap="wrap"
+                    >
+                      {log}
+                    </Text>
+                  </Box>
+                );
+              })}
           </Box>
         </Box>
       )}
@@ -205,14 +201,19 @@ const App: React.FC = () => {
       {/* Approval prompt above input when interrupt is active */}
       {currentInterrupt && (
         <Box paddingX={2} paddingY={1}>
-          <Text color="magenta">Approve this command? $ {currentInterrupt.command} {currentInterrupt.args.path || Object.values(currentInterrupt.args).join(' ')} (yes/no/custom)</Text>
+          <Text color="magenta">
+            Approve this command? $ {currentInterrupt.command}{" "}
+            {currentInterrupt.args.path ||
+              Object.values(currentInterrupt.args).join(" ")}{" "}
+            (yes/no/custom)
+          </Text>
         </Box>
       )}
 
       {/* Cooking icon above input when loading */}
       {loadingLogs && (
         <Box paddingX={2} paddingY={1}>
-          <Text>🍳 Cooking...</Text>
+          <Text>Thinking...</Text>
         </Box>
       )}
 
@@ -234,18 +235,25 @@ const App: React.FC = () => {
               onSubmit={(value) => {
                 // Handle interrupt approval responses
                 if (currentInterrupt && streamingService) {
-                  const normalizedValue = value.toLowerCase().trim();
-                  if (normalizedValue === 'yes' || normalizedValue === 'y' || normalizedValue === 'true') {
-                    streamingService.submitInterruptResponse(true, currentInterrupt.id);
-                  } else if (normalizedValue === 'no' || normalizedValue === 'n' || normalizedValue === 'false') {
-                    streamingService.submitInterruptResponse(false, currentInterrupt.id);
+                  if (
+                    value.toLowerCase().trim() === "yes" ||
+                    value.toLowerCase().trim() === "y" ||
+                    value.toLowerCase().trim() === "true"
+                  ) {
+                    streamingService.submitInterruptResponse(true);
+                  } else if (
+                    value.toLowerCase().trim() === "no" ||
+                    value.toLowerCase().trim() === "n" ||
+                    value.toLowerCase().trim() === "false"
+                  ) {
+                    streamingService.submitInterruptResponse(false);
                   } else {
                     // Treat as custom instruction - pass the raw string
-                    streamingService.submitInterruptResponse(value, currentInterrupt.id);
+                    streamingService.submitInterruptResponse(value);
                   }
                   return;
                 }
-                
+
                 if (!streamingService) {
                   // First message - create new session
                   setHasStartedChat(true);
@@ -254,7 +262,6 @@ const App: React.FC = () => {
 
                   const newStreamingService = new StreamingService({
                     setLogs,
-                    setStreamingPhase,
                     setLoadingLogs,
                     setCurrentInterrupt,
                   });

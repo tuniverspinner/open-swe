@@ -2,7 +2,7 @@ import { formatDisplayLog } from "./logger.js";
 
 export interface TraceReplayCallbacks {
   setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
-  setLoadingLogs: (loading: boolean) => void;
+  setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
 }
 
 export class TraceReplayService {
@@ -18,7 +18,7 @@ export class TraceReplayService {
    */
   getFormattedLogs(): string[] {
     const formattedLogs: string[] = [];
-    
+
     for (const chunk of this.rawLogs) {
       if (typeof chunk === "string") {
         const formatted = formatDisplayLog(chunk);
@@ -29,7 +29,7 @@ export class TraceReplayService {
         formattedLogs.push(...formatted);
       }
     }
-    
+
     return formattedLogs;
   }
 
@@ -48,18 +48,18 @@ export class TraceReplayService {
 
     try {
       const messages = langsmithRun.messages || [];
-      
+
       for (let i = 0; i < messages.length; i++) {
         const message = messages[i];
-        
+
         // Convert LangSmith message to the format expected by formatDisplayLog
         const mockChunk = {
           event: "updates",
           data: {
             agent: {
-              messages: [message]
-            }
-          }
+              messages: [message],
+            },
+          },
         };
         this.rawLogs.push(mockChunk);
         this.updateDisplay();
@@ -70,18 +70,21 @@ export class TraceReplayService {
 
         // Add delay between messages to simulate streaming
         if (i < messages.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, playbackSpeed));
+          await new Promise((resolve) => setTimeout(resolve, playbackSpeed));
         }
       }
 
       // Check for interrupt data in the trace and add it at the end
       if (langsmithRun.__interrupt__ || langsmithRun.interrupt) {
-        const interruptData = langsmithRun.__interrupt__ || langsmithRun.interrupt;
+        const interruptData =
+          langsmithRun.__interrupt__ || langsmithRun.interrupt;
         const interruptChunk = {
           event: "interrupt",
           data: {
-            __interrupt__: Array.isArray(interruptData) ? interruptData : [interruptData]
-          }
+            __interrupt__: Array.isArray(interruptData)
+              ? interruptData
+              : [interruptData],
+          },
         };
         this.rawLogs.push(interruptChunk);
         this.updateDisplay();
