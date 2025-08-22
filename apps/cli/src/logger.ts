@@ -655,12 +655,6 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
 
         " ", // Blank line after
       );
-    } else {
-      logs.push(
-        " ", // Blank line for separation
-        "⏳ INTERRUPT: Waiting for feedback...",
-        " ", // Blank line after
-      );
     }
   }
   

@@ -6,6 +6,7 @@ import {
 } from "@open-swe/shared/constants";
 import { formatDisplayLog } from "./logger.js";
 import { config } from "process";
+import fs from "fs";
 
 const LANGGRAPH_URL = process.env.LANGGRAPH_URL || "http://localhost:2024";
 
@@ -13,6 +14,7 @@ interface StreamingCallbacks {
   setLogs: (updater: (prev: string[]) => string[]) => void; // eslint-disable-line no-unused-vars
   setStreamingPhase: (phase: "streaming" | "done") => void; // eslint-disable-line no-unused-vars
   setLoadingLogs: (loading: boolean) => void; // eslint-disable-line no-unused-vars
+  setCurrentInterrupt: (interrupt: { question: string; command: string; args: Record<string, any>; id: string; } | null) => void; // eslint-disable-line no-unused-vars
 }
 
 export class StreamingService {
@@ -20,9 +22,39 @@ export class StreamingService {
   private client: Client | null = null;
   private threadId: string | null = null;
   private rawLogs: any[] = [];
+  private logFilePath: string;
 
   constructor(callbacks: StreamingCallbacks) {
     this.callbacks = callbacks;
+    this.logFilePath = `streaming-logs-${Date.now()}.json`;
+  }
+
+  /**
+   * Save log entry to JSON file incrementally
+   */
+  private saveLogToJson(logEntry: any) {
+    try {
+      let existingLogs: any[] = [];
+      
+      // Read existing logs if file exists
+      if (fs.existsSync(this.logFilePath)) {
+        const fileContent = fs.readFileSync(this.logFilePath, 'utf8');
+        if (fileContent.trim()) {
+          existingLogs = JSON.parse(fileContent);
+        }
+      }
+      
+      // Add new log entry with timestamp
+      existingLogs.push({
+        timestamp: new Date().toISOString(),
+        entry: logEntry
+      });
+      
+      // Write back to file
+      fs.writeFileSync(this.logFilePath, JSON.stringify(existingLogs, null, 2));
+    } catch (error) {
+      console.error('Error saving log to JSON:', error);
+    }
   }
 
   /**
@@ -35,7 +67,8 @@ export class StreamingService {
       if (typeof chunk === "string") {
         const formatted = formatDisplayLog(chunk);
         formattedLogs.push(...formatted);
-      } else if (chunk.event === "updates") {
+      } else if (chunk && chunk.data) {
+        // Process all chunks with data, not just "updates" events
         const formatted = formatDisplayLog(chunk);
         formattedLogs.push(...formatted);
       }
@@ -87,8 +120,6 @@ export class StreamingService {
             }
           }
         };
-
-        // Store raw chunk instead of formatting immediately
         this.rawLogs.push(mockChunk);
         this.updateDisplay();
 
@@ -100,6 +131,19 @@ export class StreamingService {
         if (i < messages.length - 1) {
           await new Promise(resolve => setTimeout(resolve, playbackSpeed));
         }
+      }
+
+      // Check for interrupt data in the trace and add it at the end
+      if (langsmithRun.__interrupt__ || langsmithRun.interrupt) {
+        const interruptData = langsmithRun.__interrupt__ || langsmithRun.interrupt;
+        const interruptChunk = {
+          event: "interrupt",
+          data: {
+            __interrupt__: Array.isArray(interruptData) ? interruptData : [interruptData]
+          }
+        };
+        this.rawLogs.push(interruptChunk);
+        this.updateDisplay();
       }
 
       this.callbacks.setStreamingPhase("done");
@@ -145,7 +189,24 @@ export class StreamingService {
 
       // Process the stream
       for await (const chunk of stream) {
+        this.saveLogToJson(chunk);
+        this.rawLogs.push('raw chunk', chunk);
+        this.updateDisplay();
+
         if (chunk.event === "updates") {
+          // Check for interrupts in the chunk
+          if (chunk.data && chunk.data.__interrupt__) {
+            const interrupt = chunk.data.__interrupt__[0]?.value;
+            if (interrupt?.question && interrupt?.command && interrupt?.args) {
+              this.callbacks.setCurrentInterrupt({
+                question: interrupt.question,
+                command: interrupt.command,
+                args: interrupt.args,
+                id: chunk.data.__interrupt__[0]?.id || 'unknown'
+              });
+            }
+          }
+          
           // Store raw chunk instead of formatting immediately
           this.rawLogs.push(chunk);
           this.updateDisplay();
@@ -165,6 +226,65 @@ export class StreamingService {
       this.callbacks.setLoadingLogs(false);
     }
   }
+
+  async submitInterruptResponse(response: boolean | string, interruptId: string) {
+    if (!this.client || !this.threadId) {
+      throw new Error("No active stream session. Start a new session first.");
+    }
+
+    // Clear the interrupt from UI
+    this.callbacks.setCurrentInterrupt(null);
+    this.callbacks.setLoadingLogs(true);
+
+    try {
+      // Submit the response using Command resume pattern
+      // Can be boolean (true/false) for approval/rejection or string for custom instructions
+      const stream = await this.client.runs.stream(
+        this.threadId,
+        "coding",
+        {
+          command: { resume: response },
+          streamMode: ["updates"] as StreamMode[],
+        }
+      );
+
+      // Process the stream
+      for await (const chunk of stream) {
+        this.saveLogToJson(chunk);
+        if (chunk.event === "updates") {
+          // Check for interrupts in the chunk
+          if (chunk.data && chunk.data.__interrupt__) {
+            const interrupt = chunk.data.__interrupt__[0]?.value;
+            if (interrupt?.question && interrupt?.command && interrupt?.args) {
+              this.callbacks.setCurrentInterrupt({
+                question: interrupt.question,
+                command: interrupt.command,
+                args: interrupt.args,
+                id: chunk.data.__interrupt__[0]?.id || 'unknown'
+              });
+            }
+          }
+          
+          // Store raw chunk instead of formatting immediately
+          this.rawLogs.push(chunk);
+          this.updateDisplay();
+          
+          if (this.rawLogs.length === 1) {
+            this.callbacks.setLoadingLogs(false);
+          }
+        }
+      }
+
+      this.callbacks.setStreamingPhase("done");
+    } catch (err: any) {
+      this.rawLogs.push(`Error submitting approval: ${err.message}`);
+      this.updateDisplay();
+      this.callbacks.setLoadingLogs(false);
+    } finally {
+      this.callbacks.setLoadingLogs(false);
+    }
+  }
+
 
   async submitToExistingStream(prompt: string) {
     if (!this.client || !this.threadId) {
@@ -189,7 +309,21 @@ export class StreamingService {
 
       // Process the stream
       for await (const chunk of stream) {
+        this.saveLogToJson(chunk);
         if (chunk.event === "updates") {
+          // Check for interrupts in the chunk
+          if (chunk.data && chunk.data.__interrupt__) {
+            const interrupt = chunk.data.__interrupt__[0]?.value;
+            if (interrupt?.question && interrupt?.command && interrupt?.args) {
+              this.callbacks.setCurrentInterrupt({
+                question: interrupt.question,
+                command: interrupt.command,
+                args: interrupt.args,
+                id: chunk.data.__interrupt__[0]?.id || 'unknown'
+              });
+            }
+          }
+          
           // Store raw chunk instead of formatting immediately
           this.rawLogs.push(chunk);
           this.updateDisplay();

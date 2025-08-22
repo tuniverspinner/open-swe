@@ -103,6 +103,12 @@ const App: React.FC = () => {
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [streamingService, setStreamingService] = useState<StreamingService | null>(null);
+  const [currentInterrupt, setCurrentInterrupt] = useState<{
+    question: string;
+    command: string;
+    args: Record<string, any>;
+    id: string;
+  } | null>(null);
 
   const options = program.opts();
   const replayFile = options.replay;
@@ -119,6 +125,7 @@ const App: React.FC = () => {
           setLogs,
           setStreamingPhase,
           setLoadingLogs,
+          setCurrentInterrupt,
         });
         
         setStreamingService(newStreamingService);
@@ -195,6 +202,13 @@ const App: React.FC = () => {
         </Box>
       )}
 
+      {/* Approval prompt above input when interrupt is active */}
+      {currentInterrupt && (
+        <Box paddingX={2} paddingY={1}>
+          <Text color="magenta">Approve this command? $ {currentInterrupt.command} {currentInterrupt.args.path || Object.values(currentInterrupt.args).join(' ')} (yes/no/custom)</Text>
+        </Box>
+      )}
+
       {/* Cooking icon above input when loading */}
       {loadingLogs && (
         <Box paddingX={2} paddingY={1}>
@@ -218,6 +232,20 @@ const App: React.FC = () => {
           ) : (
             <CustomInput
               onSubmit={(value) => {
+                // Handle interrupt approval responses
+                if (currentInterrupt && streamingService) {
+                  const normalizedValue = value.toLowerCase().trim();
+                  if (normalizedValue === 'yes' || normalizedValue === 'y' || normalizedValue === 'true') {
+                    streamingService.submitInterruptResponse(true, currentInterrupt.id);
+                  } else if (normalizedValue === 'no' || normalizedValue === 'n' || normalizedValue === 'false') {
+                    streamingService.submitInterruptResponse(false, currentInterrupt.id);
+                  } else {
+                    // Treat as custom instruction - pass the raw string
+                    streamingService.submitInterruptResponse(value, currentInterrupt.id);
+                  }
+                  return;
+                }
+                
                 if (!streamingService) {
                   // First message - create new session
                   setHasStartedChat(true);
@@ -228,6 +256,7 @@ const App: React.FC = () => {
                     setLogs,
                     setStreamingPhase,
                     setLoadingLogs,
+                    setCurrentInterrupt,
                   });
 
                   setStreamingService(newStreamingService);
