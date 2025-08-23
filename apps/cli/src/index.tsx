@@ -4,6 +4,7 @@ import { render, Box, Text, useInput } from "ink";
 import { Command } from "commander";
 import { OPEN_SWE_CLI_VERSION } from "./constants.js";
 import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -77,6 +78,82 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
   );
 };
 
+// Directory prompt component
+const DirectoryPrompt: React.FC<{ onSubmit: (directory: string) => void }> = ({
+  onSubmit,
+}) => {
+  const [input, setInput] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  useInput((inputChar: string, key: { [key: string]: any }) => {
+    // Handle Ctrl+K for exit
+    if (key.ctrl && inputChar.toLowerCase() === "k") {
+      console.log("\n👋 Goodbye!");
+      process.exit(0);
+    }
+
+    if (key.return) {
+      if (input.trim()) {
+        const directory = input.trim();
+        const resolvedPath = path.resolve(directory);
+        
+        // Check if directory exists
+        if (!fs.existsSync(resolvedPath)) {
+          setError("Directory does not exist. Please enter a valid path.");
+          return;
+        }
+        
+        // Check if it's a directory
+        if (!fs.statSync(resolvedPath).isDirectory()) {
+          setError("Path is not a directory. Please enter a valid directory path.");
+          return;
+        }
+        
+
+        
+        // Clear error and submit
+        setError(null);
+        onSubmit(resolvedPath);
+        setInput("");
+      }
+    } else if (key.backspace || key.delete) {
+      setInput((prev) => prev.slice(0, -1));
+      setError(null); // Clear error when user starts typing
+    } else if (inputChar) {
+      setInput((prev) => prev + inputChar);
+      setError(null); // Clear error when user starts typing
+    }
+  });
+
+  return (
+    <Box flexDirection="column" paddingX={2} paddingY={1}>
+      <Box marginBottom={1}>
+        <Text color="magenta" bold>
+          Welcome to Open SWE CLI!
+        </Text>
+      </Box>
+      <Box marginBottom={1}>
+        <Text>
+          Please enter the path to your project directory:
+        </Text>
+      </Box>
+      <Box marginBottom={1}>
+        <Text>&gt; {input}</Text>
+      </Box>
+      {error && (
+        <Box marginTop={1}>
+          <Text color="red">{error}</Text>
+        </Box>
+      )}
+      <Box marginTop={1}>
+        <Text color="gray" italic>
+          Press Enter to continue, Ctrl+K to exit
+        </Text>
+      </Box>
+    </Box>
+  );
+};
+
 const App: React.FC = () => {
   const [hasStartedChat, setHasStartedChat] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -89,22 +166,37 @@ const App: React.FC = () => {
     id: string;
   } | null>(null);
   const [showApiKeySetup, setShowApiKeySetup] = useState(false);
+  const [showDirectoryPrompt, setShowDirectoryPrompt] = useState(false);
   const [configValid, setConfigValid] = useState(false);
 
   const options = program.opts();
   const replayFile = options.replay;
   const playbackSpeed = parseInt(options.speed) || 500;
 
-  // Check config on startup
+  // Check config and directory on startup
   useEffect(() => {
     const { isValid } = validateConfigExists();
     setConfigValid(isValid);
-    setShowApiKeySetup(!isValid);
+    
+    // Check if we have a valid project path
+    const projectPath = process.env.OPEN_SWE_LOCAL_PROJECT_PATH;
+    if (!projectPath) {
+      setShowDirectoryPrompt(true);
+    } else {
+      // Validate the existing path
+      const resolvedPath = path.resolve(projectPath);
+      if (!fs.existsSync(resolvedPath) || 
+          !fs.statSync(resolvedPath).isDirectory()) {
+        setShowDirectoryPrompt(true);
+      } else {
+        setShowApiKeySetup(!isValid);
+      }
+    }
   }, []);
 
   // Auto-start replay if file provided
   useEffect(() => {
-    if (replayFile && !hasStartedChat && configValid) {
+    if (replayFile && !hasStartedChat && configValid && !showDirectoryPrompt) {
       try {
         const traceData = JSON.parse(fs.readFileSync(replayFile, "utf8"));
         setHasStartedChat(true);
@@ -120,7 +212,7 @@ const App: React.FC = () => {
         process.exit(1);
       }
     }
-  }, [replayFile, hasStartedChat, playbackSpeed, configValid]);
+  }, [replayFile, hasStartedChat, playbackSpeed, configValid, showDirectoryPrompt]);
 
   const inputHeight = 4;
   const availableHeight = process.stdout.rows - inputHeight - 1;
@@ -130,10 +222,22 @@ const App: React.FC = () => {
     setConfigValid(true);
   };
 
+  const handleDirectoryPromptComplete = (directory: string) => {
+    process.env.OPEN_SWE_LOCAL_PROJECT_PATH = directory;
+    setShowDirectoryPrompt(false);
+    
+    // Now check if we need API key setup
+    const { isValid } = validateConfigExists();
+    setConfigValid(isValid);
+    setShowApiKeySetup(!isValid);
+  };
+
   return (
     <Box flexDirection="column" height={process.stdout.rows}>
-      {/* API Key Setup */}
-      {showApiKeySetup ? (
+      {/* Directory Prompt */}
+      {showDirectoryPrompt ? (
+        <DirectoryPrompt onSubmit={handleDirectoryPromptComplete} />
+      ) : showApiKeySetup ? (
         <ApiKeySetup onComplete={handleApiKeySetupComplete} />
       ) : (
         <>

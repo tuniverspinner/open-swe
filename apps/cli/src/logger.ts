@@ -210,13 +210,13 @@ function formatToolResult(message: ToolMessage): string {
     case "execute_bash": {
       try {
         const result = JSON.parse(content);
-        if (!result.success && result.stderr) {
-          return result.stderr;
+        if (!result.success) {
+          return result.stderr || "Command failed";
         }
-        if (result.success && result.stdout) {
-          return result.stdout;
+        if (result.success) {
+          return result.stdout || "Command executed successfully";
         }
-        return content;
+        return "Command completed";
       } catch {
         return content;
       }
