@@ -223,8 +223,11 @@ const App: React.FC = () => {
         <Box paddingX={2} paddingY={1}>
           <Text color="magenta">
             Approve this command? $ {currentInterrupt.command}{" "}
-            {currentInterrupt.args.path ||
-              Object.values(currentInterrupt.args).join(" ")}{" "}
+            {(() => {
+              const args = currentInterrupt.args.path ||
+                Object.values(currentInterrupt.args).join(" ");
+              return args.length > 50 ? args.substring(0, 50) + "..." : args;
+            })()}{" "}
             (yes/no/custom)
           </Text>
         </Box>
