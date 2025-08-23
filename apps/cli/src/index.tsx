@@ -25,6 +25,8 @@ process.on("SIGTERM", () => {
 
 import { StreamingService } from "./streaming.js";
 import { TraceReplayService } from "./trace_replay.js";
+import { validateConfigExists } from "./config.js";
+import { ApiKeySetup } from "./ApiKeySetup.js";
 
 // Parse command line arguments with Commander
 const program = new Command();
@@ -86,14 +88,23 @@ const App: React.FC = () => {
     args: Record<string, any>;
     id: string;
   } | null>(null);
+  const [showApiKeySetup, setShowApiKeySetup] = useState(false);
+  const [configValid, setConfigValid] = useState(false);
 
   const options = program.opts();
   const replayFile = options.replay;
   const playbackSpeed = parseInt(options.speed) || 500;
 
+  // Check config on startup
+  useEffect(() => {
+    const { isValid } = validateConfigExists();
+    setConfigValid(isValid);
+    setShowApiKeySetup(!isValid);
+  }, []);
+
   // Auto-start replay if file provided
   useEffect(() => {
-    if (replayFile && !hasStartedChat) {
+    if (replayFile && !hasStartedChat && configValid) {
       try {
         const traceData = JSON.parse(fs.readFileSync(replayFile, "utf8"));
         setHasStartedChat(true);
@@ -109,15 +120,25 @@ const App: React.FC = () => {
         process.exit(1);
       }
     }
-  }, [replayFile, hasStartedChat, playbackSpeed]);
+  }, [replayFile, hasStartedChat, playbackSpeed, configValid]);
 
   const inputHeight = 4;
   const availableHeight = process.stdout.rows - inputHeight - 1;
 
+  const handleApiKeySetupComplete = () => {
+    setShowApiKeySetup(false);
+    setConfigValid(true);
+  };
+
   return (
     <Box flexDirection="column" height={process.stdout.rows}>
-      {/* Welcome message or logs display */}
-      {!hasStartedChat ? (
+      {/* API Key Setup */}
+      {showApiKeySetup ? (
+        <ApiKeySetup onComplete={handleApiKeySetupComplete} />
+      ) : (
+        <>
+          {/* Welcome message or logs display */}
+          {!hasStartedChat ? (
         <Box flexDirection="column" paddingX={1}>
           <Box>
             <Text>
@@ -229,6 +250,8 @@ const App: React.FC = () => {
         <Box>
           {replayFile ? (
             <Text>&gt; Replay mode - input disabled</Text>
+          ) : !configValid ? (
+            <Text>&gt; Setting up API keys...</Text>
           ) : (
             <CustomInput
               onSubmit={(value) => {
@@ -264,12 +287,14 @@ const App: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Local mode indicator underneath the input bar */}
-      <Box paddingX={2} paddingY={0}>
-        <Text>
-          Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH} • Ctrl+C to exit
-        </Text>
-      </Box>
+          {/* Local mode indicator underneath the input bar */}
+          <Box paddingX={2} paddingY={0}>
+            <Text>
+              Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH} • Ctrl+C to exit
+            </Text>
+          </Box>
+        </>
+      )}
     </Box>
   );
 };

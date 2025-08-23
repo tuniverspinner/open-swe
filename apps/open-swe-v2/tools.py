@@ -5,11 +5,17 @@ import requests
 from typing import Dict, Any, Optional, Union, Literal
 from tavily import TavilyClient
 from utils import validate_command_safety
+from config_loader import get_api_key
 import dotenv
 
 dotenv.load_dotenv()
 
-tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+# Initialize Tavily client with API key from config
+tavily_api_key = get_api_key("TAVILY_API_KEY")
+if tavily_api_key:
+    tavily_client = TavilyClient(api_key=tavily_api_key)
+else:
+    tavily_client = None
 
 def execute_bash(command: str, timeout: int = 30, cwd: str = None) -> Dict[str, Any]:
     """

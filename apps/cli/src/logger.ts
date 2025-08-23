@@ -29,10 +29,10 @@ function createSimpleDiff(oldString: string, newString: string): string[] {
   const logs: string[] = [];
 
   if (!oldString && newString) {
-    const lines = newString.split("\n").slice(0, 10);
+    const lines = newString.split("\n").slice(0, 5);
     lines.forEach((line) => logs.push(`+ ${line}`));
-    if (newString.split("\n").length > 10) {
-      logs.push(`+ ... (${newString.split("\n").length - 10} more lines)`);
+    if (newString.split("\n").length > 5) {
+      logs.push(`+ ... (${newString.split("\n").length - 5} more lines)`);
     }
     return logs;
   }
@@ -53,8 +53,18 @@ function createSimpleDiff(oldString: string, newString: string): string[] {
     (newLine) => !oldLines.some((oldLine) => oldLine === newLine),
   );
 
-  removedLines.forEach((line) => logs.push(`- ${line}`));
-  addedLines.forEach((line) => logs.push(`+ ${line}`));
+  const maxLines = 10;
+  const totalLines = removedLines.length + addedLines.length;
+
+  if (totalLines > maxLines) {
+    const halfMax = Math.floor(maxLines / 2);
+    removedLines.slice(0, halfMax).forEach((line) => logs.push(`- ${line}`));
+    addedLines.slice(0, halfMax).forEach((line) => logs.push(`+ ${line}`));
+    logs.push(`... (${totalLines - maxLines} more changes)`);
+  } else {
+    removedLines.forEach((line) => logs.push(`- ${line}`));
+    addedLines.forEach((line) => logs.push(`+ ${line}`));
+  }
 
   return logs;
 }

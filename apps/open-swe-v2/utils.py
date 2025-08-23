@@ -3,13 +3,18 @@ from typing import List
 from pydantic import BaseModel, Field
 from langchain_anthropic import ChatAnthropic
 from langchain_core.output_parsers import PydanticOutputParser
+from config_loader import get_api_key
 
 # Initialize Anthropic client
 try:
-    anthropic_client = ChatAnthropic(
-        model="claude-3-5-sonnet-20241022",
-        anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY")
-    )
+    anthropic_api_key = get_api_key("ANTHROPIC_API_KEY")
+    if anthropic_api_key:
+        anthropic_client = ChatAnthropic(
+            model="claude-3-5-sonnet-20241022",
+            anthropic_api_key=anthropic_api_key
+        )
+    else:
+        anthropic_client = None
 except Exception:
     anthropic_client = None
 

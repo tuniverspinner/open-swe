@@ -10,6 +10,7 @@ from langgraph.types import Command
 from state import CodingAgentState
 from coding_instructions import get_coding_instructions
 from tools import execute_bash, http_request, web_search
+from config_loader import ensure_api_keys_in_env
 
 from langsmith import Client
 from langsmith.wrappers import wrap_openai
@@ -17,11 +18,12 @@ from langchain_core.tracers.langchain import LangChainTracer
 import dotenv
 
 dotenv.load_dotenv()
+ensure_api_keys_in_env()
 
 langsmith_client = None
 langchain_tracer = None
 
-if os.environ.get("LANGCHAIN_API_KEY"):
+if os.environ.get("LANGCHAIN_API_KEY") or os.environ.get("LANGSMITH_API_KEY"):
     try:
         langsmith_client = Client()
         langchain_tracer = LangChainTracer(
