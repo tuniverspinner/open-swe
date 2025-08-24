@@ -1,0 +1,7 @@
+{
+  "name": "coding-agent",
+  "type": "module",
+  "dependencies": {
+    "deepagents": "latest"
+  }
+}
