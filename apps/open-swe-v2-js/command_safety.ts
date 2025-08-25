@@ -1,6 +1,7 @@
 import { ChatAnthropic } from "@langchain/anthropic";
 import { z } from "zod";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
+import { getConfigValue } from "@open-swe/shared";
 
 // Safety validation schema matching Python version
 export const CommandSafetyValidationSchema = z.object({
@@ -27,7 +28,7 @@ export type CommandSafetyValidation = z.infer<
 let anthropicClient: ChatAnthropic | null = null;
 
 try {
-  const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+  const anthropicApiKey = getConfigValue('ANTHROPIC_API_KEY');
   if (anthropicApiKey) {
     anthropicClient = new ChatAnthropic({
       model: "claude-3-5-sonnet-20241022",

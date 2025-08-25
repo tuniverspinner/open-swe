@@ -123,13 +123,12 @@ const App: React.FC = () => {
             <Text>
               {`
 
-##          ###    ##    ##  ######    ######  ##     ##    ###    #### ##    ## 
-##         ## ##   ###   ## ##    ##  ##    ## ##     ##   ## ##    ##  ###   ## 
-##        ##   ##  ####  ## ##        ##       ##     ##  ##   ##   ##  ####  ## 
-##       ##     ## ## ## ## ##   #### ##       ######### ##     ##  ##  ## ## ## 
-##       ######### ##  #### ##    ##  ##       ##     ## #########  ##  ##  #### 
-##       ##     ## ##   ### ##    ##  ##    ## ##     ## ##     ##  ##  ##   ### 
-######## ##     ## ##    ##  ######    ######  ##     ## ##     ## #### ##    ##
+ ####  #####  ###### #    #     ####  #    # ###### 
+#    # #    # #      ##   #    #      #    # #      
+#    # #    # #####  # #  #     ####  #    # #####  
+#    # #####  #      #  # #         # # ## # #      
+#    # #      #      #   ##    #    # ##  ## #      
+ ####  #      ###### #    #     ####  #    # ###### 
 `}
             </Text>
           </Box>
@@ -200,12 +199,47 @@ const App: React.FC = () => {
       {/* Approval prompt above input when interrupt is active */}
       {currentInterrupt && (
         <Box paddingX={2} paddingY={1}>
-          <Text color="magenta">
-            Approve this command? $ {currentInterrupt.command}{" "}
-            {currentInterrupt.args.path ||
-              Object.values(currentInterrupt.args).join(" ")}{" "}
-            (yes/no/custom)
-          </Text>
+          <Box
+            borderStyle="round"
+            borderColor="white"
+            paddingX={3}
+            paddingY={1}
+            flexDirection="column"
+          >
+            <Box marginBottom={1}>
+              <Text bold>
+                ⚠️  Command Approval Required
+              </Text>
+            </Box>
+            <Box marginBottom={1}>
+              <Text>
+                Command: <Text bold>{currentInterrupt.command}</Text>
+              </Text>
+            </Box>
+            <Box>
+              <Text>
+                Arguments: <Text bold>
+                  {(() => {
+                    if (currentInterrupt.args.file_path || currentInterrupt.args.path) {
+                      const filePath = currentInterrupt.args.file_path || currentInterrupt.args.path;
+                      if (currentInterrupt.args.content) {
+                        const lines = currentInterrupt.args.content.split('\n').length;
+                        return `${filePath} (${lines} lines)`;
+                      }
+                      return filePath;
+                    }
+                    const argsStr = Object.values(currentInterrupt.args).join(" ");
+                    return argsStr.length > 100 ? argsStr.substring(0, 100) + "..." : argsStr;
+                  })()}
+                </Text>
+              </Text>
+            </Box>
+            <Box marginTop={1}>
+              <Text>
+                Type <Text bold>yes</Text> to approve, <Text bold>no</Text> to reject, or enter a custom command
+              </Text>
+            </Box>
+          </Box>
         </Box>
       )}
 

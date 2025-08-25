@@ -2,6 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "child_process";
 import { validateCommandSafety } from "./command_safety.js";
+import { getConfigValue } from "@open-swe/shared";
 
 // Execute bash command tool
 export const executeBash = tool(
@@ -164,10 +165,10 @@ export const httpRequest = tool(
 // Web search tool (Tavily implementation)
 export const webSearch = tool(
   async ({ query, maxResults = 5 }: { query: string; maxResults?: number }) => {
-    const apiKey = process.env.TAVILY_API_KEY;
+    const apiKey = getConfigValue('TAVILY_API_KEY');
 
     if (!apiKey) {
-      throw new Error("TAVILY_API_KEY environment variable is not set");
+      throw new Error("TAVILY_API_KEY not found in config or environment variables");
     }
 
     try {

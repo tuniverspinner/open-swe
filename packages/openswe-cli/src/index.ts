@@ -5,6 +5,7 @@ import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { promptForMissingConfig, applyConfigToEnv } from '@open-swe/shared';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,7 +59,6 @@ class OpenSWEOrchestrator {
 
   private async startLangGraphServer(): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log('🚀 Starting LangGraph server...');
       
       const langGraphPath = path.join(this.workspaceRoot, 'apps', 'open-swe-v2-js');
       
@@ -114,7 +114,6 @@ class OpenSWEOrchestrator {
             output.includes('::1:2024') ||
             output.includes('Starting 10 workers')) {
           this.langGraphServer!.ready = true;
-          console.log('✅ LangGraph server is ready!');
           resolve();
         }
       });
@@ -128,7 +127,6 @@ class OpenSWEOrchestrator {
       });
 
       serverProcess.on('error', (error) => {
-        console.error('❌ Failed to start LangGraph server:', error.message);
         reject(error);
       });
 
@@ -150,7 +148,6 @@ class OpenSWEOrchestrator {
 
   private async startCLI(args: string[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log('🖥️  Starting OpenSWE CLI...');
       
       const cliPath = path.join(this.workspaceRoot, 'apps', 'cli');
       
@@ -177,13 +174,11 @@ class OpenSWEOrchestrator {
       };
 
       cliProcess.on('error', (error) => {
-        console.error('❌ Failed to start CLI:', error.message);
         reject(error);
       });
 
       cliProcess.on('exit', (code, signal) => {
         if (!this.isShuttingDown) {
-          console.log(`CLI exited with code ${code}, signal: ${signal}`);
         }
         this.shutdown();
         process.exit(code || 0);
@@ -197,7 +192,6 @@ class OpenSWEOrchestrator {
     if (this.isShuttingDown) return;
     this.isShuttingDown = true;
     
-    console.log('\n🛑 Shutting down OpenSWE...');
     
     const shutdownPromises: Promise<void>[] = [];
     
@@ -232,11 +226,16 @@ class OpenSWEOrchestrator {
     }
     
     await Promise.all(shutdownPromises);
-    console.log('✅ Shutdown complete');
   }
 
   public async start(cliArgs: string[] = []): Promise<void> {
     try {
+      // Check and prompt for missing configuration first
+      await promptForMissingConfig();
+      
+      // Apply configuration to environment
+      applyConfigToEnv();
+      
       // Start LangGraph server first
       await this.startLangGraphServer();
       
@@ -246,7 +245,6 @@ class OpenSWEOrchestrator {
       // Start CLI
       await this.startCLI(cliArgs);
     } catch (error) {
-      console.error('❌ Failed to start OpenSWE:', error);
       await this.shutdown();
       process.exit(1);
     }
@@ -262,8 +260,6 @@ program
   .option('--speed <ms>', 'Replay speed in milliseconds', '500')
   .helpOption('-h, --help', 'Display help for command')
   .action(async (options) => {
-    console.log('🌟 Starting OpenSWE...');
-    console.log(`📁 Working directory: ${process.cwd()}`);
     
     const orchestrator = new OpenSWEOrchestrator();
     
