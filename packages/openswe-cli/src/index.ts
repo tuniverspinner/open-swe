@@ -4,6 +4,10 @@ import { spawn, ChildProcess } from 'child_process';
 import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const program = new Command();
 
