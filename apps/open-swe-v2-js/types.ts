@@ -27,19 +27,26 @@ export interface GenericCommandArgs {
 }
 
 // Union type for all possible command arguments
-export type CommandArgs = 
-  | FileEditCommandArgs 
-  | ExecuteBashCommandArgs 
-  | FileSystemCommandArgs 
+export type CommandArgs =
+  | FileEditCommandArgs
+  | ExecuteBashCommandArgs
+  | FileSystemCommandArgs
   | GenericCommandArgs;
 
 // Command types
-export type FileEditCommand = "write_file" | "str_replace_based_edit_tool" | "edit_file";
+export type FileEditCommand =
+  | "write_file"
+  | "str_replace_based_edit_tool"
+  | "edit_file";
 export type ExecuteBashCommand = "execute_bash";
 export type FileSystemCommand = "ls" | "glob" | "grep";
 export type GenericCommand = string;
 
-export type Command = FileEditCommand | ExecuteBashCommand | FileSystemCommand | GenericCommand;
+export type Command =
+  | FileEditCommand
+  | ExecuteBashCommand
+  | FileSystemCommand
+  | GenericCommand;
 
 // Approval key type
 export type ApprovalKey = string;

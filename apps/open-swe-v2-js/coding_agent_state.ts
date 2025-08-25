@@ -2,11 +2,7 @@ import { z } from "zod";
 import * as path from "path";
 import { DeepAgentState } from "deepagents";
 import { FILE_EDIT_COMMANDS } from "./constants.js";
-import { 
-  Command, 
-  CommandArgs, 
-  ApprovalKey
-} from "./types.js";
+import { Command, CommandArgs, ApprovalKey } from "./types.js";
 
 const ApprovedOperationsSchema = z
   .object({
