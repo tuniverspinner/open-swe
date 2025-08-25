@@ -14,8 +14,5 @@ export const WRITE_COMMANDS = new Set([
   "write_file",
   "execute_bash",
   "str_replace_based_edit_tool",
-  "ls",
   "edit_file",
-  "glob",
-  "grep",
 ]);
