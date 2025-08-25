@@ -48,7 +48,7 @@ class OpenSWEOrchestrator {
           if (packageJson.workspaces) {
             return currentDir;
           }
-        } catch (e) {
+        } catch {
           // Continue searching if package.json is invalid
         }
       }
@@ -74,7 +74,7 @@ class OpenSWEOrchestrator {
 
       // Load .env file from the LangGraph directory
       const envPath = path.join(langGraphPath, '.env');
-      let envVars = { ...process.env };
+      const envVars = { ...process.env };
 
       if (fs.existsSync(envPath)) {
         const envContent = fs.readFileSync(envPath, 'utf8');
@@ -190,8 +190,9 @@ class OpenSWEOrchestrator {
         reject(error);
       });
 
-      cliProcess.on('exit', (code, signal) => {
+      cliProcess.on('exit', (code, _signal) => {
         if (!this.isShuttingDown) {
+          // CLI exited unexpectedly
         }
         this.shutdown();
         process.exit(code || 0);
@@ -256,7 +257,7 @@ class OpenSWEOrchestrator {
 
       // Start CLI
       await this.startCLI(cliArgs);
-    } catch (error) {
+    } catch {
       await this.shutdown();
       process.exit(1);
     }
