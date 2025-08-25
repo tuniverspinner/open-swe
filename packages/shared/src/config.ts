@@ -9,6 +9,8 @@ export interface OpenSWEConfig {
   LANGSMITH_API_KEY?: string;
 }
 
+const REQUIRED_CONFIG_KEYS: (keyof OpenSWEConfig)[] = ['ANTHROPIC_API_KEY', 'TAVILY_API_KEY', 'LANGSMITH_API_KEY'];
+
 const CONFIG_DIR = path.join(os.homedir(), '.openswe');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
@@ -57,9 +59,8 @@ export function getConfigValue(key: keyof OpenSWEConfig): string | undefined {
  */
 export function hasRequiredConfig(): boolean {
   const config = loadConfig();
-  const required: (keyof OpenSWEConfig)[] = ['ANTHROPIC_API_KEY', 'TAVILY_API_KEY', 'LANGSMITH_API_KEY'];
   
-  return required.every(key => 
+  return REQUIRED_CONFIG_KEYS.every(key => 
     config[key] || process.env[key]
   );
 }
@@ -69,9 +70,8 @@ export function hasRequiredConfig(): boolean {
  */
 export function getMissingConfigKeys(): (keyof OpenSWEConfig)[] {
   const config = loadConfig();
-  const required: (keyof OpenSWEConfig)[] = ['ANTHROPIC_API_KEY', 'TAVILY_API_KEY', 'LANGSMITH_API_KEY'];
   
-  return required.filter(key => 
+  return REQUIRED_CONFIG_KEYS.filter(key => 
     !config[key] && !process.env[key]
   );
 }
@@ -82,9 +82,6 @@ export function getMissingConfigKeys(): (keyof OpenSWEConfig)[] {
 export async function promptForMissingConfig(): Promise<void> {
   const missing = getMissingConfigKeys();
   if (missing.length === 0) return;
-
-  console.log('\n🔧 OpenSWE Configuration Setup');
-  console.log('Some required API keys are missing. Let\'s set them up:\n');
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -110,8 +107,6 @@ export async function promptForMissingConfig(): Promise<void> {
 
   if (Object.keys(config).length > 0) {
     saveConfig(config);
-    console.log('\n✅ Configuration saved successfully!');
-    console.log(`📁 Config stored at: ${CONFIG_FILE}\n`);
   }
 }
 

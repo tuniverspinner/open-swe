@@ -208,7 +208,7 @@ const App: React.FC = () => {
           >
             <Box marginBottom={1}>
               <Text bold>
-                ⚠️  Command Approval Required
+                Command Approval Required
               </Text>
             </Box>
             <Box marginBottom={1}>
