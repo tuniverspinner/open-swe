@@ -4824,7 +4824,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@open-swe/shared@*, @open-swe/shared@workspace:packages/shared":
+"@open-swe/shared@*, @open-swe/shared@workspace:*, @open-swe/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@open-swe/shared@workspace:packages/shared"
   dependencies:
@@ -10188,6 +10188,7 @@ __metadata:
   resolution: "coding-agent@workspace:apps/open-swe-v2-js"
   dependencies:
     "@eslint/js": ^9.0.0
+    "@open-swe/shared": "workspace:*"
     deepagents: 0.0.0-rc.2
     eslint: ^9.0.0
     globals: ^15.0.0

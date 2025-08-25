@@ -8,6 +8,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@open-swe/shared": "workspace:*",
     "deepagents": "0.0.0-rc.2"
   },
   "devDependencies": {
