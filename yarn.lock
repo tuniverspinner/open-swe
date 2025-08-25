@@ -9012,6 +9012,14 @@ __metadata:
   languageName: node
   linkType: hard
 
+"coding-agent@workspace:apps/open-swe-v2-js":
+  version: 0.0.0-use.local
+  resolution: "coding-agent@workspace:apps/open-swe-v2-js"
+  dependencies:
+    deepagents: latest
+  languageName: unknown
+  linkType: soft
+
 "collapse-white-space@npm:^2.0.0":
   version: 2.1.0
   resolution: "collapse-white-space@npm:2.1.0"
@@ -9603,6 +9611,18 @@ __metadata:
   version: 0.1.4
   resolution: "deep-is@npm:0.1.4"
   checksum: edb65dd0d7d1b9c40b2f50219aef30e116cedd6fc79290e740972c132c09106d2e80aa0bc8826673dd5a00222d4179c84b36a790eef63a4c4bca75a37ef90804
+  languageName: node
+  linkType: hard
+
+"deepagents@npm:latest":
+  version: 0.0.1
+  resolution: "deepagents@npm:0.0.1"
+  dependencies:
+    "@langchain/anthropic": ^0.3.25
+    "@langchain/core": ^0.3.66
+    "@langchain/langgraph": ^0.4.2
+    zod: ^3.25.32
+  checksum: 2b173bccc96b5b63612a32b816815022cb44ad7eb0ff6f7496d147a7c0d0ebb1c2bdde3b3363239070f3d4e29d0b7fc3fb6bf4da8ef4585d2282e81293d09f6b
   languageName: node
   linkType: hard
 
