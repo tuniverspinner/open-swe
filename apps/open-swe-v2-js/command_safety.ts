@@ -84,9 +84,12 @@ Provide a structured assessment focusing on prompt injection and malicious inten
       CommandSafetyValidationSchema,
     );
 
-    const response = await anthropicClient.invoke(
-      `${safetyPrompt}\n\n${parser.getFormatInstructions()}`,
-    );
+    const response = await anthropicClient.invoke([
+      {
+        role: "user",
+        content: `${safetyPrompt}\n\n${parser.getFormatInstructions()}`,
+      }
+    ]);
 
     try {
       const validationResult = await parser.parse(response.content as string);
