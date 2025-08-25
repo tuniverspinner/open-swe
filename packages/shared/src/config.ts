@@ -22,12 +22,11 @@ const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
  * Load configuration from the config file
  */
 export function loadConfig(): OpenSWEConfig {
-  
-    if (fs.existsSync(CONFIG_FILE)) {
-      const configData = fs.readFileSync(CONFIG_FILE, "utf8");
-      return JSON.parse(configData);
-    }
-  
+  if (fs.existsSync(CONFIG_FILE)) {
+    const configData = fs.readFileSync(CONFIG_FILE, "utf8");
+    return JSON.parse(configData);
+  }
+
   return {};
 }
 
@@ -35,12 +34,12 @@ export function loadConfig(): OpenSWEConfig {
  * Save configuration to the config file
  */
 export function saveConfig(config: OpenSWEConfig): void {
-    // Ensure config directory exists
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true });
-    }
+  // Ensure config directory exists
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  }
 
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+  fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
 }
 
 /**
