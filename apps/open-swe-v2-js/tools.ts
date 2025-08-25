@@ -194,7 +194,7 @@ export const webSearch = tool(
         );
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
 
       return {
         answer: data.answer || null,
@@ -207,7 +207,6 @@ export const webSearch = tool(
             published_date: result.published_date,
           })) || [],
         query: data.query || query,
-        response_time: data.response_time,
       };
     } catch {
       return {

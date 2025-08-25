@@ -1,5 +1,5 @@
 export function get_coding_instructions(): string {
-    return `
+  return `
   
   # System Prompt
   
@@ -377,5 +377,4 @@ export function get_coding_instructions(): string {
   
   - ONLY do the task that you are designated to do. 
   `;
-  }
-  
+}

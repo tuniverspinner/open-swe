@@ -15,7 +15,7 @@ const ApprovedOperationsSchema = z
   .optional();
 
 // Extend the base DeepAgentState with coding-specific fields
-export const CodingAgentState = DeepAgentState.extend({
+export const CodingAgentState: any = DeepAgentState.extend({
   approved_operations: ApprovedOperationsSchema,
 });
 

@@ -1,4 +1,4 @@
-import type { SubAgent } from "../../src/index.js";
+import type { SubAgent } from "deepagents";
 
 // Sub-agent for code review and analysis
 const code_reviewer_prompt = `You are an expert code reviewer for all programming languages. Your job is to analyze code for:
