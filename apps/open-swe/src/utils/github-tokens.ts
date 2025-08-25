@@ -42,13 +42,6 @@ export function getGitHubTokensFromConfig(config: GraphConfig): {
     );
   }
 
-  const installationId = config.configurable[GITHUB_INSTALLATION_ID];
-  if (!installationId) {
-    throw new Error(
-      `Missing required ${GITHUB_INSTALLATION_ID} in configuration.`,
-    );
-  }
-
   const encryptedGitHubToken = config.configurable[GITHUB_TOKEN_COOKIE];
   const encryptedInstallationToken =
     config.configurable[GITHUB_INSTALLATION_TOKEN_COOKIE];
