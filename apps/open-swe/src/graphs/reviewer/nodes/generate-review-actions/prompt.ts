@@ -91,18 +91,46 @@ By reviewing these actions, and comparing them to the plan and original user req
     You should write to your scratchpad to record the names of the files, and the content inside the files which should be removed/updated.
     </changed_files>
 
+    <code_quality_evaluation>
+    After reviewing the changed files, evaluate the code quality based on these criteria and write any issues to your scratchpad:
+
+    - Check if existing dataclasses, state schemas, or configuration objects were extended rather than recreated
+    - Look for duplicate or redundant structures that could have been consolidated
+    - Verify structured outputs and Pydantic dataclasses are used for data validation
+    - Flag poor software engineering practices or unnecessary architectural complexity
+    - Verify all essential functionality from the user's request has been implemented
+    - Check for unnecessary nodes, redundant logic, or overly complex solutions
+    - Ensure brevity didn't sacrifice correctness or required features
+    - Verify temporary files, test scripts, and debugging code have been removed
+    - Check configuration files are placed appropriately and follow project structure
+    - Look for development artifacts that shouldn't be in the final solution
+    - Verify code is functionally correct and follows task requirements
+    - Check for bugs, logic errors, or significant deviations from requirements
+    - Ensure core functionality works and edge cases are handled
+    </code_quality_evaluation>
+
     # Fixed LangGraph Validation Section
-
-
     <langgraph_validation>
         **FOR LANGGRAPH AGENTS - CRITICAL CHECK**: If the request involves creating or modifying a LangGraph agent, you MUST verify:
+        
+        **STEP 1: CHECK EXISTING STRUCTURE FIRST**
+        - **MANDATORY**: Before validating any agent.py files, search the codebase for existing LangGraph graph exports
+        - Use \`grep\` tool to search for patterns like: "app =", ".compile()", "export.*graph", "from.*import.*graph"
+        - If existing graph exports are found, validate THOSE files instead of expecting agent.py
+        - Only proceed with agent.py validation if NO existing exports are found
+        
+        **STEP 2: VALIDATE LANGGRAPH QUALITY PATTERNS**
+        - Check that structured outputs with Pydantic models are used for LLM calls with structured outputs instead of raw string parsing
+        - Verify that existing state classes were extended rather than creating duplicate ones
+        - Look for unnecessary graph nodes that could have been consolidated
+        - Ensure proper use of \`with_structured_output()\` method for type-safe LLM responses
         
         **CRITICAL: ALL SHELL COMMANDS MUST USE ARRAY FORMAT**
         - CORRECT: \`shell\` tool with \`command: ["python3", "-c", "import agent; print('Success')"]\`
         - WRONG: \`shell\` tool with \`command: "python3 -c import agent"\`
         - WRONG: Running commands without proper array formatting
     
-        **FILE STRUCTURE VALIDATION**:
+        **FILE STRUCTURE VALIDATION** (only if no existing exports found):
         - Check agent files exist: Use \`view\` tool to check for \`agent.py\` or \`agent.ts\` at project root
         - Check config exists: Use \`view\` tool to verify \`langgraph.json\` exists
         - Validate JSON syntax with shell tool:
@@ -116,7 +144,12 @@ By reviewing these actions, and comparing them to the plan and original user req
         
         **VALIDATION REQUIREMENTS - MANDATORY SHELL COMMAND EXAMPLES**:
         
-        **For Python agents (\`agent.py\`)**:
+        **FIRST: Search for existing exports (use grep tool)**:
+        - Search for compiled graph exports: \`grep -r "\.compile\(\)" --include="*.py"\`
+        - Search for app exports: \`grep -r "app.*=" --include="*.py"\`
+        - If existing exports found, validate those files instead of creating/validating agent.py
+        
+        **For Python agents (\`agent.py\`) - ONLY if no existing exports found**:
         
         1. **Check ruff availability**:
         \`\`\`

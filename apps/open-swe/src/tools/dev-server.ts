@@ -136,7 +136,7 @@ export function createDevServerTool(
         resultParts.push("</server_logs>");
         resultParts.push("</run_dev_server_results>");
 
-        logger.info("Monitor dev server completed", {
+        logger.info("Dev server completed", {
           sessionId,
           responseExitCode: requestResult.exitCode,
           logsLength: logsResponse.length,
@@ -152,7 +152,7 @@ export function createDevServerTool(
           const errorResult =
             errorFields.result ?? errorFields.artifacts?.stdout;
           throw new Error(
-            `Monitor dev server failed. Exit code: ${errorFields.exitCode}\nError: ${errorResult}`,
+            `Dev server failed. Exit code: ${errorFields.exitCode}\nError: ${errorResult}`,
           );
         }
 
