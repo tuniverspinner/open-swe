@@ -101,7 +101,12 @@ export class StreamingService {
       // Stream using the pattern from deep-agents
       const stream = await this.client.runs.stream(this.threadId, "coding", {
         input: {
-          messages: [{ role: "user", content: `Working directory: ${process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd()}\n\n${prompt}` }],
+          messages: [
+            {
+              role: "user",
+              content: `Working directory: ${process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd()}\n\n${prompt}`,
+            },
+          ],
         },
         streamMode: ["updates"] as StreamMode[],
       });

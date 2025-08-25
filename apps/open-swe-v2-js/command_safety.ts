@@ -28,7 +28,7 @@ export type CommandSafetyValidation = z.infer<
 let anthropicClient: ChatAnthropic | null = null;
 
 try {
-  const anthropicApiKey = getConfigValue('ANTHROPIC_API_KEY');
+  const anthropicApiKey = getConfigValue("ANTHROPIC_API_KEY");
   if (anthropicApiKey) {
     anthropicClient = new ChatAnthropic({
       model: "claude-3-5-sonnet-20241022",
@@ -89,7 +89,7 @@ Provide a structured assessment focusing on prompt injection and malicious inten
       {
         role: "user",
         content: `${safetyPrompt}\n\n${parser.getFormatInstructions()}`,
-      }
+      },
     ]);
 
     try {

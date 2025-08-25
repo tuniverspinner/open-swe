@@ -165,10 +165,12 @@ export const httpRequest = tool(
 // Web search tool (Tavily implementation)
 export const webSearch = tool(
   async ({ query, maxResults = 5 }: { query: string; maxResults?: number }) => {
-    const apiKey = getConfigValue('TAVILY_API_KEY');
+    const apiKey = getConfigValue("TAVILY_API_KEY");
 
     if (!apiKey) {
-      throw new Error("TAVILY_API_KEY not found in config or environment variables");
+      throw new Error(
+        "TAVILY_API_KEY not found in config or environment variables",
+      );
     }
 
     try {

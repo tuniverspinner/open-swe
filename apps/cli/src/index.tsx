@@ -207,9 +207,7 @@ const App: React.FC = () => {
             flexDirection="column"
           >
             <Box marginBottom={1}>
-              <Text bold>
-                Command Approval Required
-              </Text>
+              <Text bold>Command Approval Required</Text>
             </Box>
             <Box marginBottom={1}>
               <Text>
@@ -218,25 +216,37 @@ const App: React.FC = () => {
             </Box>
             <Box>
               <Text>
-                Arguments: <Text bold>
+                Arguments:{" "}
+                <Text bold>
                   {(() => {
-                    if (currentInterrupt.args.file_path || currentInterrupt.args.path) {
-                      const filePath = currentInterrupt.args.file_path || currentInterrupt.args.path;
+                    if (
+                      currentInterrupt.args.file_path ||
+                      currentInterrupt.args.path
+                    ) {
+                      const filePath =
+                        currentInterrupt.args.file_path ||
+                        currentInterrupt.args.path;
                       if (currentInterrupt.args.content) {
-                        const lines = currentInterrupt.args.content.split('\n').length;
+                        const lines =
+                          currentInterrupt.args.content.split("\n").length;
                         return `${filePath} (${lines} lines)`;
                       }
                       return filePath;
                     }
-                    const argsStr = Object.values(currentInterrupt.args).join(" ");
-                    return argsStr.length > 100 ? argsStr.substring(0, 100) + "..." : argsStr;
+                    const argsStr = Object.values(currentInterrupt.args).join(
+                      " ",
+                    );
+                    return argsStr.length > 100
+                      ? argsStr.substring(0, 100) + "..."
+                      : argsStr;
                   })()}
                 </Text>
               </Text>
             </Box>
             <Box marginTop={1}>
               <Text>
-                Type <Text bold>yes</Text> to approve, <Text bold>no</Text> to reject, or enter a custom command
+                Type <Text bold>yes</Text> to approve, <Text bold>no</Text> to
+                reject, or enter a custom command
               </Text>
             </Box>
           </Box>

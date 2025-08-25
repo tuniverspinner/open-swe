@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import readline from 'readline';
+import fs from "fs";
+import path from "path";
+import os from "os";
+import readline from "readline";
 
 export interface OpenSWEConfig {
   ANTHROPIC_API_KEY?: string;
@@ -9,10 +9,14 @@ export interface OpenSWEConfig {
   LANGSMITH_API_KEY?: string;
 }
 
-const REQUIRED_CONFIG_KEYS: (keyof OpenSWEConfig)[] = ['ANTHROPIC_API_KEY', 'TAVILY_API_KEY', 'LANGSMITH_API_KEY'];
+const REQUIRED_CONFIG_KEYS: (keyof OpenSWEConfig)[] = [
+  "ANTHROPIC_API_KEY",
+  "TAVILY_API_KEY",
+  "LANGSMITH_API_KEY",
+];
 
-const CONFIG_DIR = path.join(os.homedir(), '.openswe');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
+const CONFIG_DIR = path.join(os.homedir(), ".openswe");
+const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 
 /**
  * Load configuration from the config file
@@ -20,11 +24,11 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 export function loadConfig(): OpenSWEConfig {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
-      const configData = fs.readFileSync(CONFIG_FILE, 'utf8');
+      const configData = fs.readFileSync(CONFIG_FILE, "utf8");
       return JSON.parse(configData);
     }
   } catch (error) {
-    console.error('Error loading config:', error);
+    console.error("Error loading config:", error);
   }
   return {};
 }
@@ -38,10 +42,10 @@ export function saveConfig(config: OpenSWEConfig): void {
     if (!fs.existsSync(CONFIG_DIR)) {
       fs.mkdirSync(CONFIG_DIR, { recursive: true });
     }
-    
+
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
   } catch (error) {
-    console.error('Error saving config:', error);
+    console.error("Error saving config:", error);
     throw error;
   }
 }
@@ -59,10 +63,8 @@ export function getConfigValue(key: keyof OpenSWEConfig): string | undefined {
  */
 export function hasRequiredConfig(): boolean {
   const config = loadConfig();
-  
-  return REQUIRED_CONFIG_KEYS.every(key => 
-    config[key] || process.env[key]
-  );
+
+  return REQUIRED_CONFIG_KEYS.every((key) => config[key] || process.env[key]);
 }
 
 /**
@@ -70,9 +72,9 @@ export function hasRequiredConfig(): boolean {
  */
 export function getMissingConfigKeys(): (keyof OpenSWEConfig)[] {
   const config = loadConfig();
-  
-  return REQUIRED_CONFIG_KEYS.filter(key => 
-    !config[key] && !process.env[key]
+
+  return REQUIRED_CONFIG_KEYS.filter(
+    (key) => !config[key] && !process.env[key],
   );
 }
 
@@ -85,7 +87,7 @@ export async function promptForMissingConfig(): Promise<void> {
 
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 
   const config = loadConfig();
@@ -97,7 +99,7 @@ export async function promptForMissingConfig(): Promise<void> {
         resolve(answer.trim());
       });
     });
-    
+
     if (value) {
       config[key] = value;
     }
@@ -115,12 +117,12 @@ export async function promptForMissingConfig(): Promise<void> {
  */
 function getKeyDescription(key: keyof OpenSWEConfig): string {
   switch (key) {
-    case 'ANTHROPIC_API_KEY':
-      return 'Anthropic API Key (for Claude)';
-    case 'TAVILY_API_KEY':
-      return 'Tavily API Key (for web search)';
-    case 'LANGSMITH_API_KEY':
-      return 'LangSmith API Key (for tracing)';
+    case "ANTHROPIC_API_KEY":
+      return "Anthropic API Key (for Claude)";
+    case "TAVILY_API_KEY":
+      return "Tavily API Key (for web search)";
+    case "LANGSMITH_API_KEY":
+      return "LangSmith API Key (for tracing)";
     default:
       return key;
   }
@@ -131,7 +133,7 @@ function getKeyDescription(key: keyof OpenSWEConfig): string {
  */
 export function applyConfigToEnv(): void {
   const config = loadConfig();
-  
+
   Object.entries(config).forEach(([key, value]) => {
     if (value && !process.env[key]) {
       process.env[key] = value;

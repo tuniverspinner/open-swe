@@ -5,6 +5,7 @@ A unified CLI tool that orchestrates the OpenSWE CLI interface and LangGraph ser
 ## Overview
 
 The `openswe` command automatically starts both:
+
 1. **LangGraph Server** - The coding agent backend running on `localhost:2024`
 2. **OpenSWE CLI** - The terminal interface for interacting with the coding agent
 
@@ -48,6 +49,7 @@ openswe --replay /path/to/trace.json --speed 1000
 ## Dependencies
 
 The package includes workspace dependencies:
+
 - `@open-swe/cli` - The terminal interface
 - `coding-agent` - The LangGraph coding agent (open-swe-v2-js)
 - `@open-swe/shared` - Shared utilities
@@ -68,6 +70,7 @@ The package includes workspace dependencies:
 ## Troubleshooting
 
 If the command fails to start:
+
 1. Ensure you're in a workspace with the required apps
 2. Check that `langgraphjs` CLI is available globally
 3. Verify that both CLI and coding-agent are built

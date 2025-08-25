@@ -425,7 +425,10 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           const text = getMessageContentString(message.content);
           if (text) {
             // Skip the working directory prefix that's added automatically
-            const cleanText = text.replace(/^Working directory: [^\n]+\n\n/, "").replace(/\s+/g, " ").trim();
+            const cleanText = text
+              .replace(/^Working directory: [^\n]+\n\n/, "")
+              .replace(/\s+/g, " ")
+              .trim();
             if (cleanText) {
               logs.push(`◉ ${cleanText}`);
             }
@@ -456,7 +459,10 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
           const text = getMessageContentString(msg.content);
           if (text) {
             // Skip the working directory prefix that's added automatically
-            const cleanText = text.replace(/^Working directory: [^\n]+\n\n/, "").replace(/\s+/g, " ").trim();
+            const cleanText = text
+              .replace(/^Working directory: [^\n]+\n\n/, "")
+              .replace(/\s+/g, " ")
+              .trim();
             if (cleanText) {
               logs.push(`◉ ${cleanText}`);
             }

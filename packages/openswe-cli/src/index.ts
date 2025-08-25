@@ -27,7 +27,7 @@ class OpenSWEOrchestrator {
   constructor() {
     // Find the workspace root (where the main package.json is)
     this.workspaceRoot = this.findWorkspaceRoot();
-    
+
     // Handle graceful shutdown
     process.on('SIGINT', () => this.shutdown());
     process.on('SIGTERM', () => this.shutdown());
@@ -36,13 +36,15 @@ class OpenSWEOrchestrator {
 
   private findWorkspaceRoot(): string {
     let currentDir = process.cwd();
-    
+
     // Walk up the directory tree to find the workspace root
     while (currentDir !== path.parse(currentDir).root) {
       const packageJsonPath = path.join(currentDir, 'package.json');
       if (fs.existsSync(packageJsonPath)) {
         try {
-          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+          const packageJson = JSON.parse(
+            fs.readFileSync(packageJsonPath, 'utf8')
+          );
           if (packageJson.workspaces) {
             return currentDir;
           }
@@ -52,16 +54,19 @@ class OpenSWEOrchestrator {
       }
       currentDir = path.dirname(currentDir);
     }
-    
+
     // If we can't find workspace root, use the directory containing this package
     return path.resolve(__dirname, '../../..');
   }
 
   private async startLangGraphServer(): Promise<void> {
     return new Promise((resolve, reject) => {
-      
-      const langGraphPath = path.join(this.workspaceRoot, 'apps', 'open-swe-v2-js');
-      
+      const langGraphPath = path.join(
+        this.workspaceRoot,
+        'apps',
+        'open-swe-v2-js'
+      );
+
       if (!fs.existsSync(langGraphPath)) {
         reject(new Error(`LangGraph server path not found: ${langGraphPath}`));
         return;
@@ -70,11 +75,11 @@ class OpenSWEOrchestrator {
       // Load .env file from the LangGraph directory
       const envPath = path.join(langGraphPath, '.env');
       let envVars = { ...process.env };
-      
+
       if (fs.existsSync(envPath)) {
         const envContent = fs.readFileSync(envPath, 'utf8');
         const envLines = envContent.split('\n');
-        
+
         for (const line of envLines) {
           const trimmedLine = line.trim();
           if (trimmedLine && !trimmedLine.startsWith('#')) {
@@ -90,29 +95,31 @@ class OpenSWEOrchestrator {
       const serverProcess = spawn('langgraphjs', ['dev'], {
         cwd: langGraphPath,
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: { 
+        env: {
           ...envVars,
           // Ensure these are properly set
           NODE_ENV: envVars.NODE_ENV || 'development',
-          PATH: envVars.PATH || process.env.PATH
+          PATH: envVars.PATH || process.env.PATH,
         },
-        shell: true
+        shell: true,
       });
 
       this.langGraphServer = {
         process: serverProcess,
         name: 'LangGraph Server',
-        ready: false
+        ready: false,
       };
 
       serverProcess.stdout?.on('data', (data) => {
         const output = data.toString();
-        
+
         // Check if server is ready (but don't log all output)
-        if (output.includes('Server running at') || 
-            output.includes('localhost:2024') || 
-            output.includes('::1:2024') ||
-            output.includes('Starting 10 workers')) {
+        if (
+          output.includes('Server running at') ||
+          output.includes('localhost:2024') ||
+          output.includes('::1:2024') ||
+          output.includes('Starting 10 workers')
+        ) {
           this.langGraphServer!.ready = true;
           resolve();
         }
@@ -121,7 +128,10 @@ class OpenSWEOrchestrator {
       serverProcess.stderr?.on('data', (data) => {
         const output = data.toString();
         // Only log actual errors, not warnings or info messages
-        if (output.toLowerCase().includes('error') && !output.includes('Warning:')) {
+        if (
+          output.toLowerCase().includes('error') &&
+          !output.includes('Warning:')
+        ) {
           console.error(`[LangGraph Error] ${output.trim()}`);
         }
       });
@@ -132,7 +142,9 @@ class OpenSWEOrchestrator {
 
       serverProcess.on('exit', (code, signal) => {
         if (!this.isShuttingDown) {
-          console.error(`❌ LangGraph server exited with code ${code}, signal: ${signal}`);
+          console.error(
+            `❌ LangGraph server exited with code ${code}, signal: ${signal}`
+          );
           this.shutdown();
         }
       });
@@ -140,7 +152,9 @@ class OpenSWEOrchestrator {
       // Timeout if server doesn't start within 30 seconds
       setTimeout(() => {
         if (!this.langGraphServer?.ready) {
-          reject(new Error('LangGraph server failed to start within 30 seconds'));
+          reject(
+            new Error('LangGraph server failed to start within 30 seconds')
+          );
         }
       }, 30000);
     });
@@ -148,9 +162,8 @@ class OpenSWEOrchestrator {
 
   private async startCLI(args: string[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
-      
       const cliPath = path.join(this.workspaceRoot, 'apps', 'cli');
-      
+
       if (!fs.existsSync(cliPath)) {
         reject(new Error(`CLI path not found: ${cliPath}`));
         return;
@@ -160,17 +173,17 @@ class OpenSWEOrchestrator {
       const cliProcess = spawn('node', ['dist/index.js', ...args], {
         cwd: cliPath,
         stdio: 'inherit',
-        env: { 
+        env: {
           ...process.env,
           LANGGRAPH_URL: 'http://localhost:2024',
-          OPEN_SWE_LOCAL_PROJECT_PATH: process.cwd()
-        }
+          OPEN_SWE_LOCAL_PROJECT_PATH: process.cwd(),
+        },
       });
 
       this.cliProcess = {
         process: cliProcess,
         name: 'OpenSWE CLI',
-        ready: true
+        ready: true,
       };
 
       cliProcess.on('error', (error) => {
@@ -191,10 +204,9 @@ class OpenSWEOrchestrator {
   private async shutdown(): Promise<void> {
     if (this.isShuttingDown) return;
     this.isShuttingDown = true;
-    
-    
+
     const shutdownPromises: Promise<void>[] = [];
-    
+
     if (this.cliProcess?.process) {
       shutdownPromises.push(
         new Promise<void>((resolve) => {
@@ -209,7 +221,7 @@ class OpenSWEOrchestrator {
         })
       );
     }
-    
+
     if (this.langGraphServer?.process) {
       shutdownPromises.push(
         new Promise<void>((resolve) => {
@@ -224,7 +236,7 @@ class OpenSWEOrchestrator {
         })
       );
     }
-    
+
     await Promise.all(shutdownPromises);
   }
 
@@ -232,16 +244,16 @@ class OpenSWEOrchestrator {
     try {
       // Check and prompt for missing configuration first
       await promptForMissingConfig();
-      
+
       // Apply configuration to environment
       applyConfigToEnv();
-      
+
       // Start LangGraph server first
       await this.startLangGraphServer();
-      
+
       // Wait a moment for server to fully initialize
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // Start CLI
       await this.startCLI(cliArgs);
     } catch (error) {
@@ -254,15 +266,16 @@ class OpenSWEOrchestrator {
 // CLI Definition
 program
   .name('openswe')
-  .description('OpenSWE - Unified CLI tool for running OpenSWE CLI + LangGraph server')
+  .description(
+    'OpenSWE - Unified CLI tool for running OpenSWE CLI + LangGraph server'
+  )
   .version('1.0.0')
   .option('--replay <file>', 'Replay from LangSmith trace file')
   .option('--speed <ms>', 'Replay speed in milliseconds', '500')
   .helpOption('-h, --help', 'Display help for command')
   .action(async (options) => {
-    
     const orchestrator = new OpenSWEOrchestrator();
-    
+
     // Pass CLI options to the underlying CLI
     const cliArgs: string[] = [];
     if (options.replay) {
@@ -271,7 +284,7 @@ program
     if (options.speed && options.speed !== '500') {
       cliArgs.push('--speed', options.speed);
     }
-    
+
     await orchestrator.start(cliArgs);
   });
 
