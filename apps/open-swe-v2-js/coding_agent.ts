@@ -26,6 +26,6 @@ const agent = createDeepAgent({
   isLocalFileSystem: true,
   postModelHook: postModelHook,
   stateSchema: CodingAgentState,
-}).withConfig({ recursionLimit: 1000 }) as any;
+}).withConfig({ recursionLimit: 1000 }) as any; // left as any because of complex type definition
 
 export { agent, executeBash, httpRequest, webSearch };

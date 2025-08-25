@@ -1,13 +1,13 @@
-/**
- * Extended state for coding agent with approval operation caching.
- */
-
 import { z } from "zod";
 import * as path from "path";
 import { DeepAgentState } from "deepagents";
 import { FILE_EDIT_COMMANDS } from "./constants.js";
+import { 
+  Command, 
+  CommandArgs, 
+  ApprovalKey
+} from "./types.js";
 
-// Define the approved operations schema
 const ApprovedOperationsSchema = z
   .object({
     cached_approvals: z.set(z.string()).default(() => new Set<string>()),
@@ -25,10 +25,7 @@ export type CodingAgentStateType = z.infer<typeof CodingAgentState>;
  * Helper functions for the coding agent state
  */
 export class CodingAgentStateHelpers {
-  /**
-   * Generate a cache key for command approval based on command type and target directory.
-   */
-  static getApprovalKey(command: string, args: Record<string, any>): string {
+  static getApprovalKey(command: Command, args: CommandArgs): ApprovalKey {
     let targetDir: string | null = null;
 
     if (FILE_EDIT_COMMANDS.has(command)) {
@@ -56,8 +53,8 @@ export class CodingAgentStateHelpers {
    */
   static isOperationApproved(
     state: CodingAgentStateType,
-    command: string,
-    args: Record<string, any>,
+    command: Command,
+    args: CommandArgs,
   ): boolean {
     if (
       !state.approved_operations ||
@@ -75,8 +72,8 @@ export class CodingAgentStateHelpers {
    */
   static addApprovedOperation(
     state: CodingAgentStateType,
-    command: string,
-    args: Record<string, any>,
+    command: Command,
+    args: CommandArgs,
   ): void {
     if (!state.approved_operations) {
       state.approved_operations = { cached_approvals: new Set<string>() };
