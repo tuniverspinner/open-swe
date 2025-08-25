@@ -59,7 +59,7 @@ class OpenSWEOrchestrator {
     return path.resolve(__dirname, '../../..');
   }
 
-  private async startLangGraphServer(): Promise<void> {
+  private async startLangGraphServer(useTerminal: boolean = false): Promise<void> {
     return new Promise((resolve, reject) => {
       const langGraphPath = path.join(
         this.workspaceRoot,
@@ -92,17 +92,47 @@ class OpenSWEOrchestrator {
         }
       }
 
-      const serverProcess = spawn('langgraphjs', ['dev', '--no-browser'], {
-        cwd: langGraphPath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: {
-          ...envVars,
-          // Ensure these are properly set
-          NODE_ENV: envVars.NODE_ENV || 'development',
-          PATH: envVars.PATH || process.env.PATH,
-        },
-        shell: true,
-      });
+      let serverProcess: ChildProcess;
+
+      if (useTerminal) {
+        // Open in separate terminal window
+        const terminalCommand = process.platform === 'darwin' 
+          ? ['osascript', '-e', `tell application "Terminal" to do script "cd '${langGraphPath}' && langgraphjs dev --no-browser"`]
+          : process.platform === 'win32'
+          ? ['cmd', '/c', 'start', 'cmd', '/k', `cd /d "${langGraphPath}" && langgraphjs dev --no-browser`]
+          : ['gnome-terminal', '--', 'bash', '-c', `cd '${langGraphPath}' && langgraphjs dev --no-browser; read`];
+
+        serverProcess = spawn(terminalCommand[0], terminalCommand.slice(1), {
+          env: {
+            ...envVars,
+            NODE_ENV: envVars.NODE_ENV || 'development',
+            PATH: envVars.PATH || process.env.PATH,
+          },
+          detached: true,
+          stdio: 'ignore'
+        });
+
+        // For terminal mode, we can't detect when it's ready, so just wait a bit
+        setTimeout(() => {
+          if (this.langGraphServer) {
+            this.langGraphServer.ready = true;
+            resolve();
+          }
+        }, 5000);
+      } else {
+        // Background mode (existing behavior)
+        serverProcess = spawn('langgraphjs', ['dev', '--no-browser'], {
+          cwd: langGraphPath,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: {
+            ...envVars,
+            // Ensure these are properly set
+            NODE_ENV: envVars.NODE_ENV || 'development',
+            PATH: envVars.PATH || process.env.PATH,
+          },
+          shell: true,
+        });
+      }
 
       this.langGraphServer = {
         process: serverProcess,
@@ -110,31 +140,33 @@ class OpenSWEOrchestrator {
         ready: false,
       };
 
-      serverProcess.stdout?.on('data', (data) => {
-        const output = data.toString();
+      if (!useTerminal) {
+        serverProcess.stdout?.on('data', (data) => {
+          const output = data.toString();
 
-        // Check if server is ready (but don't log all output)
-        if (
-          output.includes('Server running at') ||
-          output.includes('localhost:2024') ||
-          output.includes('::1:2024') ||
-          output.includes('Starting 10 workers')
-        ) {
-          this.langGraphServer!.ready = true;
-          resolve();
-        }
-      });
+          // Check if server is ready (but don't log all output)
+          if (
+            output.includes('Server running at') ||
+            output.includes('localhost:2024') ||
+            output.includes('::1:2024') ||
+            output.includes('Starting 10 workers')
+          ) {
+            this.langGraphServer!.ready = true;
+            resolve();
+          }
+        });
 
-      serverProcess.stderr?.on('data', (data) => {
-        const output = data.toString();
-        // Only log actual errors, not warnings or info messages
-        if (
-          output.toLowerCase().includes('error') &&
-          !output.includes('Warning:')
-        ) {
-          console.error(`[LangGraph Error] ${output.trim()}`);
-        }
-      });
+        serverProcess.stderr?.on('data', (data) => {
+          const output = data.toString();
+          // Only log actual errors, not warnings or info messages
+          if (
+            output.toLowerCase().includes('error') &&
+            !output.includes('Warning:')
+          ) {
+            console.error(`[LangGraph Error] ${output.trim()}`);
+          }
+        });
+      }
 
       serverProcess.on('error', (error) => {
         reject(error);
@@ -149,14 +181,16 @@ class OpenSWEOrchestrator {
         }
       });
 
-      // Timeout if server doesn't start within 30 seconds
-      setTimeout(() => {
-        if (!this.langGraphServer?.ready) {
-          reject(
-            new Error('LangGraph server failed to start within 30 seconds')
-          );
-        }
-      }, 30000);
+      // Timeout if server doesn't start within 30 seconds (only for background mode)
+      if (!useTerminal) {
+        setTimeout(() => {
+          if (!this.langGraphServer?.ready) {
+            reject(
+              new Error('LangGraph server failed to start within 30 seconds')
+            );
+          }
+        }, 30000);
+      }
     });
   }
 
@@ -241,7 +275,7 @@ class OpenSWEOrchestrator {
     await Promise.all(shutdownPromises);
   }
 
-  public async start(cliArgs: string[] = []): Promise<void> {
+  public async start(cliArgs: string[] = [], useTerminal: boolean = false): Promise<void> {
     try {
       // Check and prompt for missing configuration first
       await promptForMissingConfig();
@@ -250,7 +284,7 @@ class OpenSWEOrchestrator {
       applyConfigToEnv();
 
       // Start LangGraph server first
-      await this.startLangGraphServer();
+      await this.startLangGraphServer(useTerminal);
 
       // Wait a moment for server to fully initialize
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -273,6 +307,7 @@ program
   .version('1.0.0')
   .option('--replay <file>', 'Replay from LangSmith trace file')
   .option('--speed <ms>', 'Replay speed in milliseconds', '500')
+  .option('--terminal', 'Run LangGraph server in a separate terminal window')
   .helpOption('-h, --help', 'Display help for command')
   .action(async (options) => {
     const orchestrator = new OpenSWEOrchestrator();
@@ -286,7 +321,7 @@ program
       cliArgs.push('--speed', options.speed);
     }
 
-    await orchestrator.start(cliArgs);
+    await orchestrator.start(cliArgs, options.terminal);
   });
 
 // Parse command line arguments

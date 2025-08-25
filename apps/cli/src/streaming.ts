@@ -109,6 +109,7 @@ export class StreamingService {
           ],
         },
         streamMode: ["updates"] as StreamMode[],
+        config: { recursion_limit: 1000 },
       });
 
       // Process the stream
@@ -163,6 +164,7 @@ export class StreamingService {
       const stream = await this.client.runs.stream(this.threadId, "coding", {
         command: { resume: response },
         streamMode: ["updates"] as StreamMode[],
+        config: { recursion_limit: 1000 },
       });
 
       // Process the stream
@@ -216,6 +218,7 @@ export class StreamingService {
           messages: [{ role: "user", content: prompt }],
         },
         streamMode: ["updates"] as StreamMode[],
+        config: { recursion_limit: 1000 },
       });
 
       // Process the stream
