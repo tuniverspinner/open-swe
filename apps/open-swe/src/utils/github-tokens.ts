@@ -30,8 +30,16 @@ export function getGitHubTokensFromConfig(config: GraphConfig): {
     return {
       githubAccessToken: githubPat,
       githubInstallationToken: githubPat,
-      installationId: "pat-mode",
+      // installationId is not required in PAT-only mode
+      installationId: config.configurable[GITHUB_INSTALLATION_ID] ?? "",
     };
+  }
+
+  const installationId = config.configurable[GITHUB_INSTALLATION_ID];
+  if (!installationId) {
+    throw new Error(
+      `Missing required ${GITHUB_INSTALLATION_ID} in configuration.`,
+    );
   }
 
   const installationId = config.configurable[GITHUB_INSTALLATION_ID];
