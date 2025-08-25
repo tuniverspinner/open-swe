@@ -92,7 +92,7 @@ class OpenSWEOrchestrator {
         }
       }
 
-      const serverProcess = spawn('langgraphjs', ['dev'], {
+      const serverProcess = spawn('langgraphjs', ['dev', '--no-browser'], {
         cwd: langGraphPath,
         stdio: ['pipe', 'pipe', 'pipe'],
         env: {
