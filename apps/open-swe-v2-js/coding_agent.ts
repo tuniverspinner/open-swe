@@ -1,6 +1,10 @@
 /* eslint-disable no-console */
 import { createDeepAgent } from "deepagents";
+import { applyConfigToEnv } from "@open-swe/shared";
 import "dotenv/config";
+
+// Apply saved configuration to environment variables
+applyConfigToEnv();
 import { code_reviewer_agent, test_generator_agent } from "./subagents.js";
 import { get_coding_instructions } from "./coding_instructions.js";
 import { createCodingAgentPostModelHook } from "./coding_post_model_hook.js";
