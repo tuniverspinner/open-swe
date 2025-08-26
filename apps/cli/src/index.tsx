@@ -10,7 +10,6 @@ dotenv.config();
 // Keep the process alive - prevents exit when streaming completes
 const keepAlive = setInterval(() => {}, 60000);
 
-
 // Handle graceful exit on Ctrl+C
 process.on("SIGINT", () => {
   clearInterval(keepAlive);
@@ -43,14 +42,12 @@ program
 // Always run in local mode
 process.env.OPEN_SWE_LOCAL_MODE = "true";
 
-// eslint-disable-next-line no-unused-vars
-const CustomInput: React.FC<{ onSubmit: (value: string) => void; hasInput: boolean; setHasInput: (hasInput: boolean) => void }> = ({
-  onSubmit,
-  hasInput,
-  setHasInput,
-}) => {
+const CustomInput: React.FC<{
+  onSubmit: (value: string) => void; // eslint-disable-line no-unused-vars
+  hasInput: boolean; // eslint-disable-line no-unused-vars
+  setHasInput: (hasInput: boolean) => void; // eslint-disable-line no-unused-vars
+}> = ({ onSubmit, setHasInput }) => {
   const [input, setInput] = useState("");
-
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
     // Handle Ctrl+K for exit
@@ -271,7 +268,8 @@ const App: React.FC = () => {
       {!hasInput && (
         <Box paddingX={2} paddingY={0}>
           <Text>
-            Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH}{!replayFile && " • Ctrl+C to exit"}
+            Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH}
+            {!replayFile && " • Ctrl+C to exit"}
           </Text>
         </Box>
       )}

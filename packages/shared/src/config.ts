@@ -23,8 +23,17 @@ const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
  */
 export function loadConfig(): OpenSWEConfig {
   if (fs.existsSync(CONFIG_FILE)) {
-    const configData = fs.readFileSync(CONFIG_FILE, "utf8");
-    return JSON.parse(configData);
+    const configData = fs.readFileSync(CONFIG_FILE, "utf8").trim();
+    // Handle empty or invalid config files
+    if (configData === "") {
+      return {};
+    }
+    try {
+      return JSON.parse(configData);
+    } catch (error) {
+      console.warn(`Warning: Invalid config file at ${CONFIG_FILE}, using defaults`);
+      return {};
+    }
   }
 
   return {};

@@ -9,13 +9,13 @@ import {
   executeBash,
   httpRequest,
   webSearch,
-  glob,
   ls,
   readFile,
   writeFile,
   strReplaceBasedEditTool,
   grep,
   writeTodos,
+  glob,
 } from "./tools.js";
 
 // LangSmith tracing setup
@@ -28,21 +28,22 @@ if (process.env.LANGCHAIN_TRACING_V2 !== "false") {
 
 const codingInstructions = get_coding_instructions();
 const postModelHook = createCodingAgentPostModelHook();
-console.log("WORKING DIR", CodingAgentState.working_directory);
 // Create the coding agent
+const tools = [
+  executeBash,
+  httpRequest,
+  webSearch,
+  ls,
+  readFile,
+  writeFile,
+  strReplaceBasedEditTool,
+  grep,
+  glob,
+  writeTodos,
+];
+
 const agent = createDeepAgent({
-  tools: [
-    executeBash,
-    httpRequest,
-    webSearch,
-    glob,
-    ls,
-    readFile,
-    writeFile,
-    strReplaceBasedEditTool,
-    grep,
-    writeTodos,
-  ],
+  tools,
   instructions: codingInstructions,
   subagents: [code_reviewer_agent, test_generator_agent],
   skipBuiltinTools: true,
@@ -55,8 +56,8 @@ export {
   executeBash,
   httpRequest,
   webSearch,
-  glob,
   ls,
+  glob,
   readFile,
   writeFile,
   strReplaceBasedEditTool,

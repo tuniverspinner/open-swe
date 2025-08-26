@@ -5,8 +5,6 @@ import { validateCommandSafety } from "./command_safety.js";
 import { getConfigValue } from "@open-swe/shared";
 import * as fs from "fs";
 import * as path from "path";
-import { promisify } from "util";
-import { glob as nodeGlob } from "glob";
 import { Command } from "@langchain/langgraph";
 import { ToolMessage } from "@langchain/core/messages";
 
@@ -117,8 +115,6 @@ export const httpRequest = tool(
     data?: any;
   }) => {
     try {
-      console.log(`[HTTP DEBUG] Making ${method} request to: ${url}`);
-
       const fetchOptions: RequestInit = {
         method,
         headers: {
@@ -131,25 +127,15 @@ export const httpRequest = tool(
         fetchOptions.body = JSON.stringify(data);
       }
 
-      console.log(
-        `[HTTP DEBUG] Fetch options:`,
-        JSON.stringify(fetchOptions, null, 2),
-      );
-
       const response = await fetch(url, fetchOptions);
-      console.log(
-        `[HTTP DEBUG] Response status: ${response.status}, ok: ${response.ok}`,
-      );
 
       let responseData = await response.text();
-      console.log(`[HTTP DEBUG] Response data length: ${responseData.length}`);
 
       // Limit response size to prevent token overflow (max ~10KB)
       if (responseData.length > 10000) {
         responseData =
           responseData.substring(0, 10000) +
           "\n... (content truncated due to size)";
-        console.log(`[HTTP DEBUG] Response truncated to 10KB`);
       }
 
       // Convert headers to plain object
@@ -160,26 +146,13 @@ export const httpRequest = tool(
 
       // For successful responses, return simple success message
       if (response.ok) {
-        console.log(`[HTTP DEBUG] Returning success message`);
         return `HTTP request successful (${response.status}). Response size: ${responseData.length} characters.`;
       } else {
-        console.log(
-          `[HTTP DEBUG] Returning error for non-200 status: ${response.status}`,
-        );
         return `HTTP ${response.status}: Request failed`;
       }
     } catch (error) {
-      console.error(`[HTTP DEBUG] Error occurred:`, error);
-      console.error(`[HTTP DEBUG] Error type:`, typeof error);
-      console.error(`[HTTP DEBUG] Error name:`, error?.name);
-      console.error(
-        `[HTTP DEBUG] Error message:`,
-        error instanceof Error ? error.message : String(error),
-      );
-
       const errorMessage = `HTTP Error: ${error instanceof Error ? error.message : String(error)}`;
 
-      console.log(`[HTTP DEBUG] Returning error message:`, errorMessage);
       return errorMessage;
     }
   },
@@ -275,116 +248,6 @@ export const webSearch = tool(
         .optional()
         .default(5)
         .describe("Maximum number of results to return"),
-    }),
-  },
-);
-
-const globAsync = promisify(nodeGlob.glob);
-
-// Custom glob tool that respects working_directory from state
-export const glob = tool(
-  async (
-    {
-      pattern,
-      base_path = ".",
-      max_results = 100,
-      include_dirs = false,
-      recursive = true,
-    }: {
-      pattern: string;
-      base_path?: string;
-      max_results?: number;
-      include_dirs?: boolean;
-      recursive?: boolean;
-    },
-    config,
-  ) => {
-    try {
-      // Get working directory from state
-      const currentTaskInput =
-        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-      const workingDirectory =
-        currentTaskInput?.working_directory || process.cwd();
-
-      // Resolve base_path relative to working directory
-      const resolvedBasePath = path.resolve(workingDirectory, base_path);
-
-      if (!fs.existsSync(resolvedBasePath)) {
-        return `Error: Path '${resolvedBasePath}' does not exist`;
-      }
-
-      const stat = fs.statSync(resolvedBasePath);
-      if (!stat.isDirectory()) {
-        return `Error: Path '${resolvedBasePath}' is not a directory`;
-      }
-
-      const options = {
-        cwd: resolvedBasePath,
-        absolute: true,
-        dot: true,
-      };
-
-      const matches = await globAsync(pattern, options);
-      const results: string[] = [];
-
-      for (const match of matches as string[]) {
-        if (results.length >= max_results) break;
-
-        const matchStat = fs.statSync(match);
-        if (matchStat.isFile()) {
-          results.push(match);
-        } else if (matchStat.isDirectory() && include_dirs) {
-          results.push(match + "/");
-        }
-      }
-
-      results.sort();
-
-      if (results.length === 0) {
-        const searchType = recursive ? "recursive" : "non-recursive";
-        const dirsNote = include_dirs ? " (including directories)" : "";
-        return `No matches found for pattern '${pattern}' in '${resolvedBasePath}' (${searchType} search${dirsNote})`;
-      }
-
-      const resultCount = results.length;
-      let header = `Found ${resultCount} matches for pattern '${pattern}'`;
-      if (resultCount >= max_results) {
-        header += ` (limited to ${max_results} results)`;
-      }
-      header += ":\n\n";
-
-      return header + results.join("\n");
-    } catch (e) {
-      return `Error in glob search: ${String(e)}`;
-    }
-  },
-  {
-    name: "glob",
-    description: "Search for files using glob patterns in the local filesystem",
-    schema: z.object({
-      pattern: z.string().describe("Glob pattern to match files"),
-      base_path: z
-        .string()
-        .optional()
-        .default(".")
-        .describe(
-          "Base directory to search from (relative to working directory)",
-        ),
-      max_results: z
-        .number()
-        .optional()
-        .default(100)
-        .describe("Maximum number of results"),
-      include_dirs: z
-        .boolean()
-        .optional()
-        .default(false)
-        .describe("Include directories in results"),
-      recursive: z
-        .boolean()
-        .optional()
-        .default(true)
-        .describe("Recursive search"),
     }),
   },
 );
@@ -964,6 +827,120 @@ export const grep = tool(
         .optional()
         .default(false)
         .describe("Use regex pattern matching"),
+    }),
+  },
+);
+
+// Custom glob tool that respects working_directory from state
+export const glob = tool(
+  (
+    {
+      pattern,
+      path: searchPath = ".",
+      absolute = false,
+      ignore_case = false,
+    }: {
+      pattern: string;
+      path?: string;
+      absolute?: boolean;
+      ignore_case?: boolean;
+    },
+    config,
+  ) => {
+    try {
+      // Get working directory from state - match other tools exactly
+      const currentTaskInput =
+        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory =
+        currentTaskInput?.working_directory || process.cwd();
+
+      // Resolve search path relative to working directory
+      const resolvedSearchPath = path.resolve(workingDirectory, searchPath);
+
+      // Simple glob implementation using fs and path
+      const results: string[] = [];
+
+      function matchesPattern(
+        filePath: string,
+        pattern: string,
+        ignoreCase: boolean,
+      ): boolean {
+        // Convert glob pattern to regex
+        const regexPattern = pattern
+          .replace(/\*\*/g, ".*") // ** matches any path
+          .replace(/\*/g, "[^/]*") // * matches any filename chars except /
+          .replace(/\?/g, "[^/]") // ? matches single char except /
+          .replace(/\./g, "\\."); // Escape dots
+
+        if (ignoreCase) {
+          return new RegExp(`^${regexPattern}$`, "i").test(filePath);
+        }
+        return new RegExp(`^${regexPattern}$`).test(filePath);
+      }
+
+      function walkDirectory(dir: string, currentPath = ""): void {
+        try {
+          const items = fs.readdirSync(dir);
+
+          for (const item of items) {
+            const fullPath = path.join(dir, item);
+            const relativePath = currentPath
+              ? path.join(currentPath, item)
+              : item;
+
+            const stat = fs.statSync(fullPath);
+
+            if (stat.isDirectory()) {
+              // Check if directory matches pattern
+              if (matchesPattern(relativePath, pattern, ignore_case)) {
+                results.push(absolute ? fullPath : relativePath);
+              }
+              // Recursively search subdirectories
+              walkDirectory(fullPath, relativePath);
+            } else if (stat.isFile()) {
+              // Check if file matches pattern
+              if (matchesPattern(relativePath, pattern, ignore_case)) {
+                results.push(absolute ? fullPath : relativePath);
+              }
+            }
+          }
+        } catch {
+          // Error occurred while reading directory, continue with other items
+        }
+      }
+
+      // Start walking from resolved search path
+      walkDirectory(resolvedSearchPath);
+
+      return results.sort();
+    } catch (e) {
+      return [`Error in glob search: ${String(e)}`];
+    }
+  },
+  {
+    name: "glob",
+    description: "Find files and directories matching a glob pattern",
+    schema: z.object({
+      pattern: z
+        .string()
+        .describe("Glob pattern to match files (supports *, **, ?)"),
+      path: z
+        .string()
+        .optional()
+        .default(".")
+        .describe(
+          "Directory path to search in (relative to working directory)",
+        ),
+      absolute: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Return absolute paths instead of relative"),
+      ignore_case: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe("Case-insensitive pattern matching"),
     }),
   },
 );

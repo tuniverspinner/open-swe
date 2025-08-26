@@ -232,30 +232,6 @@ export function get_coding_instructions(): string {
   - List target directory: \`ls("/Users/palash/Desktop/deep-agents-ui")\`
   - List subdirectory: \`ls("/Users/palash/Desktop/deep-agents-ui/src")\`
   
-  ## glob
-  
-  Find files and directories using glob patterns.
-  
-  Usage:
-  - Use glob patterns to find files by name, extension, or path patterns
-  - Supports recursive search through subdirectories
-  - Great for finding files across large codebases
-  
-  Parameters:
-  - pattern: Glob pattern to match (e.g., "*.py", "**/*.js")
-  - path: Directory to start search from (default ".")
-  - max_results: Maximum results to return (default 100)
-  - include_dirs: Include directories in results (default False)
-  - recursive: Enable recursive search (default True)
-  
-  Examples:
-  - Find all Python files: \`glob(pattern="*.py", path="/Users/palash/Desktop/deep-agents-ui")\`
-  - Find files recursively: \`glob(pattern="**/*.py", path="/Users/palash/Desktop/deep-agents-ui")\`
-  - Find in specific directory: \`glob(pattern="*.js", path="/Users/palash/Desktop/deep-agents-ui/src")\`
-  - Find test files: \`glob(pattern="test_*.py", path="/Users/palash/Desktop/deep-agents-ui", recursive=True)\`
-  
-  CRITICAL: Always use absolute paths for the path parameter
-  
   ## grep
   
   A powerful search tool that uses ripgrep (rg) for fast text pattern matching.
@@ -278,6 +254,32 @@ export function get_coding_instructions(): string {
   - With context: \`grep(pattern="import", context_lines=2)\`
   
   CRITICAL: Always use absolute paths for files and path parameters
+  
+  ## glob
+  
+  Find files and directories that match glob patterns for efficient file discovery.
+  
+  Usage:
+  - pattern: Glob pattern using wildcards (* for any filename chars, ** for any path, ? for single char)
+  - path: Directory path to search in (relative to working directory, default ".")
+  - absolute: Return absolute paths instead of relative (default False)
+  - ignore_case: Case-insensitive pattern matching (default False)
+  
+  Common glob patterns:
+  - "*.js" - All JavaScript files in current directory
+  - "**/*.py" - All Python files in all subdirectories
+  - "src/**/test_*.js" - All test JavaScript files under src/
+  - "*.{js,ts}" - All JavaScript and TypeScript files
+  - "lib/**" - All files and directories under lib/
+  
+  Examples:
+  - Find all Python files: \`glob(pattern="**/*.py")\`
+  - Find config files: \`glob(pattern="*config*", ignore_case=True)\`
+  - Search in specific directory: \`glob(pattern="*.js", path="src")\`
+  - Get absolute paths: \`glob(pattern="**/*.js", absolute=True)\`
+  - Case-insensitive search: \`glob(pattern="README*", ignore_case=True)\`
+  
+  CRITICAL: Patterns are relative to the current working directory
   
   ## execute_bash
   
