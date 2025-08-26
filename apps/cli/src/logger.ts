@@ -424,11 +424,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         if (isHumanMessage(message)) {
           const text = getMessageContentString(message.content);
           if (text) {
-            // Skip the working directory prefix that's added automatically
-            const cleanText = text
-              .replace(/^Working directory: [^\n]+\n\n/, "")
-              .replace(/\s+/g, " ")
-              .trim();
+            const cleanText = text.replace(/\s+/g, " ").trim();
             if (cleanText) {
               logs.push(`◉ ${cleanText}`);
             }
@@ -458,11 +454,7 @@ export function formatDisplayLog(chunk: LogChunk | string): string[] {
         } else if (msg.type === "human") {
           const text = getMessageContentString(msg.content);
           if (text) {
-            // Skip the working directory prefix that's added automatically
-            const cleanText = text
-              .replace(/^Working directory: [^\n]+\n\n/, "")
-              .replace(/\s+/g, " ")
-              .trim();
+            const cleanText = text.replace(/\s+/g, " ").trim();
             if (cleanText) {
               logs.push(`◉ ${cleanText}`);
             }

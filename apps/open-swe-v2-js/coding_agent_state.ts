@@ -13,6 +13,7 @@ const ApprovedOperationsSchema = z
 // Extend the base DeepAgentState with coding-specific fields
 export const CodingAgentState: any = DeepAgentState.extend({
   approved_operations: ApprovedOperationsSchema,
+  working_directory: z.string().optional(),
 });
 
 export type CodingAgentStateType = z.infer<typeof CodingAgentState>;
@@ -21,7 +22,7 @@ export type CodingAgentStateType = z.infer<typeof CodingAgentState>;
  * Helper functions for the coding agent state
  */
 export class CodingAgentStateHelpers {
-  static getApprovalKey(command: Command, args: CommandArgs): ApprovalKey {
+  static getApprovalKey(command: Command, args: CommandArgs, state?: CodingAgentStateType): ApprovalKey {
     let targetDir: string | null = null;
 
     if (FILE_EDIT_COMMANDS.has(command)) {
@@ -30,13 +31,13 @@ export class CodingAgentStateHelpers {
         targetDir = path.dirname(path.resolve(filePath));
       }
     } else if (command === "execute_bash") {
-      targetDir = args.cwd || process.cwd();
+      targetDir = args.cwd || state?.working_directory || process.cwd();
     } else if (["ls", "glob", "grep"].includes(command)) {
-      targetDir = args.path || args.directory || process.cwd();
+      targetDir = args.path || args.directory || state?.working_directory || process.cwd();
     }
 
     if (!targetDir) {
-      targetDir = process.cwd();
+      targetDir = state?.working_directory || process.cwd();
     }
 
     // Create a cache key: command_type:normalized_directory
@@ -59,7 +60,7 @@ export class CodingAgentStateHelpers {
       return false;
     }
 
-    const approvalKey = this.getApprovalKey(command, args);
+    const approvalKey = this.getApprovalKey(command, args, state);
     return state.approved_operations.cached_approvals.has(approvalKey);
   }
 
@@ -79,7 +80,7 @@ export class CodingAgentStateHelpers {
       state.approved_operations.cached_approvals = new Set<string>();
     }
 
-    const approvalKey = this.getApprovalKey(command, args);
+    const approvalKey = this.getApprovalKey(command, args, state);
     state.approved_operations.cached_approvals.add(approvalKey);
   }
 }
