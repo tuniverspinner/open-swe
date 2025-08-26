@@ -12,17 +12,22 @@ import { ToolMessage } from "@langchain/core/messages";
 
 // Execute bash command tool
 export const executeBash = tool(
-  async ({
-    command,
-    timeout = 30000,
-  }: {
-    command: string;
-    timeout?: number;
-  }, config) => {
+  async (
+    {
+      command,
+      timeout = 30000,
+    }: {
+      command: string;
+      timeout?: number;
+    },
+    config,
+  ) => {
     try {
       // Get working directory from the current task input in the scratchpad
-      const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-      const workingDirectory = currentTaskInput?.working_directory || process.cwd();
+      const currentTaskInput =
+        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory =
+        currentTaskInput?.working_directory || process.cwd();
 
       // First, validate command safety (focusing on prompt injection)
       const safetyValidation = await validateCommandSafety(command);
@@ -51,7 +56,9 @@ export const executeBash = tool(
 
         const timeoutId = setTimeout(() => {
           child.kill();
-          resolve(`Command timed out after ${timeout}ms${stdout ? `\nOutput: ${stdout}` : ""}${stderr ? `\nError: ${stderr}` : ""}`);
+          resolve(
+            `Command timed out after ${timeout}ms${stdout ? `\nOutput: ${stdout}` : ""}${stderr ? `\nError: ${stderr}` : ""}`,
+          );
         }, timeout);
 
         child.on("close", (code) => {
@@ -65,13 +72,17 @@ export const executeBash = tool(
               resolve(stdout + (stderr ? `\nSTDERR: ${stderr}` : ""));
             }
           } else {
-            resolve(`Command failed with exit code ${code || 0}${stdout ? `\nOutput: ${stdout}` : ""}${stderr ? `\nError: ${stderr}` : ""}`);
+            resolve(
+              `Command failed with exit code ${code || 0}${stdout ? `\nOutput: ${stdout}` : ""}${stderr ? `\nError: ${stderr}` : ""}`,
+            );
           }
         });
 
         child.on("error", (err) => {
           clearTimeout(timeoutId);
-          resolve(`Error executing command: ${err.message}${stdout ? `\nOutput: ${stdout}` : ""}${stderr ? `\nError output: ${stderr}` : ""}`);
+          resolve(
+            `Error executing command: ${err.message}${stdout ? `\nOutput: ${stdout}` : ""}${stderr ? `\nError output: ${stderr}` : ""}`,
+          );
         });
       });
     } catch (error) {
@@ -107,7 +118,7 @@ export const httpRequest = tool(
   }) => {
     try {
       console.log(`[HTTP DEBUG] Making ${method} request to: ${url}`);
-      
+
       const fetchOptions: RequestInit = {
         method,
         headers: {
@@ -120,17 +131,24 @@ export const httpRequest = tool(
         fetchOptions.body = JSON.stringify(data);
       }
 
-      console.log(`[HTTP DEBUG] Fetch options:`, JSON.stringify(fetchOptions, null, 2));
+      console.log(
+        `[HTTP DEBUG] Fetch options:`,
+        JSON.stringify(fetchOptions, null, 2),
+      );
 
       const response = await fetch(url, fetchOptions);
-      console.log(`[HTTP DEBUG] Response status: ${response.status}, ok: ${response.ok}`);
-      
+      console.log(
+        `[HTTP DEBUG] Response status: ${response.status}, ok: ${response.ok}`,
+      );
+
       let responseData = await response.text();
       console.log(`[HTTP DEBUG] Response data length: ${responseData.length}`);
-      
+
       // Limit response size to prevent token overflow (max ~10KB)
       if (responseData.length > 10000) {
-        responseData = responseData.substring(0, 10000) + "\n... (content truncated due to size)";
+        responseData =
+          responseData.substring(0, 10000) +
+          "\n... (content truncated due to size)";
         console.log(`[HTTP DEBUG] Response truncated to 10KB`);
       }
 
@@ -145,17 +163,22 @@ export const httpRequest = tool(
         console.log(`[HTTP DEBUG] Returning success message`);
         return `HTTP request successful (${response.status}). Response size: ${responseData.length} characters.`;
       } else {
-        console.log(`[HTTP DEBUG] Returning error for non-200 status: ${response.status}`);
+        console.log(
+          `[HTTP DEBUG] Returning error for non-200 status: ${response.status}`,
+        );
         return `HTTP ${response.status}: Request failed`;
       }
     } catch (error) {
       console.error(`[HTTP DEBUG] Error occurred:`, error);
       console.error(`[HTTP DEBUG] Error type:`, typeof error);
       console.error(`[HTTP DEBUG] Error name:`, error?.name);
-      console.error(`[HTTP DEBUG] Error message:`, error instanceof Error ? error.message : String(error));
-      
+      console.error(
+        `[HTTP DEBUG] Error message:`,
+        error instanceof Error ? error.message : String(error),
+      );
+
       const errorMessage = `HTTP Error: ${error instanceof Error ? error.message : String(error)}`;
-      
+
       console.log(`[HTTP DEBUG] Returning error message:`, errorMessage);
       return errorMessage;
     }
@@ -260,27 +283,32 @@ const globAsync = promisify(nodeGlob.glob);
 
 // Custom glob tool that respects working_directory from state
 export const glob = tool(
-  async ({
-    pattern,
-    base_path = ".",
-    max_results = 100,
-    include_dirs = false,
-    recursive = true,
-  }: {
-    pattern: string;
-    base_path?: string;
-    max_results?: number;
-    include_dirs?: boolean;
-    recursive?: boolean;
-  }, config) => {
+  async (
+    {
+      pattern,
+      base_path = ".",
+      max_results = 100,
+      include_dirs = false,
+      recursive = true,
+    }: {
+      pattern: string;
+      base_path?: string;
+      max_results?: number;
+      include_dirs?: boolean;
+      recursive?: boolean;
+    },
+    config,
+  ) => {
     try {
       // Get working directory from state
-      const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-      const workingDirectory = currentTaskInput?.working_directory || process.cwd();
-      
+      const currentTaskInput =
+        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory =
+        currentTaskInput?.working_directory || process.cwd();
+
       // Resolve base_path relative to working directory
       const resolvedBasePath = path.resolve(workingDirectory, base_path);
-      
+
       if (!fs.existsSync(resolvedBasePath)) {
         return `Error: Path '${resolvedBasePath}' does not exist`;
       }
@@ -339,7 +367,9 @@ export const glob = tool(
         .string()
         .optional()
         .default(".")
-        .describe("Base directory to search from (relative to working directory)"),
+        .describe(
+          "Base directory to search from (relative to working directory)",
+        ),
       max_results: z
         .number()
         .optional()
@@ -361,19 +391,24 @@ export const glob = tool(
 
 // Custom ls tool that respects working_directory from state
 export const ls = tool(
-  ({
-    path: dirPath = ".",
-  }: {
-    path?: string;
-  }, config) => {
+  (
+    {
+      path: dirPath = ".",
+    }: {
+      path?: string;
+    },
+    config,
+  ) => {
     try {
       // Get working directory from state
-      const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-      const workingDirectory = currentTaskInput?.working_directory || process.cwd();
-      
+      const currentTaskInput =
+        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory =
+        currentTaskInput?.working_directory || process.cwd();
+
       // Resolve dirPath relative to working directory
       const resolvedPath = path.resolve(workingDirectory, dirPath);
-      
+
       if (!fs.existsSync(resolvedPath)) {
         return [`Error: Path '${resolvedPath}' does not exist`];
       }
@@ -404,23 +439,28 @@ export const ls = tool(
 
 // Custom read_file tool that respects working_directory from state
 export const readFile = tool(
-  ({
-    file_path,
-    offset = 0,
-    limit = 500,
-  }: {
-    file_path: string;
-    offset?: number;
-    limit?: number;
-  }, config) => {
+  (
+    {
+      file_path,
+      offset = 0,
+      limit = 500,
+    }: {
+      file_path: string;
+      offset?: number;
+      limit?: number;
+    },
+    config,
+  ) => {
     try {
       // Get working directory from state
-      const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-      const workingDirectory = currentTaskInput?.working_directory || process.cwd();
-      
+      const currentTaskInput =
+        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory =
+        currentTaskInput?.working_directory || process.cwd();
+
       // Resolve file_path relative to working directory
       const resolvedPath = path.resolve(workingDirectory, file_path);
-      
+
       if (!fs.existsSync(resolvedPath)) {
         return `Error: File '${resolvedPath}' not found`;
       }
@@ -460,7 +500,9 @@ export const readFile = tool(
         }
 
         const lineNumber = i + 1;
-        resultLines.push(`${lineNumber.toString().padStart(6)}\t${lineContent}`);
+        resultLines.push(
+          `${lineNumber.toString().padStart(6)}\t${lineContent}`,
+        );
       }
 
       return resultLines.join("\n");
@@ -472,7 +514,9 @@ export const readFile = tool(
     name: "read_file",
     description: "Read a file from the local filesystem",
     schema: z.object({
-      file_path: z.string().describe("Path to the file to read (relative to working directory)"),
+      file_path: z
+        .string()
+        .describe("Path to the file to read (relative to working directory)"),
       offset: z
         .number()
         .optional()
@@ -489,21 +533,26 @@ export const readFile = tool(
 
 // Custom write_file tool that respects working_directory from state
 export const writeFile = tool(
-  ({
-    file_path,
-    content,
-  }: {
-    file_path: string;
-    content: string;
-  }, config) => {
+  (
+    {
+      file_path,
+      content,
+    }: {
+      file_path: string;
+      content: string;
+    },
+    config,
+  ) => {
     try {
       // Get working directory from state
-      const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-      const workingDirectory = currentTaskInput?.working_directory || process.cwd();
-      
+      const currentTaskInput =
+        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory =
+        currentTaskInput?.working_directory || process.cwd();
+
       // Resolve file_path relative to working directory
       const resolvedPath = path.resolve(workingDirectory, file_path);
-      
+
       const dir = path.dirname(resolvedPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -519,7 +568,9 @@ export const writeFile = tool(
     name: "write_file",
     description: "Write content to a file in the local filesystem",
     schema: z.object({
-      file_path: z.string().describe("Path to the file to write (relative to working directory)"),
+      file_path: z
+        .string()
+        .describe("Path to the file to write (relative to working directory)"),
       content: z.string().describe("Content to write to the file"),
     }),
   },
@@ -527,28 +578,33 @@ export const writeFile = tool(
 
 // Custom str_replace_based_edit_tool that respects working_directory from state
 export const strReplaceBasedEditTool = tool(
-  ({
-    command,
-    path: filePath,
-    view_range,
-    old_str,
-    new_str,
-    file_text,
-    insert_line,
-  }: {
-    command: "view" | "str_replace" | "create" | "insert";
-    path: string;
-    view_range?: [number, number];
-    old_str?: string;
-    new_str?: string;
-    file_text?: string;
-    insert_line?: number;
-  }, config) => {
+  (
+    {
+      command,
+      path: filePath,
+      view_range,
+      old_str,
+      new_str,
+      file_text,
+      insert_line,
+    }: {
+      command: "view" | "str_replace" | "create" | "insert";
+      path: string;
+      view_range?: [number, number];
+      old_str?: string;
+      new_str?: string;
+      file_text?: string;
+      insert_line?: number;
+    },
+    config,
+  ) => {
     try {
       // Get working directory from state
-      const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-      const workingDirectory = currentTaskInput?.working_directory || process.cwd();
-      
+      const currentTaskInput =
+        config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory =
+        currentTaskInput?.working_directory || process.cwd();
+
       // Resolve filePath relative to working directory
       const resolvedPath = path.resolve(workingDirectory, filePath);
 
@@ -699,12 +755,15 @@ export const strReplaceBasedEditTool = tool(
   },
   {
     name: "str_replace_based_edit_tool",
-    description: "Edit files using string replacement, view, create, or insert operations",
+    description:
+      "Edit files using string replacement, view, create, or insert operations",
     schema: z.object({
       command: z
         .enum(["view", "str_replace", "create", "insert"])
         .describe("Action to perform"),
-      path: z.string().describe("Path to the file (relative to working directory)"),
+      path: z
+        .string()
+        .describe("Path to the file (relative to working directory)"),
       view_range: z
         .tuple([z.number(), z.number()])
         .optional()
@@ -731,31 +790,36 @@ export const strReplaceBasedEditTool = tool(
 
 // Custom grep tool that respects working_directory from state
 export const grep = tool(
-  async ({
-    pattern,
-    files,
-    search_path,
-    file_pattern = "*",
-    max_results = 50,
-    case_sensitive = false,
-    context_lines = 0,
-    regex = false,
-  }: {
-    pattern: string;
-    files?: string | string[];
-    search_path?: string;
-    file_pattern?: string;
-    max_results?: number;
-    case_sensitive?: boolean;
-    context_lines?: number;
-    regex?: boolean;
-  }, config) => {
+  async (
+    {
+      pattern,
+      files,
+      search_path,
+      file_pattern = "*",
+      max_results = 50,
+      case_sensitive = false,
+      context_lines = 0,
+      regex = false,
+    }: {
+      pattern: string;
+      files?: string | string[];
+      search_path?: string;
+      file_pattern?: string;
+      max_results?: number;
+      case_sensitive?: boolean;
+      context_lines?: number;
+      regex?: boolean;
+    },
+    config,
+  ) => {
     return new Promise<string>((resolve) => {
       try {
         // Get working directory from state
-        const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
-        const workingDirectory = currentTaskInput?.working_directory || process.cwd();
-        
+        const currentTaskInput =
+          config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+        const workingDirectory =
+          currentTaskInput?.working_directory || process.cwd();
+
         if (!files && !search_path) {
           resolve(
             "Error: Must provide either 'files' parameter or 'search_path' parameter",
@@ -793,11 +857,16 @@ export const grep = tool(
             const resolvedFile = path.resolve(workingDirectory, files);
             cmd.push(resolvedFile);
           } else {
-            const resolvedFiles = files.map(f => path.resolve(workingDirectory, f));
+            const resolvedFiles = files.map((f) =>
+              path.resolve(workingDirectory, f),
+            );
             cmd.push(...resolvedFiles);
           }
         } else if (search_path) {
-          const resolvedSearchPath = path.resolve(workingDirectory, search_path);
+          const resolvedSearchPath = path.resolve(
+            workingDirectory,
+            search_path,
+          );
           cmd.push(resolvedSearchPath);
         }
 
@@ -863,8 +932,13 @@ export const grep = tool(
       files: z
         .union([z.string(), z.array(z.string())])
         .optional()
-        .describe("Specific files to search in (relative to working directory)"),
-      search_path: z.string().optional().describe("Directory to search in (relative to working directory)"),
+        .describe(
+          "Specific files to search in (relative to working directory)",
+        ),
+      search_path: z
+        .string()
+        .optional()
+        .describe("Directory to search in (relative to working directory)"),
       file_pattern: z
         .string()
         .optional()

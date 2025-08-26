@@ -10,7 +10,8 @@ dotenv.config();
 // Keep the process alive - prevents exit when streaming completes
 const keepAlive = setInterval(() => {}, 60000);
 
-// Handle graceful exit on Ctrl+C and Ctrl+K
+
+// Handle graceful exit on Ctrl+C
 process.on("SIGINT", () => {
   clearInterval(keepAlive);
   console.log("\n👋 Goodbye!");
@@ -43,10 +44,13 @@ program
 process.env.OPEN_SWE_LOCAL_MODE = "true";
 
 // eslint-disable-next-line no-unused-vars
-const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
+const CustomInput: React.FC<{ onSubmit: (value: string) => void; hasInput: boolean; setHasInput: (hasInput: boolean) => void }> = ({
   onSubmit,
+  hasInput,
+  setHasInput,
 }) => {
   const [input, setInput] = useState("");
+
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
     // Handle Ctrl+K for exit
@@ -61,11 +65,16 @@ const CustomInput: React.FC<{ onSubmit: (value: string) => void }> = ({
         onSubmit(input);
         // Clear input immediately after submission
         setInput("");
+        setHasInput(false);
       }
     } else if (key.backspace || key.delete) {
-      setInput((prev) => prev.slice(0, -1));
+      const newInput = input.slice(0, -1);
+      setInput(newInput);
+      setHasInput(newInput.length > 0);
     } else if (inputChar) {
-      setInput((prev) => prev + inputChar);
+      const newInput = input + inputChar;
+      setInput(newInput);
+      setHasInput(newInput.length > 0);
     }
   });
 
@@ -87,6 +96,7 @@ const App: React.FC = () => {
     args: Record<string, any>;
     id: string;
   } | null>(null);
+  const [hasInput, setHasInput] = useState(false);
 
   const options = program.opts();
   const replayFile = options.replay;
@@ -211,8 +221,8 @@ const App: React.FC = () => {
       <Box
         flexDirection="column"
         paddingX={2}
-        borderStyle="single"
-        borderTop
+        borderStyle={hasInput ? undefined : "single"}
+        borderTop={hasInput ? false : true}
         height={3}
         flexShrink={0}
         justifyContent="center"
@@ -222,6 +232,8 @@ const App: React.FC = () => {
             <Text>&gt; Replay mode - input disabled</Text>
           ) : (
             <CustomInput
+              hasInput={hasInput}
+              setHasInput={setHasInput}
               onSubmit={(value) => {
                 // Handle interrupt approval responses
                 if (currentInterrupt && streamingService) {
@@ -256,11 +268,13 @@ const App: React.FC = () => {
       </Box>
 
       {/* Local mode indicator underneath the input bar */}
-      <Box paddingX={2} paddingY={0}>
-        <Text>
-          Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH} • Ctrl+C to exit
-        </Text>
-      </Box>
+      {!hasInput && (
+        <Box paddingX={2} paddingY={0}>
+          <Text>
+            Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH}{!replayFile && " • Ctrl+C to exit"}
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 };

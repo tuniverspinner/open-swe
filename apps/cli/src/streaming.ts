@@ -107,7 +107,8 @@ export class StreamingService {
               content: prompt,
             },
           ],
-          working_directory: process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd(),
+          working_directory:
+            process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd(),
         },
         streamMode: ["updates"] as StreamMode[],
         config: { recursion_limit: 1000 },
