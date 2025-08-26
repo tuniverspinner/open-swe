@@ -12,8 +12,16 @@ export const executeBash = tool(
   }: {
     command: string;
     timeout?: number;
-  }) => {
+  }, config) => {
     try {
+      // Get working directory from the current task input in the scratchpad
+      const currentTaskInput = config?.configurable?.__pregel_scratchpad?.currentTaskInput;
+      const workingDirectory = currentTaskInput?.working_directory || process.cwd();
+      
+      // Debug logging
+      console.log("DEBUG: Working directory found:", workingDirectory);
+      console.log("DEBUG: Current task input:", currentTaskInput);
+
       // First, validate command safety (focusing on prompt injection)
       const safetyValidation = await validateCommandSafety(command);
 
@@ -31,6 +39,7 @@ export const executeBash = tool(
       return new Promise((resolve) => {
         const child = spawn("bash", ["-c", command], {
           stdio: ["pipe", "pipe", "pipe"],
+          cwd: workingDirectory,
         });
 
         let stdout = "";

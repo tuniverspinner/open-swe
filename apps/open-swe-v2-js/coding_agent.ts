@@ -17,7 +17,7 @@ if (process.env.LANGCHAIN_TRACING_V2 !== "false") {
 
 const codingInstructions = get_coding_instructions();
 const postModelHook = createCodingAgentPostModelHook();
-
+console.log("WORKING DIR", CodingAgentState.working_directory);
 // Create the coding agent
 const agent = createDeepAgent({
   tools: [executeBash, httpRequest, webSearch],
