@@ -22,7 +22,11 @@ export type CodingAgentStateType = z.infer<typeof CodingAgentState>;
  * Helper functions for the coding agent state
  */
 export class CodingAgentStateHelpers {
-  static getApprovalKey(command: Command, args: CommandArgs, state?: CodingAgentStateType): ApprovalKey {
+  static getApprovalKey(
+    command: Command,
+    args: CommandArgs,
+    state?: CodingAgentStateType,
+  ): ApprovalKey {
     let targetDir: string | null = null;
 
     if (FILE_EDIT_COMMANDS.has(command)) {
@@ -33,7 +37,11 @@ export class CodingAgentStateHelpers {
     } else if (command === "execute_bash") {
       targetDir = args.cwd || state?.working_directory || process.cwd();
     } else if (["ls", "glob", "grep"].includes(command)) {
-      targetDir = args.path || args.directory || state?.working_directory || process.cwd();
+      targetDir =
+        args.path ||
+        args.directory ||
+        state?.working_directory ||
+        process.cwd();
     }
 
     if (!targetDir) {

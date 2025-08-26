@@ -33,7 +33,8 @@ export const ApprovalBox: React.FC<ApprovalBoxProps> = ({ interrupt }) => {
             <Text bold>
               {(() => {
                 if (interrupt.args.file_path || interrupt.args.path) {
-                  const filePath = interrupt.args.file_path || interrupt.args.path;
+                  const filePath =
+                    interrupt.args.file_path || interrupt.args.path;
                   if (interrupt.args.content) {
                     const lines = interrupt.args.content.split("\n").length;
                     return `${filePath} (${lines} lines)`;
