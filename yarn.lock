@@ -10326,7 +10326,7 @@ __metadata:
   dependencies:
     "@eslint/js": ^9.0.0
     "@open-swe/shared": "workspace:*"
-    deepagents: 0.0.0-rc.2
+    deepagents: 0.0.0-rc.3
     eslint: ^9.0.0
     globals: ^15.0.0
     prettier: ^3.5.2
@@ -10929,7 +10929,20 @@ __metadata:
   languageName: node
   linkType: hard
 
-"deepagents@npm:0.0.0-rc.2, deepagents@npm:rc":
+"deepagents@npm:0.0.0-rc.3":
+  version: 0.0.0-rc.3
+  resolution: "deepagents@npm:0.0.0-rc.3"
+  dependencies:
+    "@langchain/anthropic": ^0.3.25
+    "@langchain/core": ^0.3.66
+    "@langchain/langgraph": ^0.4.2
+    glob: ^10.4.5
+    zod: ^3.25.32
+  checksum: 657039fceb8d79657de7b8afe573d6ba293b8ffe4b67144ced0e33a2e872f0ce3409e28dbdbe9ecd7f28001ba122737ca789423f571ec1a24139e77844118607
+  languageName: node
+  linkType: hard
+
+"deepagents@npm:rc":
   version: 0.0.0-rc.2
   resolution: "deepagents@npm:0.0.0-rc.2"
   dependencies:
@@ -13141,7 +13154,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:^10.2.2":
+"glob@npm:^10.2.2, glob@npm:^10.4.5":
   version: 10.4.5
   resolution: "glob@npm:10.4.5"
   dependencies:
