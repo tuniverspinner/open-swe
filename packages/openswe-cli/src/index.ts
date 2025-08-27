@@ -64,7 +64,7 @@ class OpenSWEOrchestrator {
       const langGraphPath = path.join(
         this.workspaceRoot,
         "apps",
-        "open-swe-v2-js",
+        "open-swe-v2",
       );
 
       if (!fs.existsSync(langGraphPath)) {
