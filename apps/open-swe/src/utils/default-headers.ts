@@ -11,8 +11,7 @@ import {
 
 export function getDefaultHeaders(config: GraphConfig): Record<string, string> {
   const githubPat = config.configurable?.[GITHUB_PAT];
-  const isProd = process.env.NODE_ENV === "production";
-  if (githubPat && !isProd) {
+  if (githubPat) {
     // PAT-only
     return {
       [GITHUB_PAT]: githubPat,

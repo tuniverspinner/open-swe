@@ -36,8 +36,6 @@ interface AuthenticateReturn extends BaseAuthReturn {
 
 export const auth = new Auth()
   .authenticate<AuthenticateReturn>(async (request: Request) => {
-    const isProd = process.env.NODE_ENV === "production";
-
     if (request.method === "OPTIONS") {
       return {
         identity: "anonymous",
@@ -96,7 +94,7 @@ export const auth = new Auth()
 
     // Check for GitHub PAT authentication (simpler mode for evals, etc.)
     const githubPat = getGitHubPatFromRequest(request, encryptionKey);
-    if (githubPat && !isProd) {
+    if (githubPat) {
       const user = await verifyGithubUser(githubPat);
       if (!user) {
         throw new HTTPException(401, {

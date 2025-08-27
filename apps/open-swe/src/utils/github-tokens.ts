@@ -22,10 +22,8 @@ export function getGitHubTokensFromConfig(config: GraphConfig): {
     throw new Error("Missing SECRETS_ENCRYPTION_KEY environment variable.");
   }
 
-  const isProd = process.env.NODE_ENV === "production";
-
   const githubPat = getGitHubPatFromConfig(config.configurable, encryptionKey);
-  if (githubPat && !isProd) {
+  if (githubPat) {
     // check for PAT-only mode
     return {
       githubAccessToken: githubPat,
