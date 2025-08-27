@@ -159,7 +159,7 @@ class OpenSWEOrchestrator {
         reject(error);
       });
 
-      serverProcess.on("exit", (code, signal) => {
+      serverProcess.on("exit", () => {
         if (!this.isShuttingDown) {
           this.shutdown();
         }
