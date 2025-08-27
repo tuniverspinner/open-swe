@@ -10959,7 +10959,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"deepagents@npm:rc":
+"deepagents@npm:0.0.0-rc.2":
   version: 0.0.0-rc.2
   resolution: "deepagents@npm:0.0.0-rc.2"
   dependencies:
