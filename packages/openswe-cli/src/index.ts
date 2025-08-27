@@ -161,9 +161,6 @@ class OpenSWEOrchestrator {
 
       serverProcess.on("exit", (code, signal) => {
         if (!this.isShuttingDown) {
-          console.error(
-            `❌ LangGraph server exited with code ${code}, signal: ${signal}`,
-          );
           this.shutdown();
         }
       });
@@ -295,11 +292,11 @@ program
     "OpenSWE - Unified CLI tool for running OpenSWE CLI + LangGraph server",
   )
   .version("1.0.0")
-  .option("--terminal", "Run LangGraph server in a separate terminal window")
+  .option("--server", "Run LangGraph server in a separate terminal window")
   .helpOption("-h, --help", "Display help for command")
   .action(async (options) => {
     const orchestrator = new OpenSWEOrchestrator();
-    await orchestrator.start([], options.terminal);
+    await orchestrator.start([], options.server);
   });
 
 // Parse command line arguments
