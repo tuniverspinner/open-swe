@@ -887,7 +887,6 @@ export const glob = tool(
             const stat = fs.statSync(fullPath);
 
             if (stat.isDirectory()) {
-              
               if (matchesPattern(relativePath, pattern, ignore_case)) {
                 results.push(absolute ? fullPath : relativePath);
               }
