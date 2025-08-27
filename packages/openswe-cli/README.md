@@ -32,7 +32,7 @@ openswe --version
 ### Command Options
 
 - `--server` - Start in server mode for web interface integration
-- `--help` - Show help information  
+- `--help` - Show help information
 - `--version` - Show version information
 
 ## Examples
@@ -51,6 +51,7 @@ openswe --server
 ## What it can do
 
 Open-SWE can help with:
+
 - Reading and editing files
 - Running builds and tests
 - Code analysis and debugging
