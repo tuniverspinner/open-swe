@@ -30,8 +30,7 @@ export function loadConfig(): OpenSWEConfig {
     }
     try {
       return JSON.parse(configData);
-    } catch (error) {
-      console.warn(`Warning: Invalid config file at ${CONFIG_FILE}, using defaults`);
+    } catch {
       return {};
     }
   }
