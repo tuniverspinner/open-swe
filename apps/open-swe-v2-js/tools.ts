@@ -848,16 +848,13 @@ export const glob = tool(
     config,
   ) => {
     try {
-      // Get working directory from state - match other tools exactly
       const currentTaskInput =
         config?.configurable?.__pregel_scratchpad?.currentTaskInput;
       const workingDirectory =
         currentTaskInput?.working_directory || process.cwd();
 
-      // Resolve search path relative to working directory
       const resolvedSearchPath = path.resolve(workingDirectory, searchPath);
 
-      // Simple glob implementation using fs and path
       const results: string[] = [];
 
       function matchesPattern(
@@ -865,7 +862,6 @@ export const glob = tool(
         pattern: string,
         ignoreCase: boolean,
       ): boolean {
-        // Convert glob pattern to regex
         const regexPattern = pattern
           .replace(/\*\*/g, ".*") // ** matches any path
           .replace(/\*/g, "[^/]*") // * matches any filename chars except /
@@ -891,14 +887,12 @@ export const glob = tool(
             const stat = fs.statSync(fullPath);
 
             if (stat.isDirectory()) {
-              // Check if directory matches pattern
+              
               if (matchesPattern(relativePath, pattern, ignore_case)) {
                 results.push(absolute ? fullPath : relativePath);
               }
-              // Recursively search subdirectories
               walkDirectory(fullPath, relativePath);
             } else if (stat.isFile()) {
-              // Check if file matches pattern
               if (matchesPattern(relativePath, pattern, ignore_case)) {
                 results.push(absolute ? fullPath : relativePath);
               }
@@ -945,7 +939,6 @@ export const glob = tool(
   },
 );
 
-// Write todos tool
 export const writeTodos = tool(
   (input, config) => {
     return new Command({
