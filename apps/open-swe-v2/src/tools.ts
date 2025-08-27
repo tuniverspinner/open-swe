@@ -21,16 +21,13 @@ export const executeBash = tool(
     config,
   ) => {
     try {
-      // Get working directory from the current task input in the scratchpad
       const currentTaskInput =
         config?.configurable?.__pregel_scratchpad?.currentTaskInput;
       const workingDirectory =
         currentTaskInput?.working_directory || process.cwd();
 
-      // First, validate command safety (focusing on prompt injection)
       const safetyValidation = await validateCommandSafety(command);
 
-      // If command is not safe, return error without executing
       if (!safetyValidation.is_safe) {
         return `Command blocked - safety validation failed:\nThreat Type: ${safetyValidation.threat_type}\nReasoning: ${safetyValidation.reasoning}${safetyValidation.detected_patterns.length > 0 ? `\nDetected Patterns: ${safetyValidation.detected_patterns.join(", ")}` : ""}`;
       }
@@ -62,11 +59,9 @@ export const executeBash = tool(
         child.on("close", (code) => {
           clearTimeout(timeoutId);
           if (code === 0) {
-            // For successful commands, return simple success message if no stdout
             if (!stdout.trim() && !stderr.trim()) {
               resolve("Command executed successfully");
             } else {
-              // Return stdout/stderr if there's output
               resolve(stdout + (stderr ? `\nSTDERR: ${stderr}` : ""));
             }
           } else {
@@ -131,20 +126,17 @@ export const httpRequest = tool(
 
       let responseData = await response.text();
 
-      // Limit response size to prevent token overflow (max ~10KB)
       if (responseData.length > 10000) {
         responseData =
           responseData.substring(0, 10000) +
           "\n... (content truncated due to size)";
       }
 
-      // Convert headers to plain object
       const headersObj: Record<string, string> = {};
       response.headers.forEach((value, key) => {
         headersObj[key] = value;
       });
 
-      // For successful responses, return simple success message
       if (response.ok) {
         return `HTTP request successful (${response.status}). Response size: ${responseData.length} characters.`;
       } else {
@@ -263,13 +255,11 @@ export const ls = tool(
     config,
   ) => {
     try {
-      // Get working directory from state
       const currentTaskInput =
         config?.configurable?.__pregel_scratchpad?.currentTaskInput;
       const workingDirectory =
         currentTaskInput?.working_directory || process.cwd();
 
-      // Resolve dirPath relative to working directory
       const resolvedPath = path.resolve(workingDirectory, dirPath);
 
       if (!fs.existsSync(resolvedPath)) {
@@ -315,13 +305,11 @@ export const readFile = tool(
     config,
   ) => {
     try {
-      // Get working directory from state
       const currentTaskInput =
         config?.configurable?.__pregel_scratchpad?.currentTaskInput;
       const workingDirectory =
         currentTaskInput?.working_directory || process.cwd();
 
-      // Resolve file_path relative to working directory
       const resolvedPath = path.resolve(workingDirectory, file_path);
 
       if (!fs.existsSync(resolvedPath)) {
@@ -863,10 +851,11 @@ export const glob = tool(
         ignoreCase: boolean,
       ): boolean {
         const regexPattern = pattern
-          .replace(/\*\*/g, ".*") // ** matches any path
-          .replace(/\*/g, "[^/]*") // * matches any filename chars except /
-          .replace(/\?/g, "[^/]") // ? matches single char except /
-          .replace(/\./g, "\\."); // Escape dots
+          .replace(/\\/g, "\\\\")
+          .replace(/\*\*/g, ".*")
+          .replace(/\*/g, "[^/]*")
+          .replace(/\?/g, "[^/]")
+          .replace(/\./g, "\\.");
 
         if (ignoreCase) {
           return new RegExp(`^${regexPattern}$`, "i").test(filePath);
