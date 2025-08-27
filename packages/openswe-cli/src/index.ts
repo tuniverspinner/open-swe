@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 
-import { spawn, ChildProcess } from "child_process";
+import { spawn, ChildProcess, exec } from "child_process";
 import { Command } from "commander";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { promisify } from "util";
 import { promptForMissingConfig, applyConfigToEnv } from "@open-swe/shared";
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,6 +35,21 @@ class OpenSWEOrchestrator {
     process.on("SIGINT", () => this.shutdown());
     process.on("SIGTERM", () => this.shutdown());
     process.on("exit", () => this.shutdown());
+  }
+
+  private async ensureLangGraphCLI(): Promise<void> {
+    try {
+      // Check if langgraphjs command exists
+      await execAsync("which langgraphjs");
+    } catch {
+      console.log("Installing @langchain/langgraph-cli globally...");
+      try {
+        await execAsync("npm install -g @langchain/langgraph-cli");
+        console.log("✓ LangGraph CLI installed successfully");
+      } catch (error) {
+        throw new Error(`Failed to install LangGraph CLI: ${error}`);
+      }
+    }
   }
 
   private findWorkspaceRoot(): string {
@@ -264,6 +282,9 @@ class OpenSWEOrchestrator {
     useTerminal: boolean = false,
   ): Promise<void> {
     try {
+      // Ensure LangGraph CLI is installed globally
+      await this.ensureLangGraphCLI();
+
       // Check and prompt for missing configuration first
       await promptForMissingConfig();
 
