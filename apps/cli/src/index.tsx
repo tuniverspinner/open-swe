@@ -180,17 +180,15 @@ const App: React.FC = () => {
                   >
                     <Text
                       color={
-                        isAIMessage
-                          ? "magenta"
-                          : isToolResult
-                            ? "gray"
-                            : isRemovedLine
-                              ? "redBright"
-                              : isAddedLine
-                                ? "greenBright"
-                                : isLongBashCommand
-                                  ? "gray"
-                                  : undefined
+                        isToolResult
+                          ? "gray"
+                          : isRemovedLine
+                            ? "redBright"
+                            : isAddedLine
+                              ? "greenBright"
+                              : isLongBashCommand
+                                ? "gray"
+                                : undefined
                       }
                       bold={isAIMessage}
                       wrap="wrap"
