@@ -1,0 +1,13 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["@open-swe/agent-v2#build"],
+      "outputs": ["dist/**"]
+    },
+    "bundle": {
+      "dependsOn": ["@open-swe/agent-v2#build", "build"],
+      "outputs": ["bundle/**", "agent/**", "langgraph.json"]
+    }
+  }
+}

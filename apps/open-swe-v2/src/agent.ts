@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { createDeepAgent } from "deepagents";
-import { applyConfigToEnv } from "@open-swe/shared";
+import { applyConfigToEnv } from "@openswe/shared";
 import "dotenv/config";
 
 // Apply saved configuration to environment variables

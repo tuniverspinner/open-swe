@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { promisify } from "util";
-import { promptForMissingConfig, applyConfigToEnv } from "@open-swe/shared";
+import { promptForMissingConfig, applyConfigToEnv } from "@openswe/shared";
 
 const execAsync = promisify(exec);
 
@@ -25,11 +25,11 @@ class OpenSWEOrchestrator {
   private langGraphServer: ServerProcess | null = null;
   private cliProcess: ServerProcess | null = null;
   private isShuttingDown = false;
-  private workspaceRoot: string;
+  private packageRoot: string;
 
   constructor() {
-    // Find the workspace root (where the main package.json is)
-    this.workspaceRoot = this.findWorkspaceRoot();
+    // Use the package installation directory
+    this.packageRoot = path.resolve(__dirname, "..");
 
     // Handle graceful shutdown
     process.on("SIGINT", () => this.shutdown());
@@ -52,41 +52,16 @@ class OpenSWEOrchestrator {
     }
   }
 
-  private findWorkspaceRoot(): string {
-    let currentDir = process.cwd();
-
-    // Walk up the directory tree to find the workspace root
-    while (currentDir !== path.parse(currentDir).root) {
-      const packageJsonPath = path.join(currentDir, "package.json");
-      if (fs.existsSync(packageJsonPath)) {
-        try {
-          const packageJson = JSON.parse(
-            fs.readFileSync(packageJsonPath, "utf8"),
-          );
-          if (packageJson.workspaces) {
-            return currentDir;
-          }
-        } catch {
-          // Ignore JSON parsing errors and continue searching
-        }
-      }
-      currentDir = path.dirname(currentDir);
-    }
-    return path.resolve(__dirname, "../../..");
-  }
 
   private async startLangGraphServer(
     useTerminal: boolean = false,
   ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const langGraphPath = path.join(
-        this.workspaceRoot,
-        "apps",
-        "open-swe-v2",
-      );
+      // Use bundled agent code
+      const langGraphConfigPath = path.join(this.packageRoot, "langgraph.json");
 
-      if (!fs.existsSync(langGraphPath)) {
-        reject(new Error(`LangGraph server path not found: ${langGraphPath}`));
+      if (!fs.existsSync(langGraphConfigPath)) {
+        reject(new Error(`LangGraph config not found: ${langGraphConfigPath}`));
         return;
       }
 
@@ -99,7 +74,7 @@ class OpenSWEOrchestrator {
             ? [
                 "osascript",
                 "-e",
-                `tell application "Terminal" to do script "cd '${langGraphPath}' && langgraphjs dev --no-browser"`,
+                `tell application "Terminal" to do script "cd '${this.packageRoot}' && langgraphjs dev --no-browser --config langgraph.json"`,
               ]
             : process.platform === "win32"
               ? [
@@ -108,14 +83,14 @@ class OpenSWEOrchestrator {
                   "start",
                   "cmd",
                   "/k",
-                  `cd /d "${langGraphPath}" && langgraphjs dev --no-browser`,
+                  `cd /d "${this.packageRoot}" && langgraphjs dev --no-browser --config langgraph.json`,
                 ]
               : [
                   "gnome-terminal",
                   "--",
                   "bash",
                   "-c",
-                  `cd '${langGraphPath}' && langgraphjs dev --no-browser; read`,
+                  `cd '${this.packageRoot}' && langgraphjs dev --no-browser --config langgraph.json; read`,
                 ];
 
         serverProcess = spawn(terminalCommand[0], terminalCommand.slice(1), {
@@ -133,8 +108,8 @@ class OpenSWEOrchestrator {
         }, 5000);
       } else {
         // Background mode (existing behavior)
-        serverProcess = spawn("langgraphjs", ["dev", "--no-browser"], {
-          cwd: langGraphPath,
+        serverProcess = spawn("langgraphjs", ["dev", "--no-browser", "--config", "langgraph.json"], {
+          cwd: this.packageRoot,
           stdio: ["pipe", "pipe", "pipe"],
           env: process.env,
         });
@@ -198,16 +173,18 @@ class OpenSWEOrchestrator {
 
   private async startCLI(args: string[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
-      const cliPath = path.join(this.workspaceRoot, "apps", "cli");
-
-      if (!fs.existsSync(cliPath)) {
-        reject(new Error(`CLI path not found: ${cliPath}`));
+      // Run the bundled CLI
+      const cliEntryPoint = path.join(this.packageRoot, "cli", "index.tsx");
+      
+      console.log("Starting CLI from:", cliEntryPoint);
+      
+      if (!fs.existsSync(cliEntryPoint)) {
+        reject(new Error(`CLI entry point not found: ${cliEntryPoint}`));
         return;
       }
-
-      // Build the CLI command - run the built version
-      const cliProcess = spawn("node", ["dist/index.js", ...args], {
-        cwd: cliPath,
+      
+      // Use npx to ensure tsx is available
+      const cliProcess = spawn("npx", ["tsx", cliEntryPoint, ...args], {
         stdio: "inherit",
         env: {
           ...process.env,

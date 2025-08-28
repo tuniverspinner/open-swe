@@ -1,28 +1,37 @@
 {
   "name": "openswe",
-  "version": "0.0.0",
+  "version": "0.0.0-rc.57",
   "description": "OpenSWE CLI - Unified CLI tool for running OpenSWE CLI + LangGraph server",
   "license": "MIT",
   "type": "module",
   "bin": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "bundle": "node scripts/bundle.js",
     "dev": "tsx src/index.ts",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist bundle agent cli langgraph.json",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "echo \"Tests not implemented yet\" && exit 0"
   },
   "dependencies": {
-    "@open-swe/cli": "*",
-    "@open-swe/shared": "*",
+    "@langchain/core": "^0.3.65",
+    "@langchain/langgraph-sdk": "^0.0.95",
+    "@openswe/shared": "^0.0.0",
     "coding-agent": "*",
-    "commander": "^12.0.0"
+    "commander": "^12.0.0",
+    "deepagents": "0.0.0-rc.3",
+    "dotenv": "^16.6.1",
+    "ink": "^6.0.1",
+    "react": "^19.1.0",
+    "tsx": "^4.20.3",
+    "uuid": "^10.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
     "eslint": "^9.19.0",
+    "fs-extra": "^11.2.0",
     "prettier": "^3.5.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",

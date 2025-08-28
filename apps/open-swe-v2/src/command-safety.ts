@@ -1,7 +1,7 @@
 import { ChatAnthropic } from "@langchain/anthropic";
 import { z } from "zod";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
-import { getConfigValue } from "@open-swe/shared";
+import { getConfigValue } from "@openswe/shared";
 
 // Safety validation schema matching Python version
 export const CommandSafetyValidationSchema = z.object({

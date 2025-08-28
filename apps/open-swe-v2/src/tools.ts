@@ -2,7 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { spawn } from "child_process";
 import { validateCommandSafety } from "./command-safety.js";
-import { getConfigValue } from "@open-swe/shared";
+import { getConfigValue } from "@openswe/shared";
 import * as fs from "fs";
 import * as path from "path";
 import { Command } from "@langchain/langgraph";
