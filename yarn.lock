@@ -4375,7 +4375,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@open-swe/agent-v2@*, @open-swe/agent-v2@workspace:apps/open-swe-v2":
+"@open-swe/agent-v2@workspace:apps/open-swe-v2":
   version: 0.0.0-use.local
   resolution: "@open-swe/agent-v2@workspace:apps/open-swe-v2"
   dependencies:
@@ -4624,22 +4624,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openswe/cli@npm:^0.0.0":
-  version: 0.0.0
-  resolution: "@openswe/cli@npm:0.0.0"
-  dependencies:
-    "@langchain/langgraph-sdk": ^0.0.95
-    "@openswe/shared": "*"
-    commander: ^12.0.0
-    dotenv: ^16.6.1
-    ink: ^6.0.1
-    react: ^19.1.0
-    uuid: ^10.0.0
-  checksum: e6539c1195b7bcec12ab332f08c5b508a46928f4ee34a92c78ffadd03f59d5e144718bf3f8ea7b5025c89aa69b75c684aa08b100b318c343d73c0691d361a953
-  languageName: node
-  linkType: hard
-
-"@openswe/shared@npm:*, @openswe/shared@npm:^0.0.0":
+"@openswe/shared@npm:^0.0.0":
   version: 0.0.0
   resolution: "@openswe/shared@npm:0.0.0"
   dependencies:
@@ -16482,18 +16467,23 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "openswe@workspace:packages/openswe-cli"
   dependencies:
-    "@open-swe/agent-v2": "*"
-    "@open-swe/shared": "*"
-    "@openswe/cli": ^0.0.0
+    "@langchain/core": ^0.3.65
+    "@langchain/langgraph-sdk": ^0.0.95
+    "@openswe/shared": ^0.0.0
     "@types/node": ^22.13.5
     coding-agent: "*"
     commander: ^12.0.0
+    deepagents: 0.0.0-rc.3
+    dotenv: ^16.6.1
     eslint: ^9.19.0
     fs-extra: ^11.2.0
+    ink: ^6.0.1
     prettier: ^3.5.2
+    react: ^19.1.0
     tsx: ^4.20.3
     typescript: ^5.8.3
     typescript-eslint: ^8.38.0
+    uuid: ^10.0.0
   bin:
     openswe: dist/index.js
   languageName: unknown

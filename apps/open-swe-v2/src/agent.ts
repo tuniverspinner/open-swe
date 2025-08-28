@@ -26,7 +26,7 @@ import {
 if (process.env.LANGCHAIN_TRACING_V2 !== "false") {
   process.env.LANGCHAIN_TRACING_V2 = "true";
   if (!process.env.LANGCHAIN_PROJECT) {
-    process.env.LANGCHAIN_PROJECT = "coding_agent";
+    process.env.LANGCHAIN_PROJECT = "open-swe-v2";
   }
 }
 
