@@ -56,12 +56,19 @@ export function createCodingAgentPostModelHook() {
       if (!toolCall.name) {
         continue;
       }
-
       if (WRITE_COMMANDS.has(toolName)) {
         // Check if this command/directory combination has been approved before
         if (
           CodingAgentStateHelpers.isOperationApproved(state, toolName, toolArgs)
         ) {
+          approvedToolCalls.push(toolCall);
+        } else if (state.auto_accept_mode) {
+          // In auto-accept mode, automatically approve and cache the operation
+          CodingAgentStateHelpers.addApprovedOperation(
+            state,
+            toolName,
+            toolArgs,
+          );
           approvedToolCalls.push(toolCall);
         } else {
           const approvalKey = CodingAgentStateHelpers.getApprovalKey(

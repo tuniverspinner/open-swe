@@ -43,9 +43,18 @@ export class StreamingService {
   private client: Client | null = null;
   private threadId: string | null = null;
   private rawLogs: (string | StreamChunk)[] = [];
+  private auto_accept_mode: boolean = false;
 
   constructor(callbacks: StreamingCallbacks) {
     this.callbacks = callbacks;
+  }
+
+  /**
+   * Toggle auto accept mode
+   */
+  toggleAutoAcceptMode(): boolean {
+    this.auto_accept_mode = !this.auto_accept_mode;
+    return this.auto_accept_mode;
   }
 
   /**
@@ -109,6 +118,7 @@ export class StreamingService {
           ],
           working_directory:
             process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd(),
+          auto_accept_mode: this.auto_accept_mode, 
         },
         streamMode: ["updates"] as StreamMode[],
         config: { recursion_limit: 1000 },

@@ -14,6 +14,7 @@ const ApprovedOperationsSchema = z
 export const CodingAgentState: any = DeepAgentState.extend({
   approved_operations: ApprovedOperationsSchema,
   working_directory: z.string().optional(),
+  auto_accept_mode: z.boolean().optional(),
 });
 
 export type CodingAgentStateType = z.infer<typeof CodingAgentState>;

@@ -46,7 +46,10 @@ const CustomInput: React.FC<{
   onSubmit: (value: string) => void; // eslint-disable-line no-unused-vars
   hasInput: boolean; // eslint-disable-line no-unused-vars
   setHasInput: (hasInput: boolean) => void; // eslint-disable-line no-unused-vars
-}> = ({ onSubmit, setHasInput }) => {
+  autoAcceptMode: boolean; // eslint-disable-line no-unused-vars
+  setAutoAcceptMode: (mode: boolean) => void; // eslint-disable-line no-unused-vars
+  streamingService: StreamingService | null; // eslint-disable-line no-unused-vars
+}> = ({ onSubmit, setHasInput, autoAcceptMode, setAutoAcceptMode, streamingService }) => {
   const [input, setInput] = useState("");
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
@@ -54,6 +57,24 @@ const CustomInput: React.FC<{
     if (key.ctrl && inputChar.toLowerCase() === "k") {
       console.log("\n👋 Goodbye!");
       process.exit(0);
+    }
+
+    // Handle Escape for auto-accept mode
+    if (key.escape) {
+      const newMode = !autoAcceptMode;
+      setAutoAcceptMode(newMode);
+      
+      // Update existing streaming service if it exists
+      if (streamingService) {
+        if (newMode) {
+          streamingService.toggleAutoAcceptMode();
+        } else {
+          // Toggle twice to turn it off
+          streamingService.toggleAutoAcceptMode();
+          streamingService.toggleAutoAcceptMode();
+        }
+      }
+      return;
     }
 
     if (key.return) {
@@ -94,6 +115,7 @@ const App: React.FC = () => {
     id: string;
   } | null>(null);
   const [hasInput, setHasInput] = useState(false);
+  const [autoAcceptMode, setAutoAcceptMode] = useState(false);
 
   const options = program.opts();
   const replayFile = options.replay;
@@ -229,6 +251,9 @@ const App: React.FC = () => {
             <CustomInput
               hasInput={hasInput}
               setHasInput={setHasInput}
+              autoAcceptMode={autoAcceptMode}
+              setAutoAcceptMode={setAutoAcceptMode}
+              streamingService={streamingService}
               onSubmit={(value) => {
                 // Handle interrupt approval responses
                 if (currentInterrupt && streamingService) {
@@ -248,6 +273,11 @@ const App: React.FC = () => {
                     setCurrentInterrupt,
                     setStreamingPhase: () => {},
                   });
+                  
+                  // Set auto-accept mode if enabled
+                  if (autoAcceptMode) {
+                    newStreamingService.toggleAutoAcceptMode();
+                  }
 
                   setStreamingService(newStreamingService);
                   newStreamingService.startNewSession(value);
@@ -267,7 +297,8 @@ const App: React.FC = () => {
         <Box paddingX={2} paddingY={0}>
           <Text>
             Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH}
-            {!replayFile && " • Ctrl+C to exit"}
+            {!replayFile && (autoAcceptMode ? " • Ctrl+C to exit • " : " • Ctrl+C to exit • Esc to toggle auto-accept")}
+            {!replayFile && autoAcceptMode && <Text bold>Auto-accept mode</Text>}
           </Text>
         </Box>
       )}
