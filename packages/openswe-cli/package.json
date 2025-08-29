@@ -1,6 +1,6 @@
 {
   "name": "openswe",
-  "version": "0.0.0-rc.591",
+  "version": "0.0.0-rc.593",
   "description": "OpenSWE CLI - Unified CLI tool for running OpenSWE CLI + LangGraph server",
   "license": "MIT",
   "type": "module",

@@ -8,11 +8,18 @@ import { fileURLToPath } from "url";
 import { promisify } from "util";
 import { promptForMissingConfig, applyConfigToEnv } from "@openswe/shared";
 import net from "net";
+import { readFileSync } from "fs";
 
 const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Read version from package.json
+const packageJson = JSON.parse(
+  readFileSync(path.resolve(__dirname, "..", "package.json"), "utf-8")
+);
+const version = packageJson.version;
 
 const program = new Command();
 
@@ -206,7 +213,7 @@ class OpenSWEOrchestrator {
   private async startCLI(args: string[] = []): Promise<void> {
     return new Promise((resolve, reject) => {
       // Run the bundled CLI
-      const cliEntryPoint = path.join(this.packageRoot, "cli", "index.tsx");
+      const cliEntryPoint = path.join(this.packageRoot, "cli", "index.js");
 
       console.log("Starting CLI from:", cliEntryPoint);
 
@@ -215,8 +222,8 @@ class OpenSWEOrchestrator {
         return;
       }
 
-      // Use npx to ensure tsx is available
-      const cliProcess = spawn("npx", ["tsx", cliEntryPoint, ...args], {
+      // Run the compiled JS file directly with node
+      const cliProcess = spawn("node", [cliEntryPoint, ...args], {
         stdio: "inherit",
         env: {
           ...process.env,
@@ -321,7 +328,7 @@ program
   .description(
     "OpenSWE - Unified CLI tool for running OpenSWE CLI + LangGraph server",
   )
-  .version("1.0.0")
+  .version(version)
   .option("--server", "Run LangGraph server in a separate terminal window")
   .helpOption("-h, --help", "Display help for command")
   .action(async (options) => {
