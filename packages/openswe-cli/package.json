@@ -1,10 +1,17 @@
 {
   "name": "openswe",
-  "version": "0.0.0-rc.58",
+  "version": "0.0.0-rc.591",
   "description": "OpenSWE CLI - Unified CLI tool for running OpenSWE CLI + LangGraph server",
   "license": "MIT",
   "type": "module",
   "bin": "dist/index.js",
+  "files": [
+    "dist/",
+    "agent/",
+    "cli/",
+    "langgraph.json",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
     "bundle": "node scripts/bundle.js",

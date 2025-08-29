@@ -7,6 +7,7 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { promisify } from "util";
 import { promptForMissingConfig, applyConfigToEnv } from "@openswe/shared";
+import net from "net";
 
 const execAsync = promisify(exec);
 
@@ -26,6 +27,7 @@ class OpenSWEOrchestrator {
   private cliProcess: ServerProcess | null = null;
   private isShuttingDown = false;
   private packageRoot: string;
+  private serverPort: number | null = null;
 
   constructor() {
     // Use the package installation directory
@@ -35,6 +37,23 @@ class OpenSWEOrchestrator {
     process.on("SIGINT", () => this.shutdown());
     process.on("SIGTERM", () => this.shutdown());
     process.on("exit", () => this.shutdown());
+  }
+
+  private async findAvailablePort(): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const server = net.createServer();
+      server.listen(0, () => {
+        const port = (server.address() as net.AddressInfo)?.port;
+        server.close(() => {
+          if (port) {
+            resolve(port);
+          } else {
+            reject(new Error("Could not find available port"));
+          }
+        });
+      });
+      server.on('error', reject);
+    });
   }
 
   private async ensureLangGraphCLI(): Promise<void> {
@@ -56,6 +75,10 @@ class OpenSWEOrchestrator {
   private async startLangGraphServer(
     useTerminal: boolean = false,
   ): Promise<void> {
+    // Get a random available port
+    this.serverPort = await this.findAvailablePort();
+    console.log(`Starting LangGraph server on port ${this.serverPort}...`);
+    
     return new Promise((resolve, reject) => {
       // Use bundled agent code
       const langGraphConfigPath = path.join(this.packageRoot, "langgraph.json");
@@ -74,7 +97,7 @@ class OpenSWEOrchestrator {
             ? [
                 "osascript",
                 "-e",
-                `tell application "Terminal" to do script "cd '${this.packageRoot}' && langgraphjs dev --no-browser --config langgraph.json"`,
+                `tell application "Terminal" to do script "cd '${this.packageRoot}' && langgraphjs dev --no-browser --port=${this.serverPort} --config langgraph.json"`,
               ]
             : process.platform === "win32"
               ? [
@@ -83,14 +106,14 @@ class OpenSWEOrchestrator {
                   "start",
                   "cmd",
                   "/k",
-                  `cd /d "${this.packageRoot}" && langgraphjs dev --no-browser --config langgraph.json`,
+                  `cd /d "${this.packageRoot}" && langgraphjs dev --no-browser --port=${this.serverPort} --config langgraph.json`,
                 ]
               : [
                   "gnome-terminal",
                   "--",
                   "bash",
                   "-c",
-                  `cd '${this.packageRoot}' && langgraphjs dev --no-browser --config langgraph.json; read`,
+                  `cd '${this.packageRoot}' && langgraphjs dev --no-browser --port=${this.serverPort} --config langgraph.json; read`,
                 ];
 
         serverProcess = spawn(terminalCommand[0], terminalCommand.slice(1), {
@@ -108,7 +131,7 @@ class OpenSWEOrchestrator {
         }, 5000);
       } else {
         // Background mode (existing behavior)
-        serverProcess = spawn("langgraphjs", ["dev", "--no-browser", "--config", "langgraph.json"], {
+        serverProcess = spawn("langgraphjs", ["dev", "--no-browser", `--port=${this.serverPort}`, "--config", "langgraph.json"], {
           cwd: this.packageRoot,
           stdio: ["pipe", "pipe", "pipe"],
           env: process.env,
@@ -128,8 +151,8 @@ class OpenSWEOrchestrator {
           // Check if server is ready (but don't log all output)
           if (
             output.includes("Server running at") ||
-            output.includes("localhost:2024") ||
-            output.includes("::1:2024") ||
+            output.includes(`localhost:${this.serverPort}`) ||
+            output.includes(`::1:${this.serverPort}`) ||
             output.includes("Starting 10 workers")
           ) {
             this.langGraphServer!.ready = true;
@@ -188,7 +211,7 @@ class OpenSWEOrchestrator {
         stdio: "inherit",
         env: {
           ...process.env,
-          LANGGRAPH_URL: "http://localhost:2024",
+          LANGGRAPH_URL: `http://localhost:${this.serverPort}`,
           OPEN_SWE_LOCAL_PROJECT_PATH: process.cwd(),
         },
       });

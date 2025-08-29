@@ -4,3 +4,6 @@ bundle/
 agent/
 cli/
 *.tgz
+
+# LangGraph API
+.langgraph_api

@@ -30,16 +30,17 @@ async function bundle() {
     process.exit(1);
   }
   
-  // Copy CLI source files
+  // Copy CLI compiled files
   const cliSourcePath = path.resolve(__dirname, '../../../apps/cli');
-  const cliSrcPath = path.join(cliSourcePath, 'src');
+  const cliDistPath = path.join(cliSourcePath, 'dist');
   const bundleCliPath = path.join(bundleDir, 'cli');
   
-  if (await fs.pathExists(cliSrcPath)) {
-    await fs.copy(cliSrcPath, bundleCliPath);
-    console.log('✓ Copied CLI source files');
+  if (await fs.pathExists(cliDistPath)) {
+    await fs.copy(cliDistPath, bundleCliPath);
+    console.log('✓ Copied CLI compiled files');
   } else {
-    console.error('❌ CLI source path not found:', cliSrcPath);
+    console.error('❌ CLI dist path not found:', cliDistPath);
+    console.error('Make sure to run "yarn build" in apps/cli first');
     process.exit(1);
   }
   
