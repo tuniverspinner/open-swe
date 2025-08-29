@@ -49,7 +49,13 @@ const CustomInput: React.FC<{
   autoAcceptMode: boolean; // eslint-disable-line no-unused-vars
   setAutoAcceptMode: (mode: boolean) => void; // eslint-disable-line no-unused-vars
   streamingService: StreamingService | null; // eslint-disable-line no-unused-vars
-}> = ({ onSubmit, setHasInput, autoAcceptMode, setAutoAcceptMode, streamingService }) => {
+}> = ({
+  onSubmit,
+  setHasInput,
+  autoAcceptMode,
+  setAutoAcceptMode,
+  streamingService,
+}) => {
   const [input, setInput] = useState("");
 
   useInput((inputChar: string, key: { [key: string]: any }) => {
@@ -63,7 +69,7 @@ const CustomInput: React.FC<{
     if (key.escape) {
       const newMode = !autoAcceptMode;
       setAutoAcceptMode(newMode);
-      
+
       // Update existing streaming service if it exists
       if (streamingService) {
         if (newMode) {
@@ -273,7 +279,7 @@ const App: React.FC = () => {
                     setCurrentInterrupt,
                     setStreamingPhase: () => {},
                   });
-                  
+
                   // Set auto-accept mode if enabled
                   if (autoAcceptMode) {
                     newStreamingService.toggleAutoAcceptMode();
@@ -297,8 +303,13 @@ const App: React.FC = () => {
         <Box paddingX={2} paddingY={0}>
           <Text>
             Working on {process.env.OPEN_SWE_LOCAL_PROJECT_PATH}
-            {!replayFile && (autoAcceptMode ? " • Ctrl+C to exit • " : " • Ctrl+C to exit • Esc to toggle auto-accept")}
-            {!replayFile && autoAcceptMode && <Text bold>Auto-accept mode</Text>}
+            {!replayFile &&
+              (autoAcceptMode
+                ? " • Ctrl+C to exit • "
+                : " • Ctrl+C to exit • Esc to toggle auto-accept")}
+            {!replayFile && autoAcceptMode && (
+              <Text bold>Auto-accept mode</Text>
+            )}
           </Text>
         </Box>
       )}

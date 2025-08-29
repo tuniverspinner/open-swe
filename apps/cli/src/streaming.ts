@@ -118,7 +118,7 @@ export class StreamingService {
           ],
           working_directory:
             process.env.OPEN_SWE_LOCAL_PROJECT_PATH || process.cwd(),
-          auto_accept_mode: this.auto_accept_mode, 
+          auto_accept_mode: this.auto_accept_mode,
         },
         streamMode: ["updates"] as StreamMode[],
         config: { recursion_limit: 1000 },

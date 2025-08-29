@@ -52,7 +52,7 @@ class OpenSWEOrchestrator {
           }
         });
       });
-      server.on('error', reject);
+      server.on("error", reject);
     });
   }
 
@@ -71,14 +71,13 @@ class OpenSWEOrchestrator {
     }
   }
 
-
   private async startLangGraphServer(
     useTerminal: boolean = false,
   ): Promise<void> {
     // Get a random available port
     this.serverPort = await this.findAvailablePort();
     console.log(`Starting LangGraph server on port ${this.serverPort}...`);
-    
+
     return new Promise((resolve, reject) => {
       // Use bundled agent code
       const langGraphConfigPath = path.join(this.packageRoot, "langgraph.json");
@@ -131,11 +130,21 @@ class OpenSWEOrchestrator {
         }, 5000);
       } else {
         // Background mode (existing behavior)
-        serverProcess = spawn("langgraphjs", ["dev", "--no-browser", `--port=${this.serverPort}`, "--config", "langgraph.json"], {
-          cwd: this.packageRoot,
-          stdio: ["pipe", "pipe", "pipe"],
-          env: process.env,
-        });
+        serverProcess = spawn(
+          "langgraphjs",
+          [
+            "dev",
+            "--no-browser",
+            `--port=${this.serverPort}`,
+            "--config",
+            "langgraph.json",
+          ],
+          {
+            cwd: this.packageRoot,
+            stdio: ["pipe", "pipe", "pipe"],
+            env: process.env,
+          },
+        );
       }
 
       this.langGraphServer = {
@@ -198,14 +207,14 @@ class OpenSWEOrchestrator {
     return new Promise((resolve, reject) => {
       // Run the bundled CLI
       const cliEntryPoint = path.join(this.packageRoot, "cli", "index.tsx");
-      
+
       console.log("Starting CLI from:", cliEntryPoint);
-      
+
       if (!fs.existsSync(cliEntryPoint)) {
         reject(new Error(`CLI entry point not found: ${cliEntryPoint}`));
         return;
       }
-      
+
       // Use npx to ensure tsx is available
       const cliProcess = spawn("npx", ["tsx", cliEntryPoint, ...args], {
         stdio: "inherit",
