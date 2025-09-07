@@ -16,6 +16,7 @@ import {
   GITHUB_USER_LOGIN_HEADER,
   GITHUB_PAT,
   GITHUB_INSTALLATION_ID,
+  XAI_API_KEY,
 } from "../constants.js";
 import { withLangGraph } from "@langchain/langgraph/zod";
 import { BaseMessage } from "@langchain/core/messages";
@@ -491,6 +492,11 @@ export const GraphConfigurationMetadata: {
       type: "hidden",
     },
   },
+  [XAI_API_KEY]: {
+    x_open_swe_ui_config: {
+      type: "hidden",
+    },
+  },
   thread_id: {
     x_open_swe_ui_config: {
       type: "hidden",
@@ -607,7 +613,7 @@ export const GraphConfiguration = z.object({
    * @default 0
    */
   summarizerTemperature: withLangGraph(z.number().optional(), {
-    metadata: GraphConfigurationMetadata.actionGeneratorTemperature,
+    metadata: GraphConfigurationMetadata.summarizerTemperature,
   }),
   /**
    * The maximum number of tokens to generate in an individual generation.
@@ -686,6 +692,12 @@ export const GraphConfiguration = z.object({
    */
   [GITHUB_PAT]: withLangGraph(z.string().optional(), {
     metadata: GraphConfigurationMetadata[GITHUB_PAT],
+  }),
+  /**
+   * xAI API key for Grok models
+   */
+  [XAI_API_KEY]: withLangGraph(z.string().optional(), {
+    metadata: GraphConfigurationMetadata[XAI_API_KEY],
   }),
   /**
    * Custom MCP servers configuration as JSON string. Merges with default servers.
