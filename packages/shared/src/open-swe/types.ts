@@ -494,7 +494,8 @@ export const GraphConfigurationMetadata: {
   },
   [XAI_API_KEY]: {
     x_open_swe_ui_config: {
-      type: "hidden",
+      type: "text",
+      description: "API key for xAI Grok models",
     },
   },
   thread_id: {
